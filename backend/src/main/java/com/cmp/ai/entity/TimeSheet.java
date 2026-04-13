@@ -18,12 +18,18 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.Index;
 
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-@Table(name = "timse_sheets")
+@Table( 
+    name = "time_sheet",
+    indexes = {
+        @Index(name = "idx_timesheet_contractor_month",columnList = "contractor_id, month")
+    }
+)
 public class TimeSheet {
     
     @Id
