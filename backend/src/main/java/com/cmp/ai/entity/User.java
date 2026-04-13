@@ -13,6 +13,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -20,10 +21,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "users")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(
+    name = "users",
+    indexes = {
+        @Index(name = "idx_email", columnList = "email"),
+        @Index(name = "idx_role", columnList = "role")
+    }
+)
 public class User {
     
     @Id
@@ -47,8 +54,5 @@ public class User {
 
     @OneToMany(mappedBy = "contractor", fetch = FetchType.LAZY)
     private List<Contract> contracts;
-
-
-
 
 }
