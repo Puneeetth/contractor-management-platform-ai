@@ -17,7 +17,7 @@ export const Table = ({
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500/20 border-t-indigo-500"></div>
       </div>
     )
   }
@@ -25,7 +25,7 @@ export const Table = ({
   if (data.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No data found</p>
+        <p className="text-slate-500">No data found</p>
       </div>
     )
   }
@@ -34,25 +34,28 @@ export const Table = ({
     <div>
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
+          <thead>
+            <tr className="border-b border-white/[0.06]">
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-6 py-3 text-left text-sm font-semibold text-gray-700"
+                  className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider"
                 >
                   {column.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-white/[0.04]">
             {data.map((row, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
+              <tr 
+                key={rowIndex} 
+                className="hover:bg-white/[0.03] transition-colors duration-150"
+              >
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className="px-6 py-4 text-sm text-gray-900"
+                    className="px-6 py-4 text-sm text-slate-300"
                   >
                     {column.render ? column.render(row) : row[column.key]}
                   </td>
@@ -64,8 +67,8 @@ export const Table = ({
       </div>
 
       {showPagination && (
-        <div className="flex justify-between items-center mt-4 px-6">
-          <p className="text-sm text-gray-600">
+        <div className="flex justify-between items-center mt-4 px-6 pt-4 border-t border-white/[0.06]">
+          <p className="text-sm text-slate-500">
             Page {currentPage} of {totalPages} • {total} items
           </p>
           <div className="flex gap-2">

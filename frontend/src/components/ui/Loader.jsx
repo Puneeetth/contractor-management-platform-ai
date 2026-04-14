@@ -6,24 +6,24 @@ export const Loader = ({
   message = 'Loading...',
 }) => {
   const sizes = {
-    sm: 'h-4 w-4',
-    md: 'h-8 w-8',
-    lg: 'h-12 w-12',
+    sm: 'h-4 w-4 border-2',
+    md: 'h-8 w-8 border-2',
+    lg: 'h-12 w-12 border-3',
   }
 
   const loader = (
     <div className="flex flex-col items-center justify-center gap-3">
       <div className={`
-        rounded-full border-4 border-gray-200 border-t-indigo-600 animate-spin
+        rounded-full border-indigo-500/20 border-t-indigo-500 animate-spin
         ${sizes[size]}
       `} />
-      {message && <p className="text-gray-600 text-sm">{message}</p>}
+      {message && <p className="text-slate-400 text-sm">{message}</p>}
     </div>
   )
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-[#111827]/90 backdrop-blur-sm flex items-center justify-center z-50">
         {loader}
       </div>
     )

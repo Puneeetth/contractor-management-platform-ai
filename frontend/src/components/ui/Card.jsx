@@ -6,14 +6,17 @@ export const Card = ({
   header = null,
   footer = null,
   isPadded = true,
+  noBorder = false,
 }) => {
   return (
     <div className={`
-      bg-white rounded-2xl shadow-sm border border-gray-100
+      bg-[#1a1f2e] rounded-2xl transition-all duration-300
+      ${noBorder ? '' : 'border border-white/[0.06]'}
+      hover:border-white/[0.1]
       ${className}
     `}>
       {header && (
-        <div className="border-b border-gray-100 px-6 py-4">
+        <div className="border-b border-white/[0.06] px-6 py-4">
           {header}
         </div>
       )}
@@ -21,7 +24,7 @@ export const Card = ({
         {children}
       </div>
       {footer && (
-        <div className="border-t border-gray-100 px-6 py-4">
+        <div className="border-t border-white/[0.06] px-6 py-4">
           {footer}
         </div>
       )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, AlertCircle } from 'lucide-react'
+import { Plus, AlertCircle, Users, Building2, Globe } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Modal, Input, Badge, Loader } from '../../components/ui'
 import { customerService } from '../../services/customerService'
@@ -25,7 +25,6 @@ const CustomersPage = () => {
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Load customers on mount
   useEffect(() => {
     loadCustomers()
   }, [])
@@ -46,33 +45,16 @@ const CustomersPage = () => {
 
   const validateForm = () => {
     const newErrors = {}
-
-    if (!validators.isRequired(formData.name)) {
-      newErrors.name = 'Customer name is required'
-    }
-
-    if (!validators.isRequired(formData.address)) {
-      newErrors.address = 'Address is required'
-    }
-
-    if (!validators.isRequired(formData.msa)) {
-      newErrors.msa = 'MSA is required'
-    }
-
-    if (!validators.isRequired(formData.msaContactPerson)) {
-      newErrors.msaContactPerson = 'Contact person is required'
-    }
-
+    if (!validators.isRequired(formData.name)) newErrors.name = 'Customer name is required'
+    if (!validators.isRequired(formData.address)) newErrors.address = 'Address is required'
+    if (!validators.isRequired(formData.msa)) newErrors.msa = 'MSA is required'
+    if (!validators.isRequired(formData.msaContactPerson)) newErrors.msaContactPerson = 'Contact person is required'
     if (!validators.isRequired(formData.msaContactEmail)) {
       newErrors.msaContactEmail = 'Contact email is required'
     } else if (!validators.isEmail(formData.msaContactEmail)) {
       newErrors.msaContactEmail = 'Invalid email address'
     }
-
-    if (formData.noticePeriodDays < 0) {
-      newErrors.noticePeriodDays = 'Notice period cannot be negative'
-    }
-
+    if (formData.noticePeriodDays < 0) newErrors.noticePeriodDays = 'Notice period cannot be negative'
     setFormErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -84,16 +66,12 @@ const CustomersPage = () => {
       [name]: name === 'noticePeriodDays' ? parseInt(value) || 0 : value,
     }))
     if (formErrors[name]) {
-      setFormErrors(prev => ({
-        ...prev,
-        [name]: '',
-      }))
+      setFormErrors(prev => ({ ...prev, [name]: '' }))
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
     if (!validateForm()) return
 
     setIsSubmitting(true)
@@ -112,79 +90,90 @@ const CustomersPage = () => {
       })
       await loadCustomers()
     } catch (err) {
-      setFormErrors({
-        submit: err?.error?.message || 'Failed to create customer',
-      })
+      setFormErrors({ submit: err?.error?.message || 'Failed to create customer' })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const columns = [
-    { key: 'name', label: 'Customer Name' },
+    { key: 'name', label: 'Customer Name', render: (row) => <span className="font-medium text-slate-200">{row.name}</span> },
     { key: 'address', label: 'Address' },
     { key: 'msaContactPerson', label: 'Contact Person' },
     {
       key: 'msaContactEmail',
       label: 'Contact Email',
-      render: (row) => <a href={`mailto:${row.msaContactEmail}`} className="text-indigo-600 hover:underline">{row.msaContactEmail}</a>,
+      render: (row) => <a href={`mailto:${row.msaContactEmail}`} className="text-indigo-400 hover:text-indigo-300 transition-colors">{row.msaContactEmail}</a>,
     },
     {
       key: 'noticePeriodDays',
       label: 'Notice Period',
-      render: (row) => `${row.noticePeriodDays} days`,
+      render: (row) => <Badge variant="default">{row.noticePeriodDays} days</Badge>,
     },
+  ]
+
+  const summaryStats = [
+    { icon: Users, label: 'Total Customers', value: customers.length, color: 'text-blue-400', bg: 'bg-blue-500/15' },
+    { icon: Building2, label: 'Active MSAs', value: customers.length, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+    { icon: Globe, label: 'Countries', value: new Set(customers.map(c => c.countriesApplicable).filter(Boolean)).size || 0, color: 'text-purple-400', bg: 'bg-purple-500/15' },
   ]
 
   return (
     <DashboardLayout>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
-            <p className="text-gray-600 mt-1">Manage your customer database and MSA agreements</p>
+            <h1 className="text-2xl font-bold text-white">Customers</h1>
+            <p className="text-slate-400 mt-1 text-sm">Manage your customer database and MSA agreements</p>
           </div>
-          <Button
-            variant="primary"
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Customer
+          <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Add Customer
           </Button>
         </div>
 
+        {/* Summary Stats */}
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {summaryStats.map((stat, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                <Card className="!p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`${stat.bg} p-2.5 rounded-xl`}>
+                      <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">{stat.label}</p>
+                      <p className="text-xl font-bold text-white">{stat.value}</p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
         {/* Error Alert */}
         {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-4 p-4 bg-red-50 rounded-lg border border-red-200 flex items-start gap-3"
-          >
-            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-            <p className="text-red-800">{error}</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="mb-4 p-4 bg-red-500/10 rounded-xl border border-red-500/20 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+            <p className="text-red-400 text-sm">{error}</p>
           </motion.div>
         )}
 
         {/* Customers Table */}
-        <Card>
+        <Card isPadded={false}>
           {isLoading ? (
-            <div className="py-12 flex justify-center">
-              <Loader message="Loading customers..." />
-            </div>
+            <div className="py-12 flex justify-center"><Loader message="Loading customers..." /></div>
           ) : customers.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500 text-lg">No customers found</p>
-              <Button
-                variant="secondary"
-                onClick={() => setIsModalOpen(true)}
-                className="mt-4"
-              >
+              <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-slate-600" />
+              </div>
+              <p className="text-slate-400 text-lg font-medium">No customers found</p>
+              <p className="text-slate-600 text-sm mt-1">Get started by creating your first customer</p>
+              <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">
                 Create First Customer
               </Button>
             </div>
@@ -194,112 +183,26 @@ const CustomersPage = () => {
         </Card>
 
         {/* Create Customer Modal */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title="Add New Customer"
-          size="lg"
-          footer={
-            <>
-              <Button
-                variant="secondary"
-                onClick={() => setIsModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                isLoading={isSubmitting}
-                onClick={handleSubmit}
-              >
-                Create Customer
-              </Button>
-            </>
-          }
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Customer" size="lg"
+          footer={<>
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create Customer</Button>
+          </>}
         >
           <form className="space-y-4">
             {formErrors.submit && (
-              <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                <p className="text-sm text-red-800">{formErrors.submit}</p>
+              <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                <p className="text-sm text-red-400">{formErrors.submit}</p>
               </div>
             )}
-
-            <Input
-              label="Customer Name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              error={formErrors.name}
-              placeholder="Acme Corporation"
-              required
-            />
-
-            <Input
-              label="Address"
-              name="address"
-              value={formData.address}
-              onChange={handleInputChange}
-              error={formErrors.address}
-              placeholder="123 Business St, City, State 12345"
-              required
-            />
-
-            <Input
-              label="MSA (Master Service Agreement)"
-              name="msa"
-              value={formData.msa}
-              onChange={handleInputChange}
-              error={formErrors.msa}
-              placeholder="MSA agreement details or reference"
-              required
-            />
-
-            <Input
-              label="MSA Contact Person"
-              name="msaContactPerson"
-              value={formData.msaContactPerson}
-              onChange={handleInputChange}
-              error={formErrors.msaContactPerson}
-              placeholder="John Doe"
-              required
-            />
-
-            <Input
-              label="MSA Contact Email"
-              type="email"
-              name="msaContactEmail"
-              value={formData.msaContactEmail}
-              onChange={handleInputChange}
-              error={formErrors.msaContactEmail}
-              placeholder="contact@acme.com"
-              required
-            />
-
-            <Input
-              label="Countries Applicable"
-              name="countriesApplicable"
-              value={formData.countriesApplicable}
-              onChange={handleInputChange}
-              placeholder="US, Canada, Mexico"
-            />
-
-            <Input
-              label="Notice Period (days)"
-              type="number"
-              name="noticePeriodDays"
-              value={formData.noticePeriodDays}
-              onChange={handleInputChange}
-              error={formErrors.noticePeriodDays}
-              min="0"
-            />
-
-            <Input
-              label="MSA Remarks"
-              name="msaRemark"
-              value={formData.msaRemark}
-              onChange={handleInputChange}
-              placeholder="Additional remarks about MSA"
-            />
+            <Input label="Customer Name" name="name" value={formData.name} onChange={handleInputChange} error={formErrors.name} placeholder="Acme Corporation" required />
+            <Input label="Address" name="address" value={formData.address} onChange={handleInputChange} error={formErrors.address} placeholder="123 Business St, City, State 12345" required />
+            <Input label="MSA (Master Service Agreement)" name="msa" value={formData.msa} onChange={handleInputChange} error={formErrors.msa} placeholder="MSA agreement details or reference" required />
+            <Input label="MSA Contact Person" name="msaContactPerson" value={formData.msaContactPerson} onChange={handleInputChange} error={formErrors.msaContactPerson} placeholder="John Doe" required />
+            <Input label="MSA Contact Email" type="email" name="msaContactEmail" value={formData.msaContactEmail} onChange={handleInputChange} error={formErrors.msaContactEmail} placeholder="contact@acme.com" required />
+            <Input label="Countries Applicable" name="countriesApplicable" value={formData.countriesApplicable} onChange={handleInputChange} placeholder="US, Canada, Mexico" />
+            <Input label="Notice Period (days)" type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} min="0" />
+            <Input label="MSA Remarks" name="msaRemark" value={formData.msaRemark} onChange={handleInputChange} placeholder="Additional remarks about MSA" />
           </form>
         </Modal>
       </motion.div>

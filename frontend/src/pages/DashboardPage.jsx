@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Briefcase, Clock, CreditCard } from 'lucide-react'
+import { Users, Briefcase, Clock, CreditCard, TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react'
 import { DashboardLayout } from '../components/layout'
 import { Card, Loader, Badge } from '../components/ui'
 import { formatters } from '../utils/formatters'
+import { useAuth } from '../hooks/useAuth'
 
 const DashboardPage = () => {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState({
     totalContractors: 0,
@@ -15,7 +17,6 @@ const DashboardPage = () => {
   })
 
   useEffect(() => {
-    // Simulate loading dashboard data
     const timer = setTimeout(() => {
       setStats({
         totalContractors: 24,
@@ -25,38 +26,98 @@ const DashboardPage = () => {
       })
       setIsLoading(false)
     }, 1000)
-
     return () => clearTimeout(timer)
   }, [])
+
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good Morning'
+    if (hour < 17) return 'Good Afternoon'
+    return 'Good Evening'
+  }
 
   const statCards = [
     {
       icon: Users,
       label: 'Total Contractors',
       value: stats.totalContractors,
-      color: 'bg-blue-50 text-blue-600',
-      trend: '+12% from last month',
+      trend: '+12%',
+      trendUp: true,
+      trendLabel: 'from last month',
+      colorClass: 'stat-card-blue',
+      iconColor: 'text-blue-400',
+      iconBg: 'bg-blue-500/15',
     },
     {
       icon: CreditCard,
       label: 'Total Revenue',
       value: formatters.formatCurrency(stats.totalRevenue),
-      color: 'bg-green-50 text-green-600',
-      trend: '+8.2% from last month',
+      trend: '+8.2%',
+      trendUp: true,
+      trendLabel: 'from last month',
+      colorClass: 'stat-card-green',
+      iconColor: 'text-emerald-400',
+      iconBg: 'bg-emerald-500/15',
     },
     {
       icon: Clock,
       label: 'Total Hours',
       value: formatters.formatHours(stats.totalHours),
-      color: 'bg-purple-50 text-purple-600',
-      trend: '+4.5% from last month',
+      trend: '+4.5%',
+      trendUp: true,
+      trendLabel: 'from last month',
+      colorClass: 'stat-card-purple',
+      iconColor: 'text-purple-400',
+      iconBg: 'bg-purple-500/15',
     },
     {
       icon: Briefcase,
       label: 'Pending Expenses',
       value: stats.pendingExpenses,
-      color: 'bg-yellow-50 text-yellow-600',
-      trend: '+2 new this week',
+      trend: '+2',
+      trendUp: false,
+      trendLabel: 'new this week',
+      colorClass: 'stat-card-amber',
+      iconColor: 'text-amber-400',
+      iconBg: 'bg-amber-500/15',
+    },
+  ]
+
+  const recentActivity = [
+    {
+      title: 'Timesheet Submitted',
+      description: 'John Smith submitted their timesheet for March',
+      status: 'pending',
+      statusLabel: 'Pending Review',
+      time: '2 hours ago',
+    },
+    {
+      title: 'Invoice Generated',
+      description: 'Invoice #INV-2024-001 created automatically',
+      status: 'approved',
+      statusLabel: 'Completed',
+      time: '5 hours ago',
+    },
+    {
+      title: 'Expense Approved',
+      description: '$450 travel expense approved by finance',
+      status: 'approved',
+      statusLabel: 'Approved',
+      time: '1 day ago',
+    },
+    {
+      title: 'New Contract Created',
+      description: 'Contract for Project Alpha assigned',
+      status: 'info',
+      statusLabel: 'New',
+      time: '2 days ago',
+    },
+    {
+      title: 'Purchase Order Updated',
+      description: 'PO-2024-012 value updated to $85,000',
+      status: 'warning',
+      statusLabel: 'Updated',
+      time: '3 days ago',
     },
   ]
 
@@ -65,14 +126,14 @@ const DashboardPage = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.08,
       },
     },
   }
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   }
 
   return (
@@ -84,9 +145,11 @@ const DashboardPage = () => {
       >
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            Welcome back! Here's what's happening with your business today.
+          <h1 className="text-3xl font-bold text-white">
+            {getGreeting()}, <span className="gradient-text">{user?.name || 'User'}</span>
+          </h1>
+          <p className="text-slate-400 mt-1">
+            Here's what's happening with your business today.
           </p>
         </div>
 
@@ -106,16 +169,28 @@ const DashboardPage = () => {
               const Icon = stat.icon
               return (
                 <motion.div key={index} variants={itemVariants}>
-                  <Card className={`${stat.color} border-0`}>
+                  <div className={`${stat.colorClass} rounded-2xl p-5 transition-all duration-300 hover:scale-[1.02]`}>
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm font-medium opacity-75">{stat.label}</p>
-                        <p className="text-3xl font-bold mt-2">{stat.value}</p>
-                        <p className="text-xs opacity-60 mt-3">{stat.trend}</p>
+                        <p className="text-sm font-medium text-slate-400">{stat.label}</p>
+                        <p className="text-2xl font-bold text-white mt-2">{stat.value}</p>
+                        <div className="flex items-center gap-1.5 mt-3">
+                          {stat.trendUp ? (
+                            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <TrendingDown className="w-3.5 h-3.5 text-amber-400" />
+                          )}
+                          <span className={`text-xs font-medium ${stat.trendUp ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {stat.trend}
+                          </span>
+                          <span className="text-xs text-slate-500">{stat.trendLabel}</span>
+                        </div>
                       </div>
-                      <Icon className="w-10 h-10 opacity-20" />
+                      <div className={`${stat.iconBg} p-2.5 rounded-xl`}>
+                        <Icon className={`w-5 h-5 ${stat.iconColor}`} />
+                      </div>
                     </div>
-                  </Card>
+                  </div>
                 </motion.div>
               )
             })}
@@ -129,31 +204,46 @@ const DashboardPage = () => {
           animate="visible"
           transition={{ delay: 0.4 }}
         >
-          <Card header={<h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>}>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Timesheet Submitted</p>
-                  <p className="text-xs text-gray-500">John Smith submitted their timesheet</p>
-                </div>
-                <Badge variant="pending">Pending Review</Badge>
+          <Card 
+            header={
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
+                <button className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1">
+                  View all <ArrowUpRight className="w-3 h-3" />
+                </button>
               </div>
-
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Invoice Generated</p>
-                  <p className="text-xs text-gray-500">Invoice #INV-2024-001 created</p>
-                </div>
-                <Badge variant="approved">Completed</Badge>
-              </div>
-
-              <div className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Expense Approved</p>
-                  <p className="text-xs text-gray-500">$450 travel expense approved</p>
-                </div>
-                <Badge variant="approved">Approved</Badge>
-              </div>
+            }
+          >
+            <div className="space-y-1">
+              {recentActivity.map((activity, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  className={`flex items-center justify-between py-3.5 px-2 rounded-xl hover:bg-white/[0.02] transition-colors ${
+                    index < recentActivity.length - 1 ? 'border-b border-white/[0.04]' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      activity.status === 'approved' ? 'bg-emerald-400' :
+                      activity.status === 'pending' ? 'bg-amber-400' :
+                      activity.status === 'info' ? 'bg-blue-400' :
+                      activity.status === 'warning' ? 'bg-purple-400' :
+                      'bg-slate-400'
+                    }`} />
+                    <div>
+                      <p className="text-sm font-medium text-slate-200">{activity.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{activity.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <Badge variant={activity.status}>{activity.statusLabel}</Badge>
+                    <span className="text-xs text-slate-600 hidden sm:block">{activity.time}</span>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </Card>
         </motion.div>
