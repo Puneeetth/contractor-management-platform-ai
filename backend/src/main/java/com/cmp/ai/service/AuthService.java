@@ -4,6 +4,8 @@ import org.springframework.stereotype.Service;
 
 import com.cmp.ai.entity.User;
 import com.cmp.ai.enums.Status;
+import com.cmp.ai.exception.BadRequestException;
+import com.cmp.ai.exception.ResourceNotFoundException;
 import com.cmp.ai.repository.UserRepository;
 import com.cmp.ai.util.JwtUtil;
 
@@ -35,10 +37,11 @@ public class AuthService {
 
     public String login(String email, String password) {
 
-    User user = userRepository.findByEmail(email).orElseThrow();
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (user.getStatus() != Status.APPROVED) {
-        throw new RuntimeException("User not approved");
+        throw new BadRequestException("User not approved");
     }
 
     authenticationManager.authenticate(

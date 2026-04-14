@@ -15,10 +15,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,7 +39,7 @@ public class Invoice {
 
     @OneToOne
     @JoinColumn(name = "timesheet_id")
-    private TimeSheet timesheet;
+    private Timesheet timesheet;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contractor_id")
