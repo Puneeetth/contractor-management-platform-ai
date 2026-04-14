@@ -5,9 +5,9 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.cmp.ai.entity.TimeSheet;
+import com.cmp.ai.entity.Timesheet;
 
-public interface TimeSheetRepository extends JpaRepository<TimeSheet,Long>{
- Optional<TimeSheet> findByContractorIdAndMonth(Long contractorId,String month);
-    List<TimeSheet> findByContractorId(Long contractorId);
+public interface TimesheetRepository extends JpaRepository<Timesheet,Long>{
+ Optional<Timesheet> findByContractorIdAndMonth(Long contractorId,String month);
+    List<Timesheet> findByContractorId(Long contractorId);
 }

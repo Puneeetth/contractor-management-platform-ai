@@ -2,6 +2,7 @@ package com.cmp.ai.entity;
 
 import java.time.LocalDate;
 import java.util.List;
+import com.cmp.ai.entity.Customer;
 import com.cmp.ai.enums.ContractStatus;
 
 import jakarta.persistence.Entity;
@@ -16,6 +17,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.Index;
@@ -24,6 +26,7 @@ import jakarta.persistence.Index;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Table(name = "contracts",
     indexes =  {
         @Index(name = "idx_contract_contractor", columnList = "contractor_id")
@@ -40,7 +43,17 @@ public class Contract {
     @JoinColumn(name = "contractor_id")
     private User contractor;
 
-    private Double hourlyRate;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
+    private Double billRate;
+    private Double payRate;
+    private String poAllocation;
+    private Integer estimatedHours;
+    private Double estimatedBudget;
+    private Boolean throughEor;
+    private String remarks;
 
     private LocalDate startDate;
     private LocalDate endDate;

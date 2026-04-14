@@ -1,0 +1,62 @@
+export const STATUS_BADGES = {
+  APPROVED: {
+    label: 'Approved',
+    variant: 'approved',
+    icon: 'CheckCircle',
+  },
+  REJECTED: {
+    label: 'Rejected',
+    variant: 'rejected',
+    icon: 'XCircle',
+  },
+  PENDING: {
+    label: 'Pending',
+    variant: 'pending',
+    icon: 'Clock',
+  },
+  SUBMITTED: {
+    label: 'Submitted',
+    variant: 'pending',
+    icon: 'Upload',
+  },
+  ACTIVE: {
+    label: 'Active',
+    variant: 'approved',
+    icon: 'CheckCircle',
+  },
+  INACTIVE: {
+    label: 'Inactive',
+    variant: 'rejected',
+    icon: 'XCircle',
+  },
+}
+
+export const ROLES = {
+  ADMIN: 'Admin',
+  FINANCE: 'Finance',
+  MANAGER: 'Manager',
+  CONTRACTOR: 'Contractor',
+}
+
+export const ROLE_PERMISSIONS = {
+  ADMIN: ['ALL'],
+  FINANCE: ['view_customers', 'view_invoices', 'approve_invoices', 'view_expenses', 'approve_expenses'],
+  MANAGER: ['view_contractors', 'view_timesheets', 'approve_timesheets', 'view_expenses', 'approve_expenses'],
+  CONTRACTOR: ['submit_timesheet', 'submit_expense', 'view_invoices'],
+}
+
+export const CURRENCIES = [
+  { value: 'USD', label: 'US Dollar ($)' },
+  { value: 'EUR', label: 'Euro (€)' },
+  { value: 'GBP', label: 'British Pound (£)' },
+  { value: 'INR', label: 'Indian Rupee (₹)' },
+  { value: 'AUD', label: 'Australian Dollar (A$)' },
+]
+
+export const PAYMENT_TERMS = [
+  { value: 15, label: '15 days' },
+  { value: 30, label: '30 days' },
+  { value: 45, label: '45 days' },
+  { value: 60, label: '60 days' },
+  { value: 90, label: '90 days' },
+]

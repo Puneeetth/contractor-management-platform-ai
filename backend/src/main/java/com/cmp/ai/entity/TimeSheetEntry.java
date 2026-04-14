@@ -10,14 +10,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TimeSheetEntry {
+public class TimesheetEntry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +27,7 @@ public class TimeSheetEntry {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "timesheet_id")
-    private TimeSheet timeSheet;
+    private Timesheet timeSheet;
 
     private LocalDate date;
 

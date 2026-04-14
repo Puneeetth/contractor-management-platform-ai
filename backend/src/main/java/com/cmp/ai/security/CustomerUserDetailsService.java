@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.entity.User;
+import com.cmp.ai.exception.ResourceNotFoundException;
 import com.cmp.ai.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class CustomerUserDetailsService implements UserDetailsService {
 public UserDetails loadUserByUsername(String email) {
 
     User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     return new org.springframework.security.core.userdetails.User(
             user.getEmail(),

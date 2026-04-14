@@ -11,9 +11,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Builder
 @Entity
 @Table(name = "purchase_orders")
 @Data
@@ -28,10 +30,17 @@ public class PurchaseOrder {
     @JoinColumn(name = "contract_id")
     private Contract contract;
 
+    private String poNumber;
+    private LocalDate poDate;
     private LocalDate startDate;
     private LocalDate endDate;
-
+    private Double poValue;
+    private String currency;
+    private Integer paymentTermsDays;
+    private String remark;
+    private Integer numberOfResources;
+    private String sharedWith;
     private Double totalHoursLimit;
 
-    
 }
+
