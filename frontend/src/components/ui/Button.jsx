@@ -10,18 +10,19 @@ export const Button = ({
   className = '',
   ...props 
 }) => {
-  const baseClasses = 'rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2'
+  const baseClasses = 'rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#111827]'
   
   const variants = {
-    primary: 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500',
-    ghost: 'bg-transparent text-indigo-600 hover:bg-indigo-50 focus:ring-indigo-500',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    primary: 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white hover:from-indigo-500 hover:to-indigo-400 focus:ring-indigo-500 shadow-lg shadow-indigo-500/25',
+    secondary: 'bg-white/[0.06] text-slate-300 hover:bg-white/[0.1] border border-white/[0.08] focus:ring-slate-500',
+    ghost: 'bg-transparent text-indigo-400 hover:bg-indigo-500/10 focus:ring-indigo-500',
+    danger: 'bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-500 hover:to-red-400 focus:ring-red-500 shadow-lg shadow-red-500/25',
+    success: 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-500 hover:to-emerald-400 focus:ring-emerald-500 shadow-lg shadow-emerald-500/25',
   }
   
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-4 py-2.5 text-sm',
     lg: 'px-6 py-3 text-base',
   }
 

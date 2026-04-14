@@ -1,28 +1,34 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AlertCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { ShieldX, ArrowLeft } from 'lucide-react'
 import { Button } from '../components/ui'
 
 const UnauthorizedPage = () => {
-  const navigate = useNavigate()
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-indigo-800 flex items-center justify-center p-4">
-      <div className="text-center">
-        <AlertCircle className="w-16 h-16 text-white mx-auto mb-4" />
-        <h1 className="text-4xl font-bold text-white mb-2">403</h1>
-        <p className="text-xl text-indigo-100 mb-4">Access Denied</p>
-        <p className="text-indigo-100 mb-8 max-w-md">
-          You don't have permission to access this resource. If you believe this is an error, please contact your administrator.
+    <div className="min-h-screen bg-[#111827] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="text-center max-w-md"
+      >
+        <div className="w-20 h-20 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+          <ShieldX className="w-10 h-10 text-red-400" />
+        </div>
+        
+        <h1 className="text-3xl font-bold text-white mb-2">Access Denied</h1>
+        <p className="text-slate-400 mb-8">
+          You don't have permission to access this page. Please contact your administrator if you believe this is an error.
         </p>
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/dashboard')}
-          className="text-white hover:text-indigo-600"
-        >
-          Go to Dashboard
-        </Button>
-      </div>
+        
+        <Link to="/dashboard">
+          <Button variant="primary" className="inline-flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
+      </motion.div>
     </div>
   )
 }

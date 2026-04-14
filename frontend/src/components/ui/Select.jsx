@@ -16,9 +16,9 @@ export const Select = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        <label className="block text-sm font-medium text-slate-300 mb-1.5">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-400 ml-1">*</span>}
         </label>
       )}
       <div className="relative">
@@ -27,28 +27,29 @@ export const Select = ({
           onChange={onChange}
           disabled={disabled}
           className={`
-            w-full px-4 py-2.5 rounded-lg border-2 appearance-none
-            transition-colors focus:outline-none
+            w-full px-4 py-2.5 rounded-xl appearance-none
+            bg-[#0f1219] border transition-all duration-200 focus:outline-none
+            text-slate-100
             ${error 
-              ? 'border-red-500 focus:border-red-500' 
-              : 'border-gray-200 focus:border-indigo-500'
+              ? 'border-red-500/50 focus:border-red-500 focus:ring-1 focus:ring-red-500/30' 
+              : 'border-white/[0.08] focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20'
             }
-            ${disabled ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white text-gray-900'}
+            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
             ${className}
           `}
           {...props}
         >
-          <option value="">{placeholder}</option>
+          <option value="" className="bg-[#0f1219]">{placeholder}</option>
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} className="bg-[#0f1219]">
               {option.label}
             </option>
           ))}
         </select>
-        <ChevronDown className="absolute right-3 top-3 w-5 h-5 text-gray-400 pointer-events-none" />
+        <ChevronDown className="absolute right-3 top-3 w-5 h-5 text-slate-500 pointer-events-none" />
       </div>
       {error && (
-        <p className="text-red-500 text-sm mt-1">{error}</p>
+        <p className="text-red-400 text-xs mt-1.5">{error}</p>
       )}
     </div>
   )

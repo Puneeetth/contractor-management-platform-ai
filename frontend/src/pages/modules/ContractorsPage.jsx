@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, AlertCircle } from 'lucide-react'
+import { Plus, AlertCircle, Briefcase, DollarSign, CalendarDays } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Card, Button, Table, Modal, Input, Select, Loader } from '../../components/ui'
+import { Card, Button, Table, Modal, Input, Select, Badge, Loader } from '../../components/ui'
 import { contractService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { formatters } from '../../utils/formatters'
@@ -66,7 +66,6 @@ const ContractorsPage = () => {
     if (!validators.isRequired(formData.estimatedBudget)) newErrors.estimatedBudget = 'Estimated budget is required'
     if (!validators.isRequired(formData.startDate)) newErrors.startDate = 'Start date is required'
     if (!validators.isRequired(formData.endDate)) newErrors.endDate = 'End date is required'
-
     setFormErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -95,17 +94,9 @@ const ContractorsPage = () => {
       await contractService.createContract(formData)
       setIsModalOpen(false)
       setFormData({
-        contractorId: '',
-        customerId: '',
-        billRate: '',
-        payRate: '',
-        estimatedHours: '',
-        estimatedBudget: '',
-        startDate: '',
-        endDate: '',
-        noticePeriodDays: 30,
-        throughEor: false,
-        remarks: '',
+        contractorId: '', customerId: '', billRate: '', payRate: '',
+        estimatedHours: '', estimatedBudget: '', startDate: '', endDate: '',
+        noticePeriodDays: 30, throughEor: false, remarks: '',
       })
       await loadContracts()
     } catch (err) {
@@ -116,95 +107,107 @@ const ContractorsPage = () => {
   }
 
   const columns = [
-    { key: 'id', label: 'Contract ID' },
-    { 
-      key: 'billRate', 
-      label: 'Bill Rate',
-      render: (row) => formatters.formatCurrency(row.billRate)
-    },
-    { 
-      key: 'payRate', 
-      label: 'Pay Rate',
-      render: (row) => formatters.formatCurrency(row.payRate)
-    },
+    { key: 'id', label: 'Contract ID', render: (row) => <span className="font-mono text-indigo-400">#CT-{String(row.id).padStart(3, '0')}</span> },
+    { key: 'billRate', label: 'Bill Rate', render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.billRate)}</span> },
+    { key: 'payRate', label: 'Pay Rate', render: (row) => <span className="text-slate-300">{formatters.formatCurrency(row.payRate)}</span> },
+    { key: 'estimatedHours', label: 'Est. Hours', render: (row) => formatters.formatHours(row.estimatedHours) },
     {
-      key: 'estimatedHours',
-      label: 'Est. Hours',
-      render: (row) => formatters.formatHours(row.estimatedHours)
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded text-sm ${row.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-          {row.status}
-        </span>
-      ),
+      key: 'status', label: 'Status',
+      render: (row) => <Badge variant={row.status === 'ACTIVE' ? 'approved' : row.status === 'TERMINATED' ? 'rejected' : 'default'}>{row.status}</Badge>,
     },
   ]
+
+  const activeContracts = contracts.filter(c => c.status === 'ACTIVE').length
+  const totalBudget = contracts.reduce((acc, c) => acc + (c.estimatedBudget || 0), 0)
 
   return (
     <DashboardLayout>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Contracts</h1>
-            <p className="text-gray-600 mt-1">Manage contractor contracts and assignments</p>
+            <h1 className="text-2xl font-bold text-white">Contracts</h1>
+            <p className="text-slate-400 mt-1 text-sm">Manage contractor contracts and assignments</p>
           </div>
           <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> Add Contract
           </Button>
         </div>
 
+        {/* Summary Stats */}
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[
+              { icon: Briefcase, label: 'Total Contracts', value: contracts.length, color: 'text-blue-400', bg: 'bg-blue-500/15' },
+              { icon: CalendarDays, label: 'Active', value: activeContracts, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+              { icon: DollarSign, label: 'Total Budget', value: formatters.formatCurrency(totalBudget), color: 'text-purple-400', bg: 'bg-purple-500/15' },
+            ].map((stat, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                <Card className="!p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`${stat.bg} p-2.5 rounded-xl`}><stat.icon className={`w-5 h-5 ${stat.color}`} /></div>
+                    <div>
+                      <p className="text-xs text-slate-500">{stat.label}</p>
+                      <p className="text-xl font-bold text-white">{stat.value}</p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
         {error && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 p-4 bg-red-50 rounded-lg border border-red-200 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-            <p className="text-red-800">{error}</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="mb-4 p-4 bg-red-500/10 rounded-xl border border-red-500/20 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+            <p className="text-red-400 text-sm">{error}</p>
           </motion.div>
         )}
 
-        <Card>
+        <Card isPadded={false}>
           {isLoading ? (
-            <div className="py-12 flex justify-center">
-              <Loader message="Loading contracts..." />
-            </div>
+            <div className="py-12 flex justify-center"><Loader message="Loading contracts..." /></div>
           ) : contracts.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500 text-lg">No contracts found</p>
-              <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">
-                Create First Contract
-              </Button>
+              <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Briefcase className="w-8 h-8 text-slate-600" />
+              </div>
+              <p className="text-slate-400 text-lg font-medium">No contracts found</p>
+              <p className="text-slate-600 text-sm mt-1">Create your first contract to get started</p>
+              <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">Create First Contract</Button>
             </div>
           ) : (
             <Table columns={columns} data={contracts} isLoading={false} />
           )}
         </Card>
 
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title="Create New Contract"
-          size="lg"
-          footer={
-            <>
-              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create</Button>
-            </>
-          }
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Contract" size="lg"
+          footer={<>
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create</Button>
+          </>}
         >
           <form className="space-y-4">
-            {formErrors.submit && <div className="p-3 bg-red-50 rounded-lg"><p className="text-sm text-red-800">{formErrors.submit}</p></div>}
-            
+            {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
             <Input label="Contractor ID" name="contractorId" type="number" value={formData.contractorId} onChange={handleInputChange} error={formErrors.contractorId} required />
-            <Input label="Bill Rate ($)" name="billRate" type="number" step="0.01" value={formData.billRate} onChange={handleInputChange} error={formErrors.billRate} required />
-            <Input label="Pay Rate ($)" name="payRate" type="number" step="0.01" value={formData.payRate} onChange={handleInputChange} error={formErrors.payRate} required />
-            <Input label="Estimated Hours" name="estimatedHours" type="number" value={formData.estimatedHours} onChange={handleInputChange} error={formErrors.estimatedHours} required />
-            <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" step="0.01" value={formData.estimatedBudget} onChange={handleInputChange} error={formErrors.estimatedBudget} required />
-            <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} required />
-            <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} required />
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Bill Rate ($)" name="billRate" type="number" step="0.01" value={formData.billRate} onChange={handleInputChange} error={formErrors.billRate} required />
+              <Input label="Pay Rate ($)" name="payRate" type="number" step="0.01" value={formData.payRate} onChange={handleInputChange} error={formErrors.payRate} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Estimated Hours" name="estimatedHours" type="number" value={formData.estimatedHours} onChange={handleInputChange} error={formErrors.estimatedHours} required />
+              <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" step="0.01" value={formData.estimatedBudget} onChange={handleInputChange} error={formErrors.estimatedBudget} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} required />
+              <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} required />
+            </div>
             <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={formData.noticePeriodDays} onChange={handleInputChange} />
-            <Input label="Through EOR?" name="throughEor" type="checkbox" checked={formData.throughEor} onChange={handleInputChange} />
-            <Input label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} />
+            <div className="flex items-center gap-3 py-2">
+              <input type="checkbox" name="throughEor" id="throughEor" checked={formData.throughEor} onChange={handleInputChange} className="w-4 h-4 rounded border-white/[0.08] bg-[#0f1219] text-indigo-500 focus:ring-indigo-500/20" />
+              <label htmlFor="throughEor" className="text-sm text-slate-300">Through EOR</label>
+            </div>
+            <Input label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} placeholder="Additional notes..." />
           </form>
         </Modal>
       </motion.div>

@@ -6,23 +6,33 @@ export const Badge = ({
   className = '' 
 }) => {
   const variants = {
-    default: 'bg-gray-100 text-gray-800',
-    approved: 'bg-green-100 text-green-800',
-    success: 'bg-green-100 text-green-800',
-    pending: 'bg-yellow-100 text-yellow-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    rejected: 'bg-red-100 text-red-800',
-    error: 'bg-red-100 text-red-800',
-    info: 'bg-blue-100 text-blue-800',
-    indigo: 'bg-indigo-100 text-indigo-800',
+    default: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+    approved: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    success: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    pending: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    warning: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    rejected: 'bg-red-500/15 text-red-400 border-red-500/30',
+    error: 'bg-red-500/15 text-red-400 border-red-500/30',
+    info: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    indigo: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+    draft: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
   }
 
   return (
     <span className={`
-      inline-block px-3 py-1 rounded-full text-xs font-medium
+      inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
+      border backdrop-blur-sm
       ${variants[variant] || variants.default}
       ${className}
     `}>
+      <span className={`w-1.5 h-1.5 rounded-full ${
+        variant === 'approved' || variant === 'success' ? 'bg-emerald-400' :
+        variant === 'pending' || variant === 'warning' ? 'bg-amber-400' :
+        variant === 'rejected' || variant === 'error' ? 'bg-red-400' :
+        variant === 'info' ? 'bg-blue-400' :
+        variant === 'indigo' ? 'bg-indigo-400' :
+        'bg-slate-400'
+      }`} />
       {children}
     </span>
   )
