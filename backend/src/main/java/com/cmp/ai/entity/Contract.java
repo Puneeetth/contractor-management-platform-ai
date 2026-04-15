@@ -2,7 +2,6 @@ package com.cmp.ai.entity;
 
 import java.time.LocalDate;
 import java.util.List;
-import com.cmp.ai.entity.Customer;
 import com.cmp.ai.enums.ContractStatus;
 
 import jakarta.persistence.Entity;

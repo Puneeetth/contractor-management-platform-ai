@@ -11,11 +11,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class TimesheetEntryResponse {
 
-<<<<<<< HEAD
     private Long id;
     private Long timesheetId;
-=======
->>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
     private String date;
     private Double hours;
 }
