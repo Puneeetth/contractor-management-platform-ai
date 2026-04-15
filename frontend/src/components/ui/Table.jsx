@@ -1,96 +1,121 @@
-import React from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Button } from './Button'
+import * as React from "react"
 
-export const Table = ({ 
-  columns, 
-  data, 
-  isLoading = false,
-  currentPage = 1,
-  pageSize = 10,
-  total = 0,
-  onPageChange = () => {},
-}) => {
-  const totalPages = Math.ceil(total / pageSize)
-  const showPagination = total > pageSize
+import { cn } from "@/lib/utils"
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500/20 border-t-indigo-500"></div>
-      </div>
-    )
-  }
-
-  if (data.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-slate-500">No data found</p>
-      </div>
-    )
-  }
-
+function Table({
+  className,
+  ...props
+}) {
   return (
-    <div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/[0.06]">
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider"
-                >
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/[0.04]">
-            {data.map((row, rowIndex) => (
-              <tr 
-                key={rowIndex} 
-                className="hover:bg-white/[0.03] transition-colors duration-150"
-              >
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className="px-6 py-4 text-sm text-slate-300"
-                  >
-                    {column.render ? column.render(row) : row[column.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {showPagination && (
-        <div className="flex justify-between items-center mt-4 px-6 pt-4 border-t border-white/[0.06]">
-          <p className="text-sm text-slate-500">
-            Page {currentPage} of {totalPages} • {total} items
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+      <table
+        data-slot="table"
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props} />
     </div>
-  )
+  );
+}
+
+function TableHeader({
+  className,
+  ...props
+}) {
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn("[&_tr]:border-b", className)}
+      {...props} />
+  );
+}
+
+function TableBody({
+  className,
+  ...props
+}) {
+  return (
+    <tbody
+      data-slot="table-body"
+      className={cn("[&_tr:last-child]:border-0", className)}
+      {...props} />
+  );
+}
+
+function TableFooter({
+  className,
+  ...props
+}) {
+  return (
+    <tfoot
+      data-slot="table-footer"
+      className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
+      {...props} />
+  );
+}
+
+function TableRow({
+  className,
+  ...props
+}) {
+  return (
+    <tr
+      data-slot="table-row"
+      className={cn(
+        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        className
+      )}
+      {...props} />
+  );
+}
+
+function TableHead({
+  className,
+  ...props
+}) {
+  return (
+    <th
+      data-slot="table-head"
+      className={cn(
+        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        className
+      )}
+      {...props} />
+  );
+}
+
+function TableCell({
+  className,
+  ...props
+}) {
+  return (
+    <td
+      data-slot="table-cell"
+      className={cn(
+        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        className
+      )}
+      {...props} />
+  );
+}
+
+function TableCaption({
+  className,
+  ...props
+}) {
+  return (
+    <caption
+      data-slot="table-caption"
+      className={cn("mt-4 text-sm text-muted-foreground", className)}
+      {...props} />
+  );
+}
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
 }
