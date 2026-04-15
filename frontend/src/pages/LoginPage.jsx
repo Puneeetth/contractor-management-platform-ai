@@ -54,6 +54,15 @@ const LoginPage = () => {
     }
   }
 
+  const handleDemoLogin = (role) => {
+    const roleNames = { ADMIN: 'Admin', CONTRACTOR: 'Contractor', CUSTOMER: 'Client', FINANCE: 'Finance' }
+    setAuthData(
+      { id: Math.floor(Math.random() * 1000) + 1, email: `${role.toLowerCase()}@cmp.ai`, name: `Demo ${roleNames[role]}`, role: role, status: 'ACTIVE' },
+      'demo-token-12345'
+    )
+    navigate('/dashboard')
+  }
+
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Left Panel - Form */}
@@ -121,21 +130,33 @@ const LoginPage = () => {
               </button>
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit" disabled={isLoading}
-              className={`w-full py-3 px-4 rounded-lg font-semibold text-sm text-white transition-all duration-200 flex items-center justify-center gap-2
-                ${isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] shadow-lg shadow-indigo-200'}`}
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  Signing in...
-                </span>
-              ) : (
-                <>Login <ArrowRight className="w-4 h-4" /></>
-              )}
-            </button>
+            {/* Submit Buttons */}
+            <div className="flex flex-col gap-3">
+              <button
+                type="submit" disabled={isLoading}
+                className={`w-full py-3 px-4 rounded-lg font-semibold text-sm text-white transition-all duration-200 flex items-center justify-center gap-2
+                  ${isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] shadow-lg shadow-indigo-200'}`}
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  <>Login <ArrowRight className="w-4 h-4" /></>
+                )}
+              </button>
+
+              <div className="pt-2">
+                <p className="text-xs text-center text-gray-400 mb-2 font-medium">Quick Demo Access</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => handleDemoLogin('ADMIN')} className="py-2 px-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100/50">Admin</button>
+                  <button type="button" onClick={() => handleDemoLogin('CONTRACTOR')} className="py-2 px-1 text-[11px] font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100/50">Contractor</button>
+                  <button type="button" onClick={() => handleDemoLogin('CUSTOMER')} className="py-2 px-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-100/50">Client</button>
+                  <button type="button" onClick={() => handleDemoLogin('FINANCE')} className="py-2 px-1 text-[11px] font-semibold text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors border border-purple-100/50">Finance</button>
+                </div>
+              </div>
+            </div>
           </form>
 
           {/* Terms */}
