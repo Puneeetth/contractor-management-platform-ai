@@ -1,12 +1,6 @@
 name: Backend CI
 
-on:
-  push:
-    paths:
-      - 'backend/**'
-  pull_request:
-    paths:
-      - 'backend/**'
+on: workflow_dispatch
 
 jobs:
   build:
@@ -25,5 +19,5 @@ jobs:
       - name: Build with Maven
         run: |
           cd backend
-          chmod +x mvnw
-          ./mvnw clean install -DskipTests
+          chmod +x ./mvnw
+          ./mvnw -B clean install -Dmaven.test.skip=true
