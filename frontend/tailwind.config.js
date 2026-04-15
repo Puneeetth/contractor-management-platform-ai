@@ -7,7 +7,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#6366f1',
+        background: 'oklch(var(--background))',
+        foreground: 'oklch(var(--foreground))',
+        card: 'oklch(var(--card))',
+        'card-foreground': 'oklch(var(--card-foreground))',
+        popover: 'oklch(var(--popover))',
+        'popover-foreground': 'oklch(var(--popover-foreground))',
+        primary: 'oklch(var(--primary))',
+        'primary-foreground': 'oklch(var(--primary-foreground))',
+        secondary: 'oklch(var(--secondary))',
+        'secondary-foreground': 'oklch(var(--secondary-foreground))',
+        muted: 'oklch(var(--muted))',
+        'muted-foreground': 'oklch(var(--muted-foreground))',
+        accent: 'oklch(var(--accent))',
+        'accent-foreground': 'oklch(var(--accent-foreground))',
+        destructive: 'oklch(var(--destructive))',
+        border: 'oklch(var(--border))',
+        input: 'oklch(var(--input))',
+        ring: 'oklch(var(--ring))',
         dark: {
           bg: '#0b0e14',
           page: '#111827',
@@ -23,6 +40,10 @@ export default {
       },
       borderColor: {
         DEFAULT: 'rgba(255,255,255,0.06)',
+        border: 'oklch(var(--border))',
+      },
+      outlineColor: {
+        ring: 'oklch(var(--ring))',
       },
       animation: {
         'glow': 'glow 2s ease-in-out infinite alternate',
