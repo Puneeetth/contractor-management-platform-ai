@@ -7,6 +7,18 @@ import { validators } from '../utils/validators'
 import { ROLES } from '../constants'
 import { Mail, Lock, Eye, EyeOff, User, CheckCircle, Sparkles } from 'lucide-react'
 
+// Placeholder for SVG/Custom Icons - Add your custom images here
+// Each entry should return a JSX element with your image/icon
+
+const SocialIcons = {
+  github: <img src="public\images\github.svg" width = "30" height = "24"alt="GitHub" />, 
+  linkedin: <img src="your-linkedin-icon.svg" alt="LinkedIn" />,
+  google: <img src="your-google-icon.svg" alt="Google" />,
+  stackoverflow: <img src="your-stackoverflow-icon.svg" alt="Stack Overflow" />,
+  twitter: <img src="your-twitter-icon.svg" alt="Twitter" />,
+  devto: <img src="your-devto-icon.svg" alt="Dev.to" />,
+  codepen: <img src="your-codepen-icon.svg" alt="CodePen" />,
+}
 const SignupPage = () => {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
@@ -60,18 +72,21 @@ const SignupPage = () => {
 
   const roleOptions = Object.entries(ROLES).map(([key, value]) => ({ value: key, label: value }))
 
-  // Orbiting icons data (service logos represented as colored circles with letters)
-  const orbitIcons = [
-    { letter: 'C', bg: 'bg-indigo-500', size: 'w-14 h-14', orbit: 0, angle: 0, text: 'text-lg' },
-    { letter: 'T', bg: 'bg-blue-500', size: 'w-9 h-9', orbit: 1, angle: 0 },
-    { letter: 'I', bg: 'bg-emerald-500', size: 'w-9 h-9', orbit: 1, angle: 72 },
-    { letter: 'E', bg: 'bg-amber-500', size: 'w-9 h-9', orbit: 1, angle: 144 },
-    { letter: 'P', bg: 'bg-purple-500', size: 'w-9 h-9', orbit: 1, angle: 216 },
-    { letter: 'D', bg: 'bg-rose-500', size: 'w-9 h-9', orbit: 1, angle: 288 },
-    { letter: 'M', bg: 'bg-cyan-500', size: 'w-8 h-8', orbit: 2, angle: 30 },
-    { letter: 'R', bg: 'bg-orange-500', size: 'w-8 h-8', orbit: 2, angle: 110 },
-    { letter: 'F', bg: 'bg-teal-500', size: 'w-8 h-8', orbit: 2, angle: 190 },
-    { letter: 'A', bg: 'bg-pink-500', size: 'w-8 h-8', orbit: 2, angle: 270 },
+  // Orbiting icons data - Social Media & Educational platforms
+  const orbitIcons1 = [
+    { icon: 'github', label: 'GitHub', bg: 'bg-white-800', angle: 0 },
+    { icon: 'linkedin', label: 'LinkedIn', bg: 'bg-blue-700', angle: 72 },
+    { icon: 'google', label: 'Google', bg: 'bg-red-500', angle: 144 },
+    { icon: 'stackoverflow', label: 'Stack Overflow', bg: 'bg-orange-500', angle: 216 },
+    { icon: 'twitter', label: 'Twitter', bg: 'bg-sky-500', angle: 288 },
+  ]
+
+  const orbitIcons2 = [
+    { icon: 'devto', label: 'Dev.to', bg: 'bg-gray-900', angle: 20 },
+    { icon: 'codepen', label: 'CodePen', bg: 'bg-gray-700', angle: 100 },
+    { icon: 'github', label: 'GitHub', bg: 'bg-gray-800', angle: 160 },
+    { icon: 'linkedin', label: 'LinkedIn', bg: 'bg-blue-700', angle: 240 },
+    { icon: 'google', label: 'Google', bg: 'bg-red-500', angle: 300 },
   ]
 
   const getOrbitPosition = (angle, radius) => {
@@ -89,7 +104,9 @@ const SignupPage = () => {
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-gray-800 text-sm">CMP AI</span>
+          
         </div>
+    
 
         {/* Dot grid decoration */}
         <div className="px-8 relative">
@@ -136,7 +153,7 @@ const SignupPage = () => {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="John Doe"
+                  <input type="text" name="name" value={formData.name} onChange={handleChange} 
                     className={`w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.name ? 'border-red-400 focus:ring-2 focus:ring-red-50' : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'}`} />
                 </div>
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -147,7 +164,7 @@ const SignupPage = () => {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="eg. pixelcat@gmail.com"
+                  <input type="email" name="email" value={formData.email} onChange={handleChange} 
                     className={`w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.email ? 'border-red-400 focus:ring-2 focus:ring-red-50' : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'}`} />
                 </div>
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -167,7 +184,7 @@ const SignupPage = () => {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} placeholder="••••••••••••"
+                  <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange}
                     className={`w-full pl-10 pr-10 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.password ? 'border-red-400 focus:ring-2 focus:ring-red-50' : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'}`} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -181,7 +198,7 @@ const SignupPage = () => {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••••••"
+                  <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} 
                     className={`w-full pl-10 pr-10 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.confirmPassword ? 'border-red-400 focus:ring-2 focus:ring-red-50' : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'}`} />
                   <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -269,40 +286,44 @@ const SignupPage = () => {
             <Sparkles className="w-8 h-8 text-white" />
           </div>
 
-          {/* Orbit 1 icons */}
-          {[0, 72, 144, 216, 288].map((angle, i) => {
-            const pos = getOrbitPosition(angle, 110)
-            const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-rose-500', 'bg-purple-500']
-            const labels = ['C', 'T', 'I', 'E', 'P']
+          {/* Orbit 1 icons - Social Platforms */}
+          {orbitIcons1.map((icon, i) => {
+            const pos = getOrbitPosition(icon.angle, 110)
             return (
               <motion.div
                 key={`o1-${i}`}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + i * 0.1, type: 'spring' }}
-                className={`absolute w-10 h-10 ${colors[i]} rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-lg z-10`}
+                className={`absolute w-10 h-10 ${icon.bg} rounded-xl flex items-center justify-center text-white shadow-lg z-10 group cursor-pointer hover:shadow-xl transition-all`}
                 style={{ top: `calc(50% + ${pos.y}px - 20px)`, left: `calc(50% + ${pos.x}px - 20px)` }}
+                title={icon.label}
+                whileHover={{ scale: 1.3 }}
               >
-                {labels[i]}
+                <div className="text-white group-hover:scale-110 transition-transform">
+                  {SocialIcons[icon.icon]}
+                </div>
               </motion.div>
             )
           })}
 
-          {/* Orbit 2 icons */}
-          {[20, 90, 160, 230, 300].map((angle, i) => {
-            const pos = getOrbitPosition(angle, 170)
-            const colors = ['bg-cyan-400', 'bg-orange-400', 'bg-teal-500', 'bg-pink-400', 'bg-indigo-400']
-            const labels = ['M', 'R', 'F', 'A', 'D']
+          {/* Orbit 2 icons - More Social Platforms */}
+          {orbitIcons2.map((icon, i) => {
+            const pos = getOrbitPosition(icon.angle, 170)
             return (
               <motion.div
                 key={`o2-${i}`}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6 + i * 0.1, type: 'spring' }}
-                className={`absolute w-8 h-8 ${colors[i]} rounded-lg flex items-center justify-center text-white font-bold text-[10px] shadow-md z-10`}
+                className={`absolute w-8 h-8 ${icon.bg} rounded-lg flex items-center justify-center text-white shadow-md z-10 group cursor-pointer hover:shadow-lg transition-all`}
                 style={{ top: `calc(50% + ${pos.y}px - 16px)`, left: `calc(50% + ${pos.x}px - 16px)` }}
+                title={icon.label}
+                whileHover={{ scale: 1.35 }}
               >
-                {labels[i]}
+                <div className="text-white group-hover:scale-110 transition-transform">
+                  {SocialIcons[icon.icon]}
+                </div>
               </motion.div>
             )
           })}
