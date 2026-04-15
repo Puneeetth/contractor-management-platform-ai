@@ -11,7 +11,7 @@ import com.cmp.ai.enums.ContractStatus;
 
 public class ContractTransformer {
 
-    public static ContractResponse ContractToContractResponse(Contract c) {
+    public static ContractResponse contractToContractResponse(Contract c) {
         return ContractResponse.builder()
                 .id(c.getId())
                 .contractorId(c.getContractor().getId())
@@ -30,7 +30,7 @@ public class ContractTransformer {
                 .build();
     }
 
-    public static Contract ContractRequestToContract(ContractRequest req, User contractor, Customer customer) {
+    public static Contract contractRequestToContract(ContractRequest req, User contractor, Customer customer) {
         return Contract.builder()
                 .contractor(contractor)
                 .customer(customer)

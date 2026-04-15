@@ -7,7 +7,7 @@ import com.cmp.ai.entity.POResourceDetails;
 
 public class POResourceDetailsTransformer {
 
-    public static POResourceDetailsResponse POResourceDetailsToResponse(POResourceDetails details) {
+    public static POResourceDetailsResponse pOResourceDetailsToResponse(POResourceDetails details) {
         return POResourceDetailsResponse.builder()
                 .id(details.getId())
                 .purchaseOrderId(details.getPurchaseOrder() == null ? null : details.getPurchaseOrder().getId())
@@ -18,7 +18,7 @@ public class POResourceDetailsTransformer {
                 .build();
     }
 
-    public static POResourceDetails POResourceDetailsRequestToEntity(
+    public static POResourceDetails pOResourceDetailsRequestToEntity(
             POResourceDetailsRequest request, 
             PurchaseOrder purchaseOrder) {
         return new POResourceDetails(

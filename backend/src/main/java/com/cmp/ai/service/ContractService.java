@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.ContractRequest;
@@ -36,13 +37,13 @@ public class ContractService {
                     .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
         }
 
-        Contract contract = ContractTransformer.ContractRequestToContract(request, contractor, customer);
-        return ContractTransformer.ContractToContractResponse(contractRepository.save(contract));
+        Contract contract = ContractTransformer.contractRequestToContract(request, contractor, customer);
+        return ContractTransformer.contractToContractResponse(contractRepository.save(contract));
     }
 
     public List<ContractResponse> getAllContracts() {
         return contractRepository.findAll().stream()
-                .map(ContractTransformer::ContractToContractResponse)
-                .collect(Collectors.toList());
+                .map(ContractTransformer::contractToContractResponse)
+                .toList();
     }
 }

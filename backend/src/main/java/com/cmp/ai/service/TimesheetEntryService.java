@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.TimesheetEntryRequest;
@@ -27,29 +28,29 @@ public class TimesheetEntryService {
         Timesheet timesheet = timesheetRepository.findById(request.getTimesheetId())
                 .orElseThrow(() -> new ResourceNotFoundException("Timesheet not found"));
 
-        TimesheetEntry entry = TimesheetEntryTransformer.TimesheetEntryRequestToEntity(request, timesheet);
-        return TimesheetEntryTransformer.TimesheetEntryToResponse(timesheetEntryRepository.save(entry));
+        TimesheetEntry entry = TimesheetEntryTransformer.timesheetEntryRequestToEntity(request, timesheet);
+        return TimesheetEntryTransformer.timesheetEntryToResponse(timesheetEntryRepository.save(entry));
     }
 
-    public TimesheetEntryResponse getTimesheetEntryById(Long id) {
+    public TimesheetEntryResponse getTimesheetEntryById(@NonNull Long id) {
         TimesheetEntry entry = timesheetEntryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Timesheet Entry not found"));
-        return TimesheetEntryTransformer.TimesheetEntryToResponse(entry);
+        return TimesheetEntryTransformer.timesheetEntryToResponse(entry);
     }
 
-    public List<TimesheetEntryResponse> getTimesheetEntriesByTimesheetId(Long timesheetId) {
+    public List<TimesheetEntryResponse> getTimesheetEntriesByTimesheetId(@NonNull Long timesheetId) {
         return timesheetEntryRepository.findByTimesheetId(timesheetId).stream()
-                .map(TimesheetEntryTransformer::TimesheetEntryToResponse)
-                .collect(Collectors.toList());
+                .map(TimesheetEntryTransformer::timesheetEntryToResponse)
+                .toList();
     }
 
     public List<TimesheetEntryResponse> getAllTimesheetEntries() {
         return timesheetEntryRepository.findAll().stream()
-                .map(TimesheetEntryTransformer::TimesheetEntryToResponse)
-                .collect(Collectors.toList());
+                .map(TimesheetEntryTransformer::timesheetEntryToResponse)
+                .toList();
     }
 
-    public TimesheetEntryResponse updateTimesheetEntry(Long id, TimesheetEntryRequest request) {
+    public TimesheetEntryResponse updateTimesheetEntry(@NonNull Long id, TimesheetEntryRequest request) {
         TimesheetEntry entry = timesheetEntryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Timesheet Entry not found"));
 
@@ -62,10 +63,10 @@ public class TimesheetEntryService {
             entry.setHours(request.getHours());
         }
 
-        return TimesheetEntryTransformer.TimesheetEntryToResponse(timesheetEntryRepository.save(entry));
+        return TimesheetEntryTransformer.timesheetEntryToResponse(timesheetEntryRepository.save(entry));
     }
 
-    public void deleteTimesheetEntry(Long id) {
+    public void deleteTimesheetEntry(@NonNull Long id) {
         if (!timesheetEntryRepository.existsById(id)) {
             throw new ResourceNotFoundException("Timesheet Entry not found");
         }

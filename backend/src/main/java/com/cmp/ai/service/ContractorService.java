@@ -1,8 +1,8 @@
 package com.cmp.ai.service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.ContractorRequest;
@@ -27,35 +27,35 @@ public class ContractorService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Contractor contractor = ContractorTransformer.ContractorRequestToContractor(request, user);
-        return ContractorTransformer.ContractorToContractorResponse(contractorRepository.save(contractor));
+        Contractor contractor = ContractorTransformer.contractorRequestToContractor(request, user);
+        return ContractorTransformer.contractorToContractorResponse(contractorRepository.save(contractor));
     }
 
-    public ContractorResponse getContractorById(Long id) {
+    public ContractorResponse getContractorById(@NonNull Long id) {
         Contractor contractor = contractorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
-        return ContractorTransformer.ContractorToContractorResponse(contractor);
+        return ContractorTransformer.contractorToContractorResponse(contractor);
     }
 
     public ContractorResponse getContractorByEmail(String email) {
         Contractor contractor = contractorRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
-        return ContractorTransformer.ContractorToContractorResponse(contractor);
+        return ContractorTransformer.contractorToContractorResponse(contractor);
     }
 
-    public ContractorResponse getContractorByUserId(Long userId) {
+    public ContractorResponse getContractorByUserId(@NonNull Long userId) {
         Contractor contractor = contractorRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
-        return ContractorTransformer.ContractorToContractorResponse(contractor);
+        return ContractorTransformer.contractorToContractorResponse(contractor);
     }
 
     public List<ContractorResponse> getAllContractors() {
         return contractorRepository.findAll().stream()
-                .map(ContractorTransformer::ContractorToContractorResponse)
-                .collect(Collectors.toList());
+                .map(ContractorTransformer::contractorToContractorResponse)
+                .toList();
     }
 
-    public ContractorResponse updateContractor(Long id, ContractorRequest request) {
+    public ContractorResponse updateContractor(@NonNull Long id, ContractorRequest request) {
         Contractor contractor = contractorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
 
@@ -68,10 +68,10 @@ public class ContractorService {
         contractor.setNoticePeriodDays(request.getNoticePeriodDays());
         contractor.setRemarks(request.getRemarks());
 
-        return ContractorTransformer.ContractorToContractorResponse(contractorRepository.save(contractor));
+        return ContractorTransformer.contractorToContractorResponse(contractorRepository.save(contractor));
     }
 
-    public void deleteContractor(Long id) {
+    public void deleteContractor(@NonNull Long id) {
         if (!contractorRepository.existsById(id)) {
             throw new ResourceNotFoundException("Contractor not found");
         }

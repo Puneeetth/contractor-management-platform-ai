@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.PORequest;
@@ -33,19 +34,19 @@ public class PurchaseOrderService {
             throw new BadRequestException("Contract is not linked to the requested customer");
         }
 
-        PurchaseOrder purchaseOrder = POTransformer.PORequestToPO(request, contract);
-        return POTransformer.POToPOResponse(purchaseOrderRepository.save(purchaseOrder));
+        PurchaseOrder purchaseOrder = POTransformer.pORequestToPO(request, contract);
+        return POTransformer.pOToPOResponse(purchaseOrderRepository.save(purchaseOrder));
     }
 
     public List<POResponse> getAllPurchaseOrders() {
         return purchaseOrderRepository.findAll().stream()
-                .map(POTransformer::POToPOResponse)
-                .collect(Collectors.toList());
+                .map(POTransformer::pOToPOResponse)
+                .toList();
     }
 
-    public List<POResponse> getPurchaseOrdersByContractId(Long contractId) {
+    public List<POResponse> getPurchaseOrdersByContractId(@NonNull Long contractId) {
         return purchaseOrderRepository.findByContractId(contractId).stream()
-                .map(POTransformer::POToPOResponse)
-                .collect(Collectors.toList());
+                .map(POTransformer::pOToPOResponse)
+                .toList();
     }
 }

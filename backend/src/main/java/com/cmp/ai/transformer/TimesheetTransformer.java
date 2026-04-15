@@ -14,7 +14,7 @@ import com.cmp.ai.enums.Status;
 
 public class TimesheetTransformer {
 
-    public static TimesheetResponse TimesheetToTimesheetResponse(Timesheet t) {
+    public static TimesheetResponse timesheetToTimesheetResponse(Timesheet t) {
 
         return TimesheetResponse.builder()
                 .id(t.getId())
@@ -28,19 +28,19 @@ public class TimesheetTransformer {
                                         .date(e.getDate().toString())
                                         .hours(e.getHours())
                                         .build()
-                        ).collect(Collectors.toList())
+                        ).toList()
                 )
                 .build();
     }
 
-    public static Timesheet TimesheetRequestToTimesheet(TimesheetRequest req, User contractor) {
+    public static Timesheet timesheetRequestToTimesheet(TimesheetRequest req, User contractor) {
 
         List<TimesheetEntry> entries = req.getEntries().stream().map(e ->
                 TimesheetEntry.builder()
                         .date(LocalDate.parse(e.getDate()))
                         .hours(e.getHours())
                         .build()
-        ).collect(Collectors.toList());
+        ).toList();
 
         Timesheet timesheet = Timesheet.builder()
                 .contractor(contractor)

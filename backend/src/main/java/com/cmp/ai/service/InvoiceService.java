@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.InvoiceRequest;
@@ -67,27 +68,27 @@ public class InvoiceService {
                 .status(Status.PENDING)
                 .build();
 
-        return InvoiceTransformer.InvoiceToInvoiceResponse(invoiceRepository.save(invoice));
+        return InvoiceTransformer.invoiceToInvoiceResponse(invoiceRepository.save(invoice));
     }
 
     public List<InvoiceResponse> getAllInvoices() {
         return invoiceRepository.findAll().stream()
-                .map(InvoiceTransformer::InvoiceToInvoiceResponse)
-                .collect(Collectors.toList());
+                .map(InvoiceTransformer::invoiceToInvoiceResponse)
+                .toList();
     }
 
-    public List<InvoiceResponse> getInvoicesByContractor(Long contractorId) {
+    public List<InvoiceResponse> getInvoicesByContractor(@NonNull Long contractorId) {
         return invoiceRepository.findAll().stream()
                 .filter(i -> i.getContractor().getId().equals(contractorId))
-                .map(InvoiceTransformer::InvoiceToInvoiceResponse)
-                .collect(Collectors.toList());
+                .map(InvoiceTransformer::invoiceToInvoiceResponse)
+                .toList();
     }
 
-    public InvoiceResponse approveInvoice(Long invoiceId) {
+    public InvoiceResponse approveInvoice(@NonNull Long invoiceId) {
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
 
         invoice.setStatus(Status.APPROVED);
-        return InvoiceTransformer.InvoiceToInvoiceResponse(invoiceRepository.save(invoice));
+        return InvoiceTransformer.invoiceToInvoiceResponse(invoiceRepository.save(invoice));
     }
 }

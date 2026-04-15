@@ -8,7 +8,7 @@ import com.cmp.ai.entity.CustomerCountryRule;
 
 public class CustomerCountryRuleTransformer {
 
-    public static CustomerCountryRuleResponse CustomerCountryRuleToResponse(CustomerCountryRule rule) {
+    public static CustomerCountryRuleResponse customerCountryRuleToResponse(CustomerCountryRule rule) {
         return CustomerCountryRuleResponse.builder()
                 .id(rule.getId())
                 .customerId(rule.getCustomer() == null ? null : rule.getCustomer().getId())
@@ -17,7 +17,7 @@ public class CustomerCountryRuleTransformer {
                 .build();
     }
 
-    public static CustomerCountryRule CustomerCountryRuleRequestToEntity(
+    public static CustomerCountryRule customerCountryRuleRequestToEntity(
             CustomerCountryRuleRequest request, 
             Customer customer, 
             Country country) {
