@@ -9,10 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TimesheetEntryResponse {
+public class CustomerCountryRuleResponse {
 
     private Long id;
-    private Long timesheetId;
-    private String date;
-    private Double hours;
+    private Long customerId;
+    private String countryCode;
+    private boolean allowed;
 }

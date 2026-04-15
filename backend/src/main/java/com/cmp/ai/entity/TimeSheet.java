@@ -51,7 +51,7 @@ public class Timesheet {
     private Status status;
 
 
-    @OneToMany(mappedBy = "timeSheet", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "timesheet", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TimesheetEntry> entries;
 
 

@@ -35,7 +35,7 @@ public class TimesheetService {
                 });
 
         Timesheet timesheet = TimesheetTransformer.TimesheetRequestToTimesheet(request, contractor);
-        timesheet.getEntries().forEach(entry -> entry.setTimeSheet(timesheet));
+        timesheet.getEntries().forEach(entry -> entry.setTimesheet(timesheet));
 
         return TimesheetTransformer.TimesheetToTimesheetResponse(timesheetRepository.save(timesheet));
     }

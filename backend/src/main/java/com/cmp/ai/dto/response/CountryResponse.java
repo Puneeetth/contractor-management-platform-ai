@@ -9,10 +9,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TimesheetEntryResponse {
+public class CountryResponse {
 
-    private Long id;
-    private Long timesheetId;
-    private String date;
-    private Double hours;
+    private String code;
+    private String name;
 }

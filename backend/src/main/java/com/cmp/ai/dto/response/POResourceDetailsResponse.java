@@ -9,10 +9,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TimesheetEntryResponse {
+public class POResourceDetailsResponse {
 
     private Long id;
-    private Long timesheetId;
-    private String date;
-    private Double hours;
+    private Long purchaseOrderId;
+    private Integer numberOfResources;
+    private String sharedWith;
+    private Integer teamSize;
+    private String remark;
 }

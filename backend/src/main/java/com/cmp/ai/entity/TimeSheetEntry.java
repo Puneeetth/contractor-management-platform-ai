@@ -27,7 +27,7 @@ public class TimesheetEntry {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "timesheet_id")
-    private Timesheet timeSheet;
+    private Timesheet timesheet;
 
     private LocalDate date;
 
