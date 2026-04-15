@@ -17,7 +17,7 @@ const SocialIcons = {
   stackoverflow: <img src="your-stackoverflow-icon.svg" alt="Stack Overflow" />,
   twitter: <img src="your-twitter-icon.svg" alt="Twitter" />,
   devto: <img src="your-devto-icon.svg" alt="Dev.to" />,
-  codepen: <img src="your-codepen-icon.svg" alt="CodePen" />,
+  outlook: <img src="your-outlook-icon.svg" alt="Outlook" />,
 }
 const SignupPage = () => {
   const navigate = useNavigate()
