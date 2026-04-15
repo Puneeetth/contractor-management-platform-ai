@@ -12,9 +12,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TimesheetEntryRequest {
 
+<<<<<<< HEAD
     @NotNull
     private Long timesheetId;
 
+=======
+>>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
     @NotBlank
     private String date;
 

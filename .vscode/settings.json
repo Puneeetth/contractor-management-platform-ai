@@ -1,7 +1,11 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
+<<<<<<< HEAD
     "java.configuration.updateBuildConfiguration": "interactive",
     "chat.tools.terminal.autoApprove": {
         ".\\mvnw": true
     }
+=======
+    "java.configuration.updateBuildConfiguration": "interactive"
+>>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
 }

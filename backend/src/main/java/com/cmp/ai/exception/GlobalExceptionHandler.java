@@ -6,6 +6,10 @@ import java.util.stream.Collectors;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 
+<<<<<<< HEAD
+=======
+import org.springframework.http.HttpHeaders;
+>>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,9 +17,16 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
+<<<<<<< HEAD
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+=======
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+@ControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+>>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
 
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseBody
@@ -37,14 +48,33 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", ")), request.getRequestURI());
     }
 
+<<<<<<< HEAD
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseBody
     public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpServletRequest request) {
+=======
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+                                                                  HttpHeaders headers,
+                                                                  HttpStatus status,
+                                                                  org.springframework.web.context.request.WebRequest request) {
+>>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
 
+<<<<<<< HEAD
         return buildResponse(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
+=======
+        ApiErrorResponse body = ApiErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(message)
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(body, headers, HttpStatus.BAD_REQUEST);
+>>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
     }
 
     @ExceptionHandler(Exception.class)

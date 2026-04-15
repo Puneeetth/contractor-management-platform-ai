@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
+<<<<<<< HEAD
                 .requestMatchers(
         "/swagger-ui/**",
         "/v3/api-docs/**",
@@ -52,6 +53,8 @@ public class SecurityConfig {
         "/webjars/**",
         "/actuator/health"
     ).permitAll()
+=======
+>>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/contractor/**").hasRole("CONTRACTOR")
@@ -60,8 +63,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/expenses/**").hasAnyRole("ADMIN","FINANCE","CONTRACTOR")
                 .requestMatchers("/api/invoices/**").hasAnyRole("ADMIN","FINANCE","MANAGER","CONTRACTOR")
                 .requestMatchers("/api/timesheets/**").authenticated()
+<<<<<<< HEAD
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
+=======
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
+>>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
