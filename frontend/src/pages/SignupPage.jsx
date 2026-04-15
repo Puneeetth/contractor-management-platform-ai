@@ -5,19 +5,21 @@ import { useAuth } from '../hooks/useAuth'
 import { authService } from '../services/authService'
 import { validators } from '../utils/validators'
 import { ROLES } from '../constants'
-import { Mail, Lock, Eye, EyeOff, User, CheckCircle, Sparkles } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, User, CheckCircle, Sparkles, Apple } from 'lucide-react'
 
 // Placeholder for SVG/Custom Icons - Add your custom images here
 // Each entry should return a JSX element with your image/icon
 
 const SocialIcons = {
   github: <img src="public\images\github.svg" width = "30" height = "24"alt="GitHub" />, 
-  linkedin: <img src="your-linkedin-icon.svg" alt="LinkedIn" />,
-  google: <img src="your-google-icon.svg" alt="Google" />,
-  stackoverflow: <img src="your-stackoverflow-icon.svg" alt="Stack Overflow" />,
-  twitter: <img src="your-twitter-icon.svg" alt="Twitter" />,
-  devto: <img src="your-devto-icon.svg" alt="Dev.to" />,
-  codepen: <img src="your-codepen-icon.svg" alt="CodePen" />,
+  linkedin: <img src="public\images\linkedin.svg" width = "33" height = "26.5" alt="LinkedIn" />,
+  google: <img src="public\images\google.svg" width = "38" height = "30" alt="Google" />,
+  stackoverflow: <img src="public\images\stackoverflow.svg" width = "30" height = "24" alt="Stack Overflow" />,
+  twitter: <img src="public\images\twitter.svg" width = "35" height = "29" alt="Twitter" />,
+  teams: <img src="public\images\teams.svg" width = "30" height = "24" alt="Teams" />,
+  outlook: <img src="public\images\outlook.svg" width = "30" height = "24" alt="Outlook" />,
+  microsoft: <img src="public\images\microsoft.svg" width = "26" height = "20" alt="Microsoft" />,
+  apple: <img src="public\images\apple.svg" width = "28" height = "21" alt="Apple" />,
 }
 const SignupPage = () => {
   const navigate = useNavigate()
@@ -75,18 +77,17 @@ const SignupPage = () => {
   // Orbiting icons data - Social Media & Educational platforms
   const orbitIcons1 = [
     { icon: 'github', label: 'GitHub', bg: 'bg-white-800', angle: 0 },
-    { icon: 'linkedin', label: 'LinkedIn', bg: 'bg-blue-700', angle: 72 },
-    { icon: 'google', label: 'Google', bg: 'bg-red-500', angle: 144 },
-    { icon: 'stackoverflow', label: 'Stack Overflow', bg: 'bg-orange-500', angle: 216 },
-    { icon: 'twitter', label: 'Twitter', bg: 'bg-sky-500', angle: 288 },
+    { icon: 'linkedin', label: 'LinkedIn', bg: '#FFFFFF', angle: 72 },
+    { icon: 'google', label: 'Google', bg: '#FFFFFF', angle: 144 },
+    { icon: 'stackoverflow', label: 'Stack Overflow', bg: '#FFFFFF', angle: 216 },
+    { icon: 'twitter', label: 'Twitter', bg: '#FFFFFF', angle: 288 },
   ]
 
   const orbitIcons2 = [
-    { icon: 'devto', label: 'Dev.to', bg: 'bg-gray-900', angle: 20 },
-    { icon: 'codepen', label: 'CodePen', bg: 'bg-gray-700', angle: 100 },
-    { icon: 'github', label: 'GitHub', bg: 'bg-gray-800', angle: 160 },
-    { icon: 'linkedin', label: 'LinkedIn', bg: 'bg-blue-700', angle: 240 },
-    { icon: 'google', label: 'Google', bg: 'bg-red-500', angle: 300 },
+    { icon: 'teams', label: 'Teams', bg: '#FFFFFF', angle: 20 },
+    { icon: 'microsoft', label: 'Microsoft', bg: '#FFFFFF', angle: 100 },
+    { icon: 'outlook', label: 'Outlook', bg: '#FFFFFF', angle: 160 },
+    { icon: 'apple', label: 'Apple', bg: '#FFFFFF', angle: 240 },
   ]
 
   const getOrbitPosition = (angle, radius) => {
