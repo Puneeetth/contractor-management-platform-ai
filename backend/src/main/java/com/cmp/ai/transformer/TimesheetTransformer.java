@@ -49,7 +49,7 @@ public class TimesheetTransformer {
                 .status(Status.PENDING)
                 .build();
 
-        entries.forEach(entry -> entry.setTimeSheet(timesheet));
+        entries.forEach(entry -> entry.setTimesheet(timesheet));
         return timesheet;
     }
 }

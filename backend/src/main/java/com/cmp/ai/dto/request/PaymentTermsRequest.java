@@ -2,7 +2,6 @@ package com.cmp.ai.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,18 +9,13 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TimesheetEntryRequest {
+public class PaymentTermsRequest {
 
-<<<<<<< HEAD
     @NotNull
-    private Long timesheetId;
+    private Long customerId;
 
-=======
->>>>>>> d9d66f5e5660df779ff9e373efd4cab5449199d5
     @NotBlank
-    private String date;
+    private String terms;
 
-    @NotNull
-    @PositiveOrZero
-    private Double hours;
+    private String remark;
 }

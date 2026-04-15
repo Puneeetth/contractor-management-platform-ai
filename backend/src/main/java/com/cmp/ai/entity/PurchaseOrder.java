@@ -42,5 +42,9 @@ public class PurchaseOrder {
     private String sharedWith;
     private Double totalHoursLimit;
 
+    @ManyToOne
+@JoinColumn(name = "customer_id")
+private Customer customer;
+
 }
 
