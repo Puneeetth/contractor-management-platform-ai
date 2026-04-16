@@ -30,8 +30,7 @@ public class ContractorService {
         Contractor contractor = ContractorTransformer.contractorRequestToContractor(request, user);
         return ContractorTransformer.contractorToContractorResponse(contractorRepository.save(contractor));
     }
-
-    public ContractorResponse getContractorById(@NonNull Long id) {
+    public ContractorResponse getContractorById(Long id) {
         Contractor contractor = contractorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
         return ContractorTransformer.contractorToContractorResponse(contractor);

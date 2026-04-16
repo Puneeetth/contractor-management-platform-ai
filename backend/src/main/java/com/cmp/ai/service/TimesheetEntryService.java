@@ -1,7 +1,6 @@
 package com.cmp.ai.service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -14,7 +13,6 @@ import com.cmp.ai.exception.ResourceNotFoundException;
 import com.cmp.ai.repository.TimesheetEntryRepository;
 import com.cmp.ai.repository.TimesheetRepository;
 import com.cmp.ai.transformer.TimesheetEntryTransformer;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -55,10 +53,11 @@ public class TimesheetEntryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Timesheet Entry not found"));
 
         if (request.getDate() != null) {
-            java.time.LocalDate date = java.time.LocalDate.parse(request.getDate(), java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+            java.time.LocalDate date = java.time.LocalDate.parse(request.getDate(),
+                    java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
             entry.setDate(date);
         }
-        
+
         if (request.getHours() != null) {
             entry.setHours(request.getHours());
         }
