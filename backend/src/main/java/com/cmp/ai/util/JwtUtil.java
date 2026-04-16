@@ -1,6 +1,7 @@
 package com.cmp.ai.util;
 
 import java.security.Key;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -18,18 +19,18 @@ public class JwtUtil {
     private String secret;
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String email, String role) {
-    return Jwts.builder()
+        return Jwts.builder()
             .setSubject(email)
             .claim("role", role)
             .setIssuedAt(new Date())
             .setExpiration(new Date(System.currentTimeMillis() + 86400000))
-            .signWith(SignatureAlgorithm.HS256, secret)
+            .signWith(getSigningKey(), SignatureAlgorithm.HS256)
             .compact();
-}
+    }
 
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
