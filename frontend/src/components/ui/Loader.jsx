@@ -17,13 +17,13 @@ export const Loader = ({
         rounded-full border-indigo-500/20 border-t-indigo-500 animate-spin
         ${sizes[size]}
       `} />
-      {message && <p className="text-slate-400 text-sm">{message}</p>}
+      {message && <p className="text-gray-500 text-sm">{message}</p>}
     </div>
   )
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-[#111827]/90 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-gray-100/90 backdrop-blur-sm flex items-center justify-center z-50">
         {loader}
       </div>
     )

@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import com.cmp.ai.dto.request.PORequest;
 import com.cmp.ai.dto.response.POResponse;
 import com.cmp.ai.entity.Contract;
+import com.cmp.ai.entity.Customer;
 import com.cmp.ai.entity.PurchaseOrder;
 
 public class POTransformer {
@@ -27,9 +28,10 @@ public class POTransformer {
                 .build();
     }
 
-    public static PurchaseOrder pORequestToPO(PORequest req, Contract contract) {
+    public static PurchaseOrder pORequestToPO(PORequest req, Contract contract, Customer customer) {
         return PurchaseOrder.builder()
                 .contract(contract)
+                .customer(customer)
                 .poNumber(req.getPoNumber())
                 .poDate(parseDate(req.getPoDate()))
                 .startDate(parseDate(req.getStartDate()))
@@ -39,6 +41,7 @@ public class POTransformer {
                 .paymentTermsDays(req.getPaymentTermsDays())
                 .remark(req.getRemark())
                 .numberOfResources(req.getNumberOfResources())
+                .sharedWith(req.getSharedWith())
                 .totalHoursLimit(req.getTotalHoursLimit())
                 .build();
     }

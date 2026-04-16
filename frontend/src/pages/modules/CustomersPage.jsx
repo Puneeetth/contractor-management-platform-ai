@@ -97,7 +97,7 @@ const CustomersPage = () => {
   }
 
   const columns = [
-    { key: 'name', label: 'Customer Name', render: (row) => <span className="font-medium text-slate-200">{row.name}</span> },
+    { key: 'name', label: 'Customer Name', render: (row) => <span className="font-medium text-gray-900">{row.name}</span> },
     { key: 'address', label: 'Address' },
     { key: 'msaContactPerson', label: 'Contact Person' },
     {
@@ -113,9 +113,9 @@ const CustomersPage = () => {
   ]
 
   const summaryStats = [
-    { icon: Users, label: 'Total Customers', value: customers.length, color: 'text-blue-400', bg: 'bg-blue-500/15' },
-    { icon: Building2, label: 'Active MSAs', value: customers.length, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-    { icon: Globe, label: 'Countries', value: new Set(customers.map(c => c.countriesApplicable).filter(Boolean)).size || 0, color: 'text-purple-400', bg: 'bg-purple-500/15' },
+    { icon: Users, label: 'Total Customers', value: customers.length, color: 'text-blue-400', bg: 'bg-blue-100' },
+    { icon: Building2, label: 'Active MSAs', value: customers.length, color: 'text-emerald-400', bg: 'bg-emerald-100' },
+    { icon: Globe, label: 'Countries', value: new Set(customers.map(c => c.countriesApplicable).filter(Boolean)).size || 0, color: 'text-purple-400', bg: 'bg-purple-100' },
   ]
 
   return (
@@ -124,8 +124,8 @@ const CustomersPage = () => {
         {/* Header */}
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">Customers</h1>
-            <p className="text-slate-400 mt-1 text-sm">Manage your customer database and MSA agreements</p>
+            <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
+            <p className="text-gray-600 mt-1 text-sm">Manage your customer database and MSA agreements</p>
           </div>
           <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> Add Customer
@@ -143,8 +143,8 @@ const CustomersPage = () => {
                       <stat.icon className={`w-5 h-5 ${stat.color}`} />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">{stat.label}</p>
-                      <p className="text-xl font-bold text-white">{stat.value}</p>
+                      <p className="text-xs text-gray-500">{stat.label}</p>
+                      <p className="text-xl font-bold text-gray-900">{stat.value}</p>
                     </div>
                   </div>
                 </Card>
@@ -168,11 +168,11 @@ const CustomersPage = () => {
             <div className="py-12 flex justify-center"><Loader message="Loading customers..." /></div>
           ) : customers.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-slate-600" />
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-gray-500" />
               </div>
-              <p className="text-slate-400 text-lg font-medium">No customers found</p>
-              <p className="text-slate-600 text-sm mt-1">Get started by creating your first customer</p>
+              <p className="text-gray-600 text-lg font-medium">No customers found</p>
+              <p className="text-gray-500 text-sm mt-1">Get started by creating your first customer</p>
               <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">
                 Create First Customer
               </Button>
@@ -211,3 +211,4 @@ const CustomersPage = () => {
 }
 
 export default CustomersPage
+

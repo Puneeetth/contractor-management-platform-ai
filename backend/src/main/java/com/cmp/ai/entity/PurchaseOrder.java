@@ -11,10 +11,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Builder
 @Entity
@@ -32,6 +32,10 @@ public class PurchaseOrder {
     @JoinColumn(name = "contract_id")
     private Contract contract;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
     private String poNumber;
     private LocalDate poDate;
     private LocalDate startDate;
@@ -43,10 +47,6 @@ public class PurchaseOrder {
     private Integer numberOfResources;
     private String sharedWith;
     private Double totalHoursLimit;
-
-    @ManyToOne
-@JoinColumn(name = "customer_id")
-private Customer customer;
 
 }
 

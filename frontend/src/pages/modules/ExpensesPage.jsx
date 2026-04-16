@@ -89,7 +89,7 @@ const ExpensesPage = () => {
 
   const columns = [
     { key: 'amount', label: 'Amount', render: (row) => <span className="font-semibold text-emerald-400">{formatters.formatCurrency(row.amount)}</span> },
-    { key: 'description', label: 'Description', render: (row) => <span className="text-slate-300">{formatters.truncate(row.description, 40)}</span> },
+    { key: 'description', label: 'Description', render: (row) => <span className="text-gray-700">{formatters.truncate(row.description, 40)}</span> },
     {
       key: 'proofUrl', label: 'Proof',
       render: (row) => (
@@ -119,8 +119,8 @@ const ExpensesPage = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">Expenses</h1>
-            <p className="text-slate-400 mt-1 text-sm">Submit and manage expense claims</p>
+            <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
+            <p className="text-gray-600 mt-1 text-sm">Submit and manage expense claims</p>
           </div>
           {user?.role === 'CONTRACTOR' && (
             <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
@@ -133,15 +133,15 @@ const ExpensesPage = () => {
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[
-              { icon: CreditCard, label: 'Total Expenses', value: formatters.formatCurrency(totalExpenses), color: 'text-blue-400', bg: 'bg-blue-500/15' },
-              { icon: DollarSign, label: 'Approved', value: formatters.formatCurrency(approvedTotal), color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-              { icon: Clock, label: 'Pending', value: formatters.formatCurrency(pendingTotal), color: 'text-amber-400', bg: 'bg-amber-500/15' },
+              { icon: CreditCard, label: 'Total Expenses', value: formatters.formatCurrency(totalExpenses), color: 'text-blue-400', bg: 'bg-blue-100' },
+              { icon: DollarSign, label: 'Approved', value: formatters.formatCurrency(approvedTotal), color: 'text-emerald-400', bg: 'bg-emerald-100' },
+              { icon: Clock, label: 'Pending', value: formatters.formatCurrency(pendingTotal), color: 'text-amber-400', bg: 'bg-amber-100' },
             ].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <Card className="!p-4">
                   <div className="flex items-center gap-3">
                     <div className={`${stat.bg} p-2.5 rounded-xl`}><stat.icon className={`w-5 h-5 ${stat.color}`} /></div>
-                    <div><p className="text-xs text-slate-500">{stat.label}</p><p className="text-xl font-bold text-white">{stat.value}</p></div>
+                    <div><p className="text-xs text-gray-500">{stat.label}</p><p className="text-xl font-bold text-gray-900">{stat.value}</p></div>
                   </div>
                 </Card>
               </motion.div>
@@ -160,9 +160,9 @@ const ExpensesPage = () => {
             <div className="py-12 flex justify-center"><Loader message="Loading expenses..." /></div>
           ) : expenses.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4"><CreditCard className="w-8 h-8 text-slate-600" /></div>
-              <p className="text-slate-400 text-lg font-medium">No expenses found</p>
-              <p className="text-slate-600 text-sm mt-1">Submit your first expense</p>
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><CreditCard className="w-8 h-8 text-gray-500" /></div>
+              <p className="text-gray-600 text-lg font-medium">No expenses found</p>
+              <p className="text-gray-500 text-sm mt-1">Submit your first expense</p>
             </div>
           ) : (
             <Table columns={columns} data={expenses} isLoading={false} />
@@ -184,3 +184,4 @@ const ExpensesPage = () => {
 }
 
 export default ExpensesPage
+

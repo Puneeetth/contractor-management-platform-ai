@@ -50,13 +50,13 @@ const InvoicesPage = () => {
       render: (row) => (
         <div>
           <span className="font-mono text-indigo-400 font-medium">Invoice #{String(row.id).padStart(3, '0')}</span>
-          <p className="text-xs text-slate-500 mt-0.5">{row.invoiceMonth}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{row.invoiceMonth}</p>
         </div>
       )
     },
     { key: 'totalHours', label: 'Hours', render: (row) => formatters.formatHours(row.totalHours) },
     { key: 'baseAmount', label: 'Base Amount', render: (row) => formatters.formatCurrency(row.baseAmount) },
-    { key: 'taxAmount', label: 'Tax (10%)', render: (row) => <span className="text-slate-400">{formatters.formatCurrency(row.taxAmount)}</span> },
+    { key: 'taxAmount', label: 'Tax (10%)', render: (row) => <span className="text-gray-600">{formatters.formatCurrency(row.taxAmount)}</span> },
     { key: 'totalAmount', label: 'Total', render: (row) => <span className="font-semibold text-emerald-400">{formatters.formatCurrency(row.totalAmount)}</span> },
     {
       key: 'status', label: 'Status',
@@ -65,7 +65,7 @@ const InvoicesPage = () => {
     {
       key: 'actions', label: 'Actions',
       render: (row) => (
-        user?.role === 'FINANCE' && row.status !== 'APPROVED' && row.status !== 'REJECTED' ? (
+        (user?.role === 'FINANCE' || user?.role === 'ADMIN') && row.status !== 'APPROVED' && row.status !== 'REJECTED' ? (
           <Button variant="success" size="sm" isLoading={approving === row.id} onClick={() => handleApprove(row.id)} className="flex items-center gap-1">
             <Check className="w-3.5 h-3.5" /> Approve
           </Button>
@@ -78,26 +78,26 @@ const InvoicesPage = () => {
     <DashboardLayout>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Invoices</h1>
-          <p className="text-slate-400 mt-1 text-sm">View and manage invoice approvals</p>
+          <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+          <p className="text-gray-600 mt-1 text-sm">View and manage invoice approvals</p>
         </div>
 
         {/* Summary Cards - matching pic-2 style */}
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[
-              { icon: Receipt, label: 'Invoices Total', value: invoices.length, subValue: formatters.formatCurrency(totalAmount), color: 'text-blue-400', bg: 'bg-blue-500/15', borderColor: 'border-blue-500/20' },
-              { icon: DollarSign, label: 'Approved Invoices', value: formatters.formatCurrency(approvedAmount), color: 'text-emerald-400', bg: 'bg-emerald-500/15', borderColor: 'border-emerald-500/20' },
-              { icon: Clock, label: 'Pending Invoices', value: formatters.formatCurrency(pendingAmount), color: 'text-amber-400', bg: 'bg-amber-500/15', borderColor: 'border-amber-500/20' },
+              { icon: Receipt, label: 'Invoices Total', value: invoices.length, subValue: formatters.formatCurrency(totalAmount), color: 'text-blue-400', bg: 'bg-blue-100', borderColor: 'border-blue-500/20' },
+              { icon: DollarSign, label: 'Approved Invoices', value: formatters.formatCurrency(approvedAmount), color: 'text-emerald-400', bg: 'bg-emerald-100', borderColor: 'border-emerald-500/20' },
+              { icon: Clock, label: 'Pending Invoices', value: formatters.formatCurrency(pendingAmount), color: 'text-amber-400', bg: 'bg-amber-100', borderColor: 'border-amber-500/20' },
             ].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <Card className={`!p-5 border-l-2 ${stat.borderColor}`}>
                   <div className="flex items-center gap-3">
                     <div className={`${stat.bg} p-2.5 rounded-xl`}><stat.icon className={`w-5 h-5 ${stat.color}`} /></div>
                     <div>
-                      <p className="text-xs text-slate-500">{stat.label}</p>
+                      <p className="text-xs text-gray-500">{stat.label}</p>
                       <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                      {stat.subValue && <p className="text-xs text-slate-500 mt-0.5">{stat.subValue}</p>}
+                      {stat.subValue && <p className="text-xs text-gray-500 mt-0.5">{stat.subValue}</p>}
                     </div>
                   </div>
                 </Card>
@@ -117,9 +117,9 @@ const InvoicesPage = () => {
             <div className="py-12 flex justify-center"><Loader message="Loading invoices..." /></div>
           ) : invoices.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4"><Receipt className="w-8 h-8 text-slate-600" /></div>
-              <p className="text-slate-400 text-lg font-medium">No invoices found</p>
-              <p className="text-slate-600 text-sm mt-1">Invoices will appear here once timesheets are processed</p>
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Receipt className="w-8 h-8 text-gray-500" /></div>
+              <p className="text-gray-600 text-lg font-medium">No invoices found</p>
+              <p className="text-gray-500 text-sm mt-1">Invoices will appear here once timesheets are processed</p>
             </div>
           ) : (
             <Table columns={columns} data={invoices} isLoading={false} />
@@ -131,3 +131,4 @@ const InvoicesPage = () => {
 }
 
 export default InvoicesPage
+

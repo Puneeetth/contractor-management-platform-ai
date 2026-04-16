@@ -44,7 +44,7 @@ public class InvoiceController {
     }
 
     @PutMapping("/{id}/approve")
-    @PreAuthorize("hasRole('FINANCE')")
+    @PreAuthorize("hasAnyRole('FINANCE','ADMIN')")
     public InvoiceResponse approveInvoice(@PathVariable Long id) {
         return invoiceService.approveInvoice(id);
     }

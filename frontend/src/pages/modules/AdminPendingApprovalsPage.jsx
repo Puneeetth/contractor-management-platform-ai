@@ -22,8 +22,8 @@ const AdminPendingApprovalsPage = () => {
   const fetchPendingUsers = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.get('/api/admin/users/pending')
-      setPendingUsers(response.data || [])
+      const response = await apiClient.get('/admin/users/pending')
+      setPendingUsers(Array.isArray(response) ? response : [])
       setError('')
     } catch (err) {
       setError('Failed to load pending users: ' + (err.message || 'Unknown error'))
@@ -42,7 +42,7 @@ const AdminPendingApprovalsPage = () => {
   const handleApprove = async () => {
     if (!selectedUser) return
     try {
-      await apiClient.post(`/api/admin/users/${selectedUser.id}/approve`, {
+      await apiClient.post(`/admin/users/${selectedUser.id}/approve`, {
         approvalReason: reason || 'Information verified'
       })
       setSuccess(`${selectedUser.name} has been approved!`)
@@ -62,7 +62,7 @@ const AdminPendingApprovalsPage = () => {
       return
     }
     try {
-      await apiClient.post(`/api/admin/users/${selectedUser.id}/reject`, {
+      await apiClient.post(`/admin/users/${selectedUser.id}/reject`, {
         rejectionReason: reason
       })
       setSuccess(`${selectedUser.name} has been rejected`)

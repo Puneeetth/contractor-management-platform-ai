@@ -3,6 +3,9 @@ package com.cmp.ai.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.cmp.ai.dto.request.PORequest;
+import com.cmp.ai.entity.PurchaseOrder;
+import com.cmp.ai.repository.PurchaseOrderRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +24,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PurchaseOrderRepository purchaseOrderRepository;
 
     /**
      * Get all pending users awaiting approval
@@ -140,4 +144,5 @@ public class AdminService {
     public List<User> getUsersByRoleAndStatus(Role role, Status status) {
         return userRepository.findByRoleAndStatus(role, status);
     }
+
 }

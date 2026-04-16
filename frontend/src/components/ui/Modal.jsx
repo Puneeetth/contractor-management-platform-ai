@@ -25,7 +25,7 @@ export const Modal = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+      className="fixed inset-0 bg-gray-900/35 backdrop-blur-sm flex items-center justify-center z-50"
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0, y: 10 }}
@@ -34,19 +34,19 @@ export const Modal = ({
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
         className={`
-          bg-[#1a1f2e] rounded-2xl shadow-2xl shadow-black/50 w-full mx-4
-          border border-white/[0.06]
+          bg-white rounded-2xl shadow-xl w-full mx-4
+          border border-gray-200
           max-h-[85vh] flex flex-col
           ${sizes[size]}
         `}
       >
-        <div className="flex justify-between items-center p-6 border-b border-white/[0.06]">
-          <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-white/[0.06] rounded-lg transition-colors"
+            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
@@ -55,7 +55,7 @@ export const Modal = ({
         </div>
 
         {footer && (
-          <div className="border-t border-white/[0.06] p-6 flex justify-end gap-3">
+          <div className="border-t border-gray-200 p-6 flex justify-end gap-3">
             {footer}
           </div>
         )}

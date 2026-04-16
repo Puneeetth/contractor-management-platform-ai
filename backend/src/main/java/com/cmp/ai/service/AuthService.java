@@ -68,6 +68,11 @@ public class AuthService {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, password));
 
-        return jwtUtil.generateToken(email, password);
+        return jwtUtil.generateToken(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole().name(),
+                user.getStatus().name());
     }
 }

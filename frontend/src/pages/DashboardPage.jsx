@@ -46,7 +46,7 @@ const DashboardPage = () => {
       trendLabel: 'from last month',
       colorClass: 'stat-card-blue',
       iconColor: 'text-blue-400',
-      iconBg: 'bg-blue-500/15',
+      iconBg: 'bg-blue-100',
     },
     {
       icon: CreditCard,
@@ -57,7 +57,7 @@ const DashboardPage = () => {
       trendLabel: 'from last month',
       colorClass: 'stat-card-green',
       iconColor: 'text-emerald-400',
-      iconBg: 'bg-emerald-500/15',
+      iconBg: 'bg-emerald-100',
     },
     {
       icon: Clock,
@@ -68,7 +68,7 @@ const DashboardPage = () => {
       trendLabel: 'from last month',
       colorClass: 'stat-card-purple',
       iconColor: 'text-purple-400',
-      iconBg: 'bg-purple-500/15',
+      iconBg: 'bg-purple-100',
     },
     {
       icon: Briefcase,
@@ -79,7 +79,7 @@ const DashboardPage = () => {
       trendLabel: 'new this week',
       colorClass: 'stat-card-amber',
       iconColor: 'text-amber-400',
-      iconBg: 'bg-amber-500/15',
+      iconBg: 'bg-amber-100',
     },
   ]
 
@@ -145,10 +145,10 @@ const DashboardPage = () => {
       >
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-gray-900">
             {getGreeting()}, <span className="gradient-text">{user?.name || 'User'}</span>
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-gray-600 mt-1">
             Here's what's happening with your business today.
           </p>
         </div>
@@ -172,8 +172,8 @@ const DashboardPage = () => {
                   <div className={`${stat.colorClass} rounded-2xl p-5 transition-all duration-300 hover:scale-[1.02]`}>
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm font-medium text-slate-400">{stat.label}</p>
-                        <p className="text-2xl font-bold text-white mt-2">{stat.value}</p>
+                        <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
                         <div className="flex items-center gap-1.5 mt-3">
                           {stat.trendUp ? (
                             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
@@ -183,7 +183,7 @@ const DashboardPage = () => {
                           <span className={`text-xs font-medium ${stat.trendUp ? 'text-emerald-400' : 'text-amber-400'}`}>
                             {stat.trend}
                           </span>
-                          <span className="text-xs text-slate-500">{stat.trendLabel}</span>
+                          <span className="text-xs text-gray-500">{stat.trendLabel}</span>
                         </div>
                       </div>
                       <div className={`${stat.iconBg} p-2.5 rounded-xl`}>
@@ -207,7 +207,7 @@ const DashboardPage = () => {
           <Card 
             header={
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
                 <button className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1">
                   View all <ArrowUpRight className="w-3 h-3" />
                 </button>
@@ -221,8 +221,8 @@ const DashboardPage = () => {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 + index * 0.1 }}
-                  className={`flex items-center justify-between py-3.5 px-2 rounded-xl hover:bg-white/[0.02] transition-colors ${
-                    index < recentActivity.length - 1 ? 'border-b border-white/[0.04]' : ''
+                  className={`flex items-center justify-between py-3.5 px-2 rounded-xl hover:bg-gray-50 transition-colors ${
+                    index < recentActivity.length - 1 ? 'border-b border-gray-200' : ''
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -234,13 +234,13 @@ const DashboardPage = () => {
                       'bg-slate-400'
                     }`} />
                     <div>
-                      <p className="text-sm font-medium text-slate-200">{activity.title}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{activity.description}</p>
+                      <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{activity.description}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <Badge variant={activity.status}>{activity.statusLabel}</Badge>
-                    <span className="text-xs text-slate-600 hidden sm:block">{activity.time}</span>
+                    <span className="text-xs text-gray-500 hidden sm:block">{activity.time}</span>
                   </div>
                 </motion.div>
               ))}
@@ -253,3 +253,4 @@ const DashboardPage = () => {
 }
 
 export default DashboardPage
+

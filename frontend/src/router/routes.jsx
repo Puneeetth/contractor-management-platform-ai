@@ -87,7 +87,7 @@ export const AppRoutes = () => {
         <Route
           path="/timesheets"
           element={
-            <PrivateRoute requiredRoles={['CONTRACTOR', 'MANAGER', 'FINANCE']}>
+            <PrivateRoute requiredRoles={['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE']}>
               <TimesheetsPage />
             </PrivateRoute>
           }
@@ -96,7 +96,7 @@ export const AppRoutes = () => {
         <Route
           path="/invoices"
           element={
-            <PrivateRoute requiredRoles={['FINANCE', 'MANAGER', 'CONTRACTOR']}>
+            <PrivateRoute requiredRoles={['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR']}>
               <InvoicesPage />
             </PrivateRoute>
           }
@@ -105,7 +105,7 @@ export const AppRoutes = () => {
         <Route
           path="/expenses"
           element={
-            <PrivateRoute requiredRoles={['CONTRACTOR', 'MANAGER', 'FINANCE']}>
+            <PrivateRoute requiredRoles={['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE']}>
               <ExpensesPage />
             </PrivateRoute>
           }

@@ -44,7 +44,7 @@ public class TimesheetController {
     }
 
     @PutMapping("/{id}/approve")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     public TimesheetResponse approveTimesheet(@PathVariable Long id) {
         return timesheetService.approveTimesheet(id);
     }

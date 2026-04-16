@@ -95,17 +95,17 @@ const TimesheetsPage = () => {
   const pendingCount = timesheets.filter(t => t.status !== 'APPROVED' && t.status !== 'REJECTED').length
 
   const columns = [
-    { key: 'month', label: 'Month', render: (row) => <span className="font-medium text-slate-200">{row.month}</span> },
+    { key: 'month', label: 'Month', render: (row) => <span className="font-medium text-gray-900">{row.month}</span> },
     { key: 'totalHours', label: 'Total Hours', render: (row) => <span className="text-indigo-400 font-medium">{formatters.formatHours(row.totalHours)}</span> },
     {
       key: 'status', label: 'Status',
       render: (row) => <Badge variant={row.status === 'APPROVED' ? 'approved' : row.status === 'REJECTED' ? 'rejected' : 'pending'}>{row.status}</Badge>,
     },
-    { key: 'contractorId', label: 'Contractor', render: (row) => <span className="text-slate-400">Contractor #{row.contractorId}</span> },
+    { key: 'contractorId', label: 'Contractor', render: (row) => <span className="text-gray-600">Contractor #{row.contractorId}</span> },
     {
       key: 'actions', label: 'Actions',
       render: (row) => (
-        user?.role === 'MANAGER' && row.status !== 'APPROVED' && row.status !== 'REJECTED' ? (
+        (user?.role === 'MANAGER' || user?.role === 'ADMIN') && row.status !== 'APPROVED' && row.status !== 'REJECTED' ? (
           <Button variant="success" size="sm" isLoading={approving === row.id} onClick={() => handleApprove(row.id)} className="flex items-center gap-1">
             <Check className="w-3.5 h-3.5" /> Approve
           </Button>
@@ -119,8 +119,8 @@ const TimesheetsPage = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">Timesheets</h1>
-            <p className="text-slate-400 mt-1 text-sm">Submit and manage timesheets</p>
+            <h1 className="text-2xl font-bold text-gray-900">Timesheets</h1>
+            <p className="text-gray-600 mt-1 text-sm">Submit and manage timesheets</p>
           </div>
           {user?.role === 'CONTRACTOR' && (
             <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
@@ -132,15 +132,15 @@ const TimesheetsPage = () => {
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[
-              { icon: Clock, label: 'Total Hours', value: formatters.formatHours(totalHours), color: 'text-blue-400', bg: 'bg-blue-500/15' },
-              { icon: CheckCircle2, label: 'Approved', value: approvedCount, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-              { icon: Timer, label: 'Pending', value: pendingCount, color: 'text-amber-400', bg: 'bg-amber-500/15' },
+              { icon: Clock, label: 'Total Hours', value: formatters.formatHours(totalHours), color: 'text-blue-400', bg: 'bg-blue-100' },
+              { icon: CheckCircle2, label: 'Approved', value: approvedCount, color: 'text-emerald-400', bg: 'bg-emerald-100' },
+              { icon: Timer, label: 'Pending', value: pendingCount, color: 'text-amber-400', bg: 'bg-amber-100' },
             ].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <Card className="!p-4">
                   <div className="flex items-center gap-3">
                     <div className={`${stat.bg} p-2.5 rounded-xl`}><stat.icon className={`w-5 h-5 ${stat.color}`} /></div>
-                    <div><p className="text-xs text-slate-500">{stat.label}</p><p className="text-xl font-bold text-white">{stat.value}</p></div>
+                    <div><p className="text-xs text-gray-500">{stat.label}</p><p className="text-xl font-bold text-gray-900">{stat.value}</p></div>
                   </div>
                 </Card>
               </motion.div>
@@ -159,9 +159,9 @@ const TimesheetsPage = () => {
             <div className="py-12 flex justify-center"><Loader message="Loading timesheets..." /></div>
           ) : timesheets.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4"><Clock className="w-8 h-8 text-slate-600" /></div>
-              <p className="text-slate-400 text-lg font-medium">No timesheets found</p>
-              <p className="text-slate-600 text-sm mt-1">Submit your first timesheet</p>
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Clock className="w-8 h-8 text-gray-500" /></div>
+              <p className="text-gray-600 text-lg font-medium">No timesheets found</p>
+              <p className="text-gray-500 text-sm mt-1">Submit your first timesheet</p>
             </div>
           ) : (
             <Table columns={columns} data={timesheets} isLoading={false} />
@@ -174,9 +174,9 @@ const TimesheetsPage = () => {
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
             <Input label="Month" name="month" type="month" value={formData.month} onChange={handleInputChange} error={formErrors.month} required />
             
-            <div className="border-t border-white/[0.06] pt-4 mt-4">
+            <div className="border-t border-gray-200 pt-4 mt-4">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-semibold text-slate-200 text-sm">Timesheet Entries</h3>
+                <h3 className="font-semibold text-gray-900 text-sm">Timesheet Entries</h3>
                 <Button variant="secondary" size="sm" onClick={addEntry}>Add Entry</Button>
               </div>
               {formErrors.entries && <p className="text-red-400 text-xs mb-2">{formErrors.entries}</p>}
@@ -206,3 +206,4 @@ const TimesheetsPage = () => {
 }
 
 export default TimesheetsPage
+

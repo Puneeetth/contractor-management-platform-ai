@@ -3,6 +3,9 @@ package com.cmp.ai.controller;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.cmp.ai.dto.request.PORequest;
+import com.cmp.ai.entity.PurchaseOrder;
+import com.cmp.ai.service.PurchaseOrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,6 +42,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final UserRepository userRepository;
+
 
     /**
      * Get all pending users awaiting approval
@@ -164,9 +168,7 @@ public class AdminController {
         return ResponseEntity.ok(UserTransformer.userToUserResponse(user));
     }
 
-    /**
-     * Helper method to get current authenticated user
-     */
+
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();

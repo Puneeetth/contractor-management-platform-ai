@@ -72,7 +72,7 @@ const ContractorCreationPage = () => {
     setSuccess('')
 
     try {
-      const response = await apiClient.post('/api/admin/contractors/create', {
+      const response = await apiClient.post('/admin/contractors/create', {
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -80,7 +80,7 @@ const ContractorCreationPage = () => {
         specialization: formData.specialization
       })
 
-      setCreatedContractor(response.data)
+      setCreatedContractor(response)
       setSuccess('Contractor created successfully!')
       setFormData({
         name: '',

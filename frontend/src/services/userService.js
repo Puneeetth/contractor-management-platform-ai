@@ -1,26 +1,31 @@
 import apiClient from './apiClient'
+import { decodeJwtPayload } from '../utils/jwt'
 
 export const userService = {
-  // Get current user info from token
- getCurrentUser: async () => {
-  try {
-    const token = localStorage.getItem('token')
-    if (!token) return null
+  getCurrentUser: async () => {
+    try {
+      const authStoreRaw = localStorage.getItem('auth-store')
+      if (!authStoreRaw) return null
 
-    // ✅ validate JWT format before decoding
-    if (!token.includes('.')) return null
+      const persisted = JSON.parse(authStoreRaw)
+      const token = persisted?.state?.token
+      const payload = decodeJwtPayload(token)
 
-    const base64Payload = token.split('.')[1]
-    const payload = JSON.parse(atob(base64Payload))
+      if (!payload) return null
 
-    return payload.user || payload
-  } catch (error) {
-    console.error('Error parsing token:', error)
-    return null
-  }
-},
+      return {
+        id: payload.userId || payload.id,
+        email: payload.email,
+        name: payload.name,
+        role: payload.role,
+        status: payload.status,
+      }
+    } catch (error) {
+      console.error('Error parsing token:', error)
+      return null
+    }
+  },
 
-  // Refresh user data from server if needed
   refreshUserData: async () => {
     try {
       const response = await apiClient.get('/auth/me')

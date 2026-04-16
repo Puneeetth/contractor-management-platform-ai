@@ -6,7 +6,7 @@ export const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-[#111827]">
+    <div className="flex h-screen bg-[#f3f4fb]">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 

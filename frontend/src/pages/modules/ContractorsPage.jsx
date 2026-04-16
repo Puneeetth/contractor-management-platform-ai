@@ -109,7 +109,7 @@ const ContractorsPage = () => {
   const columns = [
     { key: 'id', label: 'Contract ID', render: (row) => <span className="font-mono text-indigo-400">#CT-{String(row.id).padStart(3, '0')}</span> },
     { key: 'billRate', label: 'Bill Rate', render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.billRate)}</span> },
-    { key: 'payRate', label: 'Pay Rate', render: (row) => <span className="text-slate-300">{formatters.formatCurrency(row.payRate)}</span> },
+    { key: 'payRate', label: 'Pay Rate', render: (row) => <span className="text-gray-700">{formatters.formatCurrency(row.payRate)}</span> },
     { key: 'estimatedHours', label: 'Est. Hours', render: (row) => formatters.formatHours(row.estimatedHours) },
     {
       key: 'status', label: 'Status',
@@ -125,8 +125,8 @@ const ContractorsPage = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">Contracts</h1>
-            <p className="text-slate-400 mt-1 text-sm">Manage contractor contracts and assignments</p>
+            <h1 className="text-2xl font-bold text-gray-900">Contracts</h1>
+            <p className="text-gray-600 mt-1 text-sm">Manage contractor contracts and assignments</p>
           </div>
           <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> Add Contract
@@ -137,17 +137,17 @@ const ContractorsPage = () => {
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[
-              { icon: Briefcase, label: 'Total Contracts', value: contracts.length, color: 'text-blue-400', bg: 'bg-blue-500/15' },
-              { icon: CalendarDays, label: 'Active', value: activeContracts, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-              { icon: DollarSign, label: 'Total Budget', value: formatters.formatCurrency(totalBudget), color: 'text-purple-400', bg: 'bg-purple-500/15' },
+              { icon: Briefcase, label: 'Total Contracts', value: contracts.length, color: 'text-blue-400', bg: 'bg-blue-100' },
+              { icon: CalendarDays, label: 'Active', value: activeContracts, color: 'text-emerald-400', bg: 'bg-emerald-100' },
+              { icon: DollarSign, label: 'Total Budget', value: formatters.formatCurrency(totalBudget), color: 'text-purple-400', bg: 'bg-purple-100' },
             ].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <Card className="!p-4">
                   <div className="flex items-center gap-3">
                     <div className={`${stat.bg} p-2.5 rounded-xl`}><stat.icon className={`w-5 h-5 ${stat.color}`} /></div>
                     <div>
-                      <p className="text-xs text-slate-500">{stat.label}</p>
-                      <p className="text-xl font-bold text-white">{stat.value}</p>
+                      <p className="text-xs text-gray-500">{stat.label}</p>
+                      <p className="text-xl font-bold text-gray-900">{stat.value}</p>
                     </div>
                   </div>
                 </Card>
@@ -169,11 +169,11 @@ const ContractorsPage = () => {
             <div className="py-12 flex justify-center"><Loader message="Loading contracts..." /></div>
           ) : contracts.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Briefcase className="w-8 h-8 text-slate-600" />
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Briefcase className="w-8 h-8 text-gray-500" />
               </div>
-              <p className="text-slate-400 text-lg font-medium">No contracts found</p>
-              <p className="text-slate-600 text-sm mt-1">Create your first contract to get started</p>
+              <p className="text-gray-600 text-lg font-medium">No contracts found</p>
+              <p className="text-gray-500 text-sm mt-1">Create your first contract to get started</p>
               <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">Create First Contract</Button>
             </div>
           ) : (
@@ -204,8 +204,8 @@ const ContractorsPage = () => {
             </div>
             <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={formData.noticePeriodDays} onChange={handleInputChange} />
             <div className="flex items-center gap-3 py-2">
-              <input type="checkbox" name="throughEor" id="throughEor" checked={formData.throughEor} onChange={handleInputChange} className="w-4 h-4 rounded border-white/[0.08] bg-[#0f1219] text-indigo-500 focus:ring-indigo-500/20" />
-              <label htmlFor="throughEor" className="text-sm text-slate-300">Through EOR</label>
+              <input type="checkbox" name="throughEor" id="throughEor" checked={formData.throughEor} onChange={handleInputChange} className="w-4 h-4 rounded border-gray-300 bg-white text-indigo-600 focus:ring-indigo-200" />
+              <label htmlFor="throughEor" className="text-sm text-gray-700">Through EOR</label>
             </div>
             <Input label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} placeholder="Additional notes..." />
           </form>
@@ -216,3 +216,4 @@ const ContractorsPage = () => {
 }
 
 export default ContractorsPage
+
