@@ -4,13 +4,14 @@ import { motion } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import { authService } from '../services/authService'
 import { validators } from '../utils/validators'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles, AlertCircle, Clock, XCircle } from 'lucide-react'
 
 const LoginPage = () => {
   const navigate = useNavigate()
   const { login: setAuthData } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
+  const [statusError, setStatusError] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
 
@@ -18,6 +19,7 @@ const LoginPage = () => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
+    if (statusError) setStatusError('')
   }
 
   const validate = () => {
@@ -33,6 +35,7 @@ const LoginPage = () => {
     e.preventDefault()
     if (!validate()) return
     setIsLoading(true)
+    setStatusError('')
     try {
       const token = await authService.login(formData.email, formData.password)
       if (token) {
@@ -48,7 +51,18 @@ const LoginPage = () => {
         navigate('/dashboard')
       }
     } catch (error) {
-      setErrors({ submit: error?.error?.message || error?.message || 'Login failed. Please try again.' })
+      const errorMessage = error?.response?.data?.message || error?.error?.message || error?.message || 'Login failed. Please try again.'
+      
+      // Check for specific status errors
+      if (errorMessage.includes('pending')) {
+        setStatusError('Your registration is pending admin approval. Please wait for approval before logging in.')
+      } else if (errorMessage.includes('rejected')) {
+        setStatusError('Your registration was rejected. Please contact the admin for more information.')
+      } else if (errorMessage.includes('inactive')) {
+        setStatusError('Your account is currently inactive. Please contact the admin.')
+      } else {
+        setErrors({ submit: errorMessage })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -89,6 +103,33 @@ const LoginPage = () => {
             <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
               className="mb-4 p-3 bg-red-50 rounded-xl border border-red-200">
               <p className="text-sm text-red-600">{errors.submit}</p>
+            </motion.div>
+          )}
+
+          {/* Status Error Alert - Pending Approval */}
+          {statusError && statusError.includes('pending') && (
+            <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 bg-amber-50 rounded-xl border border-amber-200 flex gap-3">
+              <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800">{statusError}</p>
+            </motion.div>
+          )}
+
+          {/* Status Error Alert - Rejected */}
+          {statusError && statusError.includes('rejected') && (
+            <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 bg-red-50 rounded-xl border border-red-200 flex gap-3">
+              <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{statusError}</p>
+            </motion.div>
+          )}
+
+          {/* Status Error Alert - Inactive */}
+          {statusError && statusError.includes('inactive') && (
+            <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 bg-red-50 rounded-xl border border-red-200 flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{statusError}</p>
             </motion.div>
           )}
 
