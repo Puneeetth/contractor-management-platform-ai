@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, AlertCircle, Users, Building2, Globe } from 'lucide-react'
+import { Plus, AlertCircle, Users, Building2, Globe, Eye } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Modal, Input, Badge, Loader } from '../../components/ui'
 import { customerService } from '../../services/customerService'
@@ -24,6 +24,8 @@ const CustomersPage = () => {
   })
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState(null)
 
   useEffect(() => {
     loadCustomers()
@@ -98,7 +100,15 @@ const CustomersPage = () => {
 
   const columns = [
     { key: 'name', label: 'Customer Name', render: (row) => <span className="font-medium text-gray-900">{row.name}</span> },
-    { key: 'address', label: 'Address' },
+    { 
+      key: 'address', 
+      label: 'Address',
+      render: (row) => (
+        <div className="max-w-[200px] truncate cursor-help" title={row.address}>
+          {row.address}
+        </div>
+      )
+    },
     { key: 'msaContactPerson', label: 'Contact Person' },
     {
       key: 'msaContactEmail',
@@ -109,6 +119,21 @@ const CustomersPage = () => {
       key: 'noticePeriodDays',
       label: 'Notice Period',
       render: (row) => <Badge variant="default">{row.noticePeriodDays} days</Badge>,
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (row) => (
+        <button
+          onClick={() => {
+            setSelectedCustomer(row)
+            setIsViewModalOpen(true)
+          }}
+          className="text-indigo-400 hover:text-indigo-300 font-medium text-sm transition-colors"
+        >
+          View
+        </button>
+      ),
     },
   ]
 
@@ -204,6 +229,74 @@ const CustomersPage = () => {
             <Input label="Notice Period (days)" type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} min="0" />
             <Input label="MSA Remarks" name="msaRemark" value={formData.msaRemark} onChange={handleInputChange} placeholder="Additional remarks about MSA" />
           </form>
+        </Modal>
+
+        {/* View Customer Modal */}
+        <Modal
+          isOpen={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+          title="Customer Details"
+          size="lg"
+          footer={
+            <Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>
+              Cancel
+            </Button>
+          }
+        >
+          {selectedCustomer && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer Name</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedCustomer.name}</p>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Address</p>
+                  <p className="text-sm text-gray-900 leading-relaxed">{selectedCustomer.address}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">MSA Reference</p>
+                  <p className="text-sm font-medium text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded inline-block">
+                    {selectedCustomer.msa}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Created Date</p>
+                  <p className="text-sm text-gray-900">{formatters.formatDate(selectedCustomer.createdDate) || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">MSA Renewal Date</p>
+                  <p className="text-sm text-gray-900">{formatters.formatDate(selectedCustomer.msaRenewalDate) || 'Not Set'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">MSA contact person</p>
+                  <p className="text-sm text-gray-900">{selectedCustomer.msaContactPerson}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">MSA contact person-email</p>
+                  <a href={`mailto:${selectedCustomer.msaContactEmail}`} className="text-sm text-indigo-400 hover:underline">
+                    {selectedCustomer.msaContactEmail}
+                  </a>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Countries Applicable</p>
+                  <p className="text-sm text-gray-900">{selectedCustomer.countriesApplicable || 'Global'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Notice Period given by customer</p>
+                  <Badge variant="default" className="text-sm">
+                    {selectedCustomer.noticePeriodDays} days
+                  </Badge>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">MSA Remark</p>
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 italic text-sm text-gray-600">
+                    {selectedCustomer.msaRemark || 'No additional remarks'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </Modal>
       </motion.div>
     </DashboardLayout>

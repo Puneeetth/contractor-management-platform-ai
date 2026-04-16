@@ -3,15 +3,11 @@ package com.cmp.ai.controller;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.cmp.ai.dto.request.PORequest;
-import com.cmp.ai.entity.PurchaseOrder;
-import com.cmp.ai.service.PurchaseOrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,7 +38,6 @@ public class AdminController {
 
     private final AdminService adminService;
     private final UserRepository userRepository;
-
 
     /**
      * Get all pending users awaiting approval
@@ -167,7 +162,6 @@ public class AdminController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(UserTransformer.userToUserResponse(user));
     }
-
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

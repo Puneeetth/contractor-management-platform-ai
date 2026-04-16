@@ -46,6 +46,7 @@ public class PurchaseOrder {
     private String remark;
     private Integer numberOfResources;
     private String sharedWith;
+    private String fileUrl;
     private Double totalHoursLimit;
 
 }

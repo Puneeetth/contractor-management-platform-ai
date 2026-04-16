@@ -8,9 +8,8 @@ import lombok.Data;
 @Data
 public class PORequest {
 
-    @NotNull
     private Long contractId;
-
+    
     @NotNull
     private Long customerId;
 
@@ -44,6 +43,8 @@ public class PORequest {
     private Integer numberOfResources;
 
     private String sharedWith;
+
+    private String fileUrl;
 
     private Double totalHoursLimit;
 }

@@ -18,12 +18,15 @@ const POsPage = () => {
   const [isReferenceLoading, setIsReferenceLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
-    contractId: '', customerId: '', poNumber: '', poDate: '',
-    startDate: '', endDate: '', poValue: '', currency: 'USD',
-    paymentTermsDays: 30, numberOfResources: '', remark: '',
+    poNumber: '', poDate: '', startDate: '', endDate: '', 
+    poValue: '', currency: 'USD', paymentTermsDays: 30, 
+    customerId: '', remark: '', numberOfResources: '', 
+    sharedWith: '', fileUrl: '',
   })
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [selectedPO, setSelectedPO] = useState(null)
 
   useEffect(() => { loadPOs() }, [])
   useEffect(() => {
@@ -62,7 +65,6 @@ const POsPage = () => {
 
   const validateForm = () => {
     const newErrors = {}
-    if (!validators.isRequired(formData.contractId)) newErrors.contractId = 'Contract is required'
     if (!validators.isRequired(formData.customerId)) newErrors.customerId = 'Customer is required'
     if (!validators.isRequired(formData.poNumber)) newErrors.poNumber = 'PO Number is required'
     if (!validators.isRequired(formData.poDate)) newErrors.poDate = 'PO Date is required'
@@ -101,7 +103,12 @@ const POsPage = () => {
     try {
       await poService.createPurchaseOrder(formData)
       setIsModalOpen(false)
-      setFormData({ contractId: '', customerId: '', poNumber: '', poDate: '', startDate: '', endDate: '', poValue: '', currency: 'USD', paymentTermsDays: 30, numberOfResources: '', remark: '' })
+      setFormData({ 
+        poNumber: '', poDate: '', startDate: '', endDate: '', 
+        poValue: '', currency: 'USD', paymentTermsDays: 30, 
+        customerId: '', remark: '', numberOfResources: '', 
+        sharedWith: '', fileUrl: ''
+      })
       await loadPOs()
     } catch (err) {
       setFormErrors({ submit: err?.error?.message || 'Failed to create PO' })
@@ -119,10 +126,24 @@ const POsPage = () => {
 
   const columns = [
     { key: 'poNumber', label: 'PO Number', render: (row) => <span className="font-mono text-indigo-400 font-medium">{row.poNumber}</span> },
+    { key: 'customer', label: 'Customer', render: (row) => <span className="text-gray-900">{customerNameById(row.customerId)}</span> },
     { key: 'poDate', label: 'PO Date', render: (row) => formatters.formatDate(row.poDate) },
     { key: 'poValue', label: 'PO Value', render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.poValue)} {row.currency}</span> },
-    { key: 'paymentTermsDays', label: 'Payment Terms', render: (row) => <Badge variant="default">{row.paymentTermsDays} days</Badge> },
-    { key: 'numberOfResources', label: 'Resources' },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (row) => (
+        <button
+          onClick={() => {
+            setSelectedPO(row)
+            setIsViewModalOpen(true)
+          }}
+          className="text-indigo-400 hover:text-indigo-300 font-medium text-sm transition-colors"
+        >
+          View
+        </button>
+      ),
+    },
   ]
 
   return (
@@ -182,38 +203,115 @@ const POsPage = () => {
         </Card>
 
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Purchase Order" size="lg"
-          footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create</Button></>}>
+          footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create PO</Button></>}>
           <form className="space-y-4">
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
-            <Select
-              label="Contract"
-              value={formData.contractId}
-              onChange={handleContractChange}
-              options={contractOptions}
-              error={formErrors.contractId}
-              required
-              disabled={isReferenceLoading}
-              placeholder={isReferenceLoading ? 'Loading contracts...' : 'Select a contract'}
-            />
-            <Input label="Customer" name="customerId" type="text" value={formData.customerId ? customerNameById(formData.customerId) : ''} onChange={() => {}} error={formErrors.customerId} disabled />
-            <Input label="PO Number" name="poNumber" value={formData.poNumber} onChange={handleInputChange} error={formErrors.poNumber} placeholder="PO-2024-001" required />
+            
             <div className="grid grid-cols-2 gap-4">
+              <Input label="PO Number" name="poNumber" value={formData.poNumber} onChange={handleInputChange} error={formErrors.poNumber} placeholder="PO-2024-001" required />
               <Input label="PO Date" name="poDate" type="date" value={formData.poDate} onChange={handleInputChange} error={formErrors.poDate} required />
-              <Input label="PO Value ($)" name="poValue" type="number" step="0.01" value={formData.poValue} onChange={handleInputChange} error={formErrors.poValue} required />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} />
               <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Currency" name="currency" value={formData.currency} onChange={handleInputChange} />
-              <Input label="Payment Terms (days)" name="paymentTermsDays" type="number" value={formData.paymentTermsDays} onChange={handleInputChange} />
+              <Input label="PO Value" name="poValue" type="number" step="0.01" value={formData.poValue} onChange={handleInputChange} error={formErrors.poValue} required />
+              <Input label="Currency" name="currency" value={formData.currency} onChange={handleInputChange} placeholder="USD" />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Number of Resources" name="numberOfResources" type="number" value={formData.numberOfResources} onChange={handleInputChange} />
-              <Input label="Remark" name="remark" value={formData.remark} onChange={handleInputChange} />
+              <Input label="Payment Terms (no. of days)" name="paymentTermsDays" type="number" value={formData.paymentTermsDays} onChange={handleInputChange} />
+              <Select
+                label="Select Customer"
+                value={formData.customerId}
+                onChange={(e) => setFormData(prev => ({ ...prev, customerId: e.target.value === '' ? '' : Number(e.target.value) }))}
+                options={customers.map(c => ({ value: c.id, label: c.name }))}
+                error={formErrors.customerId}
+                required
+                disabled={isReferenceLoading}
+                placeholder={isReferenceLoading ? 'Loading customers...' : 'Select a customer'}
+              />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="No. of resources - contractors" name="numberOfResources" type="number" value={formData.numberOfResources} onChange={handleInputChange} />
+              <Input label="PO Upload (File URL)" name="fileUrl" value={formData.fileUrl} onChange={handleInputChange} placeholder="https://storage.com/po-file.pdf" />
+            </div>
+
+            <Input label="Remark" name="remark" value={formData.remark} onChange={handleInputChange} />
+            <Input label="Remark indicating with whom its being shared e.g co-worker" name="sharedWith" value={formData.sharedWith} onChange={handleInputChange} placeholder="Shared with Finance team" />
           </form>
+        </Modal>
+
+        {/* View PO Modal */}
+        <Modal
+          isOpen={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+          title="Purchase Order Details"
+          size="lg"
+          footer={<Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>Cancel</Button>}
+        >
+          {selectedPO && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PO Number</p>
+                  <p className="text-sm font-mono text-indigo-400">{selectedPO.poNumber}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</p>
+                  <p className="text-sm text-gray-900 font-medium">{customerNameById(selectedPO.customerId)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PO Date</p>
+                  <p className="text-sm text-gray-900">{formatters.formatDate(selectedPO.poDate)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PO Value</p>
+                  <p className="text-sm font-bold text-emerald-400">{formatters.formatCurrency(selectedPO.poValue)} {selectedPO.currency}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Start Date</p>
+                  <p className="text-sm text-gray-900">{formatters.formatDate(selectedPO.startDate) || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">End Date</p>
+                  <p className="text-sm text-gray-900">{formatters.formatDate(selectedPO.endDate) || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment Terms</p>
+                  <Badge variant="default">{selectedPO.paymentTermsDays} days</Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">No. of Resources</p>
+                  <p className="text-sm text-gray-900">{selectedPO.numberOfResources || 0} contractors</p>
+                </div>
+                {selectedPO.fileUrl && (
+                  <div className="space-y-1 md:col-span-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PO Document</p>
+                    <a href={selectedPO.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:underline flex items-center gap-1">
+                      <FileText className="w-4 h-4" /> View PO Upload
+                    </a>
+                  </div>
+                )}
+                <div className="space-y-1 md:col-span-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Remark</p>
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 italic text-sm text-gray-600">
+                    {selectedPO.remark || 'No remarks'}
+                  </div>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Shared With</p>
+                  <p className="text-sm text-gray-600 italic">
+                    {selectedPO.sharedWith || 'Not shared'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </Modal>
       </motion.div>
     </DashboardLayout>

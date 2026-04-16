@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cmp.ai.dto.request.PORequest;
 import com.cmp.ai.dto.response.POResponse;
@@ -21,20 +22,25 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PurchaseOrderService {
 
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final ContractRepository contractRepository;
     private final CustomerRepository customerRepository;
 
+    @Transactional
     public POResponse createPurchaseOrder(PORequest request) {
-        Contract contract = contractRepository.findById(request.getContractId())
-                .orElseThrow(() -> new ResourceNotFoundException("Contract not found"));
+        Contract contract = null;
+        if (request.getContractId() != null) {
+            contract = contractRepository.findById(request.getContractId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Contract not found"));
+        }
 
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
-        if (contract.getCustomer() != null && !request.getCustomerId().equals(contract.getCustomer().getId())) {
+        if (contract != null && contract.getCustomer() != null && !request.getCustomerId().equals(contract.getCustomer().getId())) {
             throw new BadRequestException("Contract is not linked to the requested customer");
         }
 

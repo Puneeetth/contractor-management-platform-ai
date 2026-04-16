@@ -2,6 +2,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "TestPassword",
+            "request": "launch",
+            "mainClass": "com.cmp.ai.TestPassword",
+            "projectName": "cmp-ai"
+        },
+        {
+            "type": "java",
             "name": "Spring Boot-CmpAiApplication<cmp-ai>",
             "request": "launch",
             "cwd": "${workspaceFolder}",

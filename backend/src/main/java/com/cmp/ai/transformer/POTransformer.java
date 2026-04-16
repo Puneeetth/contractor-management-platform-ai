@@ -13,7 +13,8 @@ public class POTransformer {
     public static POResponse pOToPOResponse(PurchaseOrder po) {
         return POResponse.builder()
                 .id(po.getId())
-                .contractId(po.getContract().getId())
+                .customerId(po.getCustomer() != null ? po.getCustomer().getId() : null)
+                .contractId(po.getContract() != null ? po.getContract().getId() : null)
                 .poNumber(po.getPoNumber())
                 .poDate(po.getPoDate() == null ? null : po.getPoDate().toString())
                 .startDate(po.getStartDate() == null ? null : po.getStartDate().toString())
@@ -24,6 +25,7 @@ public class POTransformer {
                 .remark(po.getRemark())
                 .numberOfResources(po.getNumberOfResources())
                 .sharedWith(po.getSharedWith())
+                .fileUrl(po.getFileUrl())
                 .totalHoursLimit(po.getTotalHoursLimit())
                 .build();
     }
@@ -42,6 +44,7 @@ public class POTransformer {
                 .remark(req.getRemark())
                 .numberOfResources(req.getNumberOfResources())
                 .sharedWith(req.getSharedWith())
+                .fileUrl(req.getFileUrl())
                 .totalHoursLimit(req.getTotalHoursLimit())
                 .build();
     }

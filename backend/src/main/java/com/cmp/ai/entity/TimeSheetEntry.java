@@ -34,5 +34,5 @@ public class TimesheetEntry {
     private LocalDate date;
 
     private Double hours;
-    
+
 }
