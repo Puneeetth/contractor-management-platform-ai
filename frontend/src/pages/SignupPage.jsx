@@ -19,6 +19,7 @@ const SocialIcons = {
   outlook: <img src="\images\outlook.svg" width = "30" height = "24" alt="Outlook" />,
   microsoft: <img src="\images\microsoft.svg" width = "26" height = "20" alt="Microsoft" />,
   apple: <img src="\images\apple.svg" width = "28" height = "21" alt="Apple" />,
+  teams: <img src="\images\teams.svg" width = "30" height = "24" alt="Teams" />,
 }
 const SignupPage = () => {
   const navigate = useNavigate()
