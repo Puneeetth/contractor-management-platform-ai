@@ -29,7 +29,7 @@ const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', confirmPassword: '', role: 'CONTRACTOR',
+    name: '', email: '', password: '', confirmPassword: '', role: 'FINANCE',
   })
 
   const handleChange = (e) => {
@@ -59,10 +59,10 @@ const SignupPage = () => {
         name: formData.name, email: formData.email, password: formData.password, role: formData.role, region: 'US',
       })
       if (response) {
-        setSuccessMessage('Registration successful! Awaiting admin approval.')
+        setSuccessMessage('Registration successful! Please wait for admin approval to login.')
         setErrors({})
-        setFormData({ name: '', email: '', password: '', confirmPassword: '', role: 'CONTRACTOR' })
-        setTimeout(() => navigate('/login'), 3000)
+        setFormData({ name: '', email: '', password: '', confirmPassword: '', role: 'FINANCE' })
+        setTimeout(() => navigate('/pending-approval'), 3000)
       }
     } catch (error) {
       setErrors({ submit: error?.error?.message || error?.message || 'Registration failed.' })
@@ -71,7 +71,12 @@ const SignupPage = () => {
     }
   }
 
-  const roleOptions = Object.entries(ROLES).map(([key, value]) => ({ value: key, label: value }))
+  const roleOptions = Object.entries(ROLES)
+    .filter(([key]) => key !== 'CONTRACTOR')  // Exclude CONTRACTOR from self-registration
+    .map(([key, value]) => ({ 
+      value: key, 
+      label: key === 'MANAGER' ? 'Client' : value  // Show "Client" instead of "Manager"
+    }))
 
   // Orbiting icons data - Social Media & Educational platforms
   const orbitIcons1 = [

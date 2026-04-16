@@ -5,6 +5,7 @@ import { PrivateRoute, PublicRoute } from './PrivateRoute'
 // Pages
 import LoginPage from '../pages/LoginPage'
 import SignupPage from '../pages/SignupPage'
+import PendingApprovalPage from '../pages/PendingApprovalPage'
 import DashboardPage from '../pages/DashboardPage'
 import CustomersPage from '../pages/modules/CustomersPage'
 import ContractorsPage from '../pages/modules/ContractorsPage'
@@ -12,6 +13,8 @@ import POsPage from '../pages/modules/POsPage'
 import TimesheetsPage from '../pages/modules/TimesheetsPage'
 import InvoicesPage from '../pages/modules/InvoicesPage'
 import ExpensesPage from '../pages/modules/ExpensesPage'
+import AdminPendingApprovalsPage from '../pages/modules/AdminPendingApprovalsPage'
+import ContractorCreationPage from '../pages/modules/ContractorCreationPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
 
 export const AppRoutes = () => {
@@ -32,6 +35,14 @@ export const AppRoutes = () => {
           element={
             <PublicRoute>
               <SignupPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/pending-approval"
+          element={
+            <PublicRoute>
+              <PendingApprovalPage />
             </PublicRoute>
           }
         />
@@ -96,6 +107,25 @@ export const AppRoutes = () => {
           element={
             <PrivateRoute requiredRoles={['CONTRACTOR', 'MANAGER', 'FINANCE']}>
               <ExpensesPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin/pending-approvals"
+          element={
+            <PrivateRoute requiredRoles={['ADMIN']}>
+              <AdminPendingApprovalsPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/contractors/create"
+          element={
+            <PrivateRoute requiredRoles={['ADMIN']}>
+              <ContractorCreationPage />
             </PrivateRoute>
           }
         />

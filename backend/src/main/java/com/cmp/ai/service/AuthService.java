@@ -1,8 +1,11 @@
 package com.cmp.ai.service;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.entity.User;
+import com.cmp.ai.enums.Role;
 import com.cmp.ai.enums.Status;
 import com.cmp.ai.exception.BadRequestException;
 import com.cmp.ai.exception.ResourceNotFoundException;
@@ -26,9 +29,19 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     public String register(User user) {
+        // Validate: Contractor cannot self-register
+        if (user.getRole() == Role.CONTRACTOR) {
+            throw new BadRequestException("Contractors can only be created by admin");
+        }
+
+        // Check if email already exists
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new BadRequestException("Email already registered");
+        }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setStatus(Status.PENDING);
+        user.setRegisteredDate(LocalDateTime.now());
 
         userRepository.save(user);
 
@@ -40,8 +53,16 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (user.getStatus() != Status.APPROVED) {
-            throw new BadRequestException("User not approved");
+        if (user.getStatus() == Status.PENDING) {
+            throw new BadRequestException("Your registration is pending admin approval");
+        }
+
+        if (user.getStatus() == Status.REJECTED) {
+            throw new BadRequestException("Your registration was rejected. Please contact admin");
+        }
+
+        if (user.getStatus() == Status.INACTIVE) {
+            throw new BadRequestException("Your account is inactive");
         }
 
         authenticationManager.authenticate(

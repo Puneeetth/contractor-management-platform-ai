@@ -16,6 +16,11 @@ public class UserTransformer {
                 .role(user.getRole().name())
                 .region(user.getRegion())
                 .status(user.getStatus().name())
+                .registeredDate(user.getRegisteredDate())
+                .approvalDate(user.getApprovalDate())
+                .approvalReason(user.getApprovalReason())
+                .approvedById(user.getApprovedBy() != null ? user.getApprovedBy().getId() : null)
+                .approvedByName(user.getApprovedBy() != null ? user.getApprovedBy().getName() : null)
                 .build();
     }
 

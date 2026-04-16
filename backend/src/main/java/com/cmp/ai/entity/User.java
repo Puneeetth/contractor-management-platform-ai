@@ -1,5 +1,6 @@
 package com.cmp.ai.entity;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.cmp.ai.enums.Role;
@@ -14,6 +15,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -32,7 +34,9 @@ import lombok.NoArgsConstructor;
     name = "users",
     indexes = {
         @Index(name = "idx_email", columnList = "email"),
-        @Index(name = "idx_role", columnList = "role")
+        @Index(name = "idx_role", columnList = "role"),
+        @Index(name = "idx_status", columnList = "status"),
+        @Index(name = "idx_role_status", columnList = "role, status")
     }
 )
 public class User {
@@ -59,6 +63,17 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    // Approval workflow fields
+    private String approvalReason;      // For approval/rejection notes
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User approvedBy;            // Reference to admin who approved
+    
+    private LocalDateTime approvalDate; // When approved/rejected
+    
+    @Column(name = "registered_date", nullable = false, updatable = false)
+    private LocalDateTime registeredDate; // When user registered
 
     @OneToMany(mappedBy = "contractor", fetch = FetchType.LAZY)
     private List<Contract> contracts;
