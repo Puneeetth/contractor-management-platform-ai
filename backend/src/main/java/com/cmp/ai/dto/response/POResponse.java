@@ -26,4 +26,5 @@ public class POResponse {
     private String sharedWith;
     private String fileUrl;
     private Double totalHoursLimit;
+    private Double todo;
 }
