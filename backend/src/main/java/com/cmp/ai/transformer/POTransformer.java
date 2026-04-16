@@ -9,7 +9,7 @@ import com.cmp.ai.entity.PurchaseOrder;
 
 public class POTransformer {
 
-    public static POResponse POToPOResponse(PurchaseOrder po) {
+    public static POResponse pOToPOResponse(PurchaseOrder po) {
         return POResponse.builder()
                 .id(po.getId())
                 .contractId(po.getContract().getId())
@@ -27,7 +27,7 @@ public class POTransformer {
                 .build();
     }
 
-    public static PurchaseOrder PORequestToPO(PORequest req, Contract contract) {
+    public static PurchaseOrder pORequestToPO(PORequest req, Contract contract) {
         return PurchaseOrder.builder()
                 .contract(contract)
                 .poNumber(req.getPoNumber())

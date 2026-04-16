@@ -12,7 +12,7 @@ public class TimesheetEntryTransformer {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    public static TimesheetEntryResponse TimesheetEntryToResponse(TimesheetEntry timesheetEntry) {
+    public static TimesheetEntryResponse timesheetEntryToResponse(TimesheetEntry timesheetEntry) {
         if (timesheetEntry == null) {
             return null;
         }
@@ -25,7 +25,7 @@ public class TimesheetEntryTransformer {
                 .build();
     }
 
-    public static TimesheetEntry TimesheetEntryRequestToEntity(TimesheetEntryRequest request, Timesheet timesheet) {
+    public static TimesheetEntry timesheetEntryRequestToEntity(TimesheetEntryRequest request, Timesheet timesheet) {
         if (request == null) {
             return null;
         }

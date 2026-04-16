@@ -8,7 +8,7 @@ import com.cmp.ai.enums.Status;
 
 public class ExpenseTransformer {
 
-    public static ExpenseResponse ExpenseToExpenseResponse(Expense e) {
+    public static ExpenseResponse expenseToExpenseResponse(Expense e) {
         return ExpenseResponse.builder()
                 .id(e.getId())
                 .amount(e.getAmount())
@@ -18,7 +18,7 @@ public class ExpenseTransformer {
                 .build();
     }
 
-    public static Expense ExpenseRequestToExpense(ExpenseRequest req, User contractor) {
+    public static Expense expenseRequestToExpense(ExpenseRequest req, User contractor) {
         return Expense.builder()
                 .contractor(contractor)
                 .amount(req.getAmount())

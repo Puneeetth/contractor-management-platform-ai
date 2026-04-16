@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.CustomerCountryRuleRequest;
@@ -33,43 +34,43 @@ public class CustomerCountryRuleService {
         Country country = countryRepository.findById(request.getCountryCode())
                 .orElseThrow(() -> new ResourceNotFoundException("Country not found"));
 
-        CustomerCountryRule rule = CustomerCountryRuleTransformer.CustomerCountryRuleRequestToEntity(request, customer, country);
-        return CustomerCountryRuleTransformer.CustomerCountryRuleToResponse(ruleRepository.save(rule));
+        CustomerCountryRule rule = CustomerCountryRuleTransformer.customerCountryRuleRequestToEntity(request, customer, country);
+        return CustomerCountryRuleTransformer.customerCountryRuleToResponse(ruleRepository.save(rule));
     }
 
-    public CustomerCountryRuleResponse getRuleById(Long id) {
+    public CustomerCountryRuleResponse getRuleById(@NonNull Long id) {
         CustomerCountryRule rule = ruleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rule not found"));
-        return CustomerCountryRuleTransformer.CustomerCountryRuleToResponse(rule);
+        return CustomerCountryRuleTransformer.customerCountryRuleToResponse(rule);
     }
 
-    public List<CustomerCountryRuleResponse> getRulesByCustomerId(Long customerId) {
+    public List<CustomerCountryRuleResponse> getRulesByCustomerId(@NonNull Long customerId) {
         return ruleRepository.findByCustomerId(customerId).stream()
-                .map(CustomerCountryRuleTransformer::CustomerCountryRuleToResponse)
-                .collect(Collectors.toList());
+                .map(CustomerCountryRuleTransformer::customerCountryRuleToResponse)
+                .toList();
     }
 
-    public List<CustomerCountryRuleResponse> getAllowedCountriesByCustomerId(Long customerId) {
+    public List<CustomerCountryRuleResponse> getAllowedCountriesByCustomerId(@NonNull Long customerId) {
         return ruleRepository.findByCustomerIdAndAllowed(customerId, true).stream()
-                .map(CustomerCountryRuleTransformer::CustomerCountryRuleToResponse)
-                .collect(Collectors.toList());
+                .map(CustomerCountryRuleTransformer::customerCountryRuleToResponse)
+                .toList();
     }
 
     public List<CustomerCountryRuleResponse> getAllRules() {
         return ruleRepository.findAll().stream()
-                .map(CustomerCountryRuleTransformer::CustomerCountryRuleToResponse)
-                .collect(Collectors.toList());
+                .map(CustomerCountryRuleTransformer::customerCountryRuleToResponse)
+                .toList();
     }
 
-    public CustomerCountryRuleResponse updateRule(Long id, CustomerCountryRuleRequest request) {
+    public CustomerCountryRuleResponse updateRule(@NonNull Long id, CustomerCountryRuleRequest request) {
         CustomerCountryRule rule = ruleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rule not found"));
 
         rule.setAllowed(request.isAllowed());
-        return CustomerCountryRuleTransformer.CustomerCountryRuleToResponse(ruleRepository.save(rule));
+        return CustomerCountryRuleTransformer.customerCountryRuleToResponse(ruleRepository.save(rule));
     }
 
-    public void deleteRule(Long id) {
+    public void deleteRule(@NonNull Long id) {
         if (!ruleRepository.existsById(id)) {
             throw new ResourceNotFoundException("Rule not found");
         }

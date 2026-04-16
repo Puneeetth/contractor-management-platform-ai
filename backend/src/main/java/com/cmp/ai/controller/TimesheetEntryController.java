@@ -28,7 +28,8 @@ public class TimesheetEntryController {
     private final TimesheetEntryService timesheetEntryService;
 
     @PostMapping
-    public ResponseEntity<TimesheetEntryResponse> createTimesheetEntry(@Valid @RequestBody TimesheetEntryRequest request) {
+    public ResponseEntity<TimesheetEntryResponse> createTimesheetEntry(
+            @Valid @RequestBody TimesheetEntryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(timesheetEntryService.createTimesheetEntry(request));
     }
 
@@ -38,7 +39,8 @@ public class TimesheetEntryController {
     }
 
     @GetMapping("/timesheet/{timesheetId}")
-    public ResponseEntity<List<TimesheetEntryResponse>> getTimesheetEntriesByTimesheetId(@PathVariable Long timesheetId) {
+    public ResponseEntity<List<TimesheetEntryResponse>> getTimesheetEntriesByTimesheetId(
+            @Valid @PathVariable Long timesheetId) {
         return ResponseEntity.ok(timesheetEntryService.getTimesheetEntriesByTimesheetId(timesheetId));
     }
 
@@ -48,7 +50,8 @@ public class TimesheetEntryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TimesheetEntryResponse> updateTimesheetEntry(@PathVariable Long id, @Valid @RequestBody TimesheetEntryRequest request) {
+    public ResponseEntity<TimesheetEntryResponse> updateTimesheetEntry(@PathVariable Long id,
+            @Valid @RequestBody TimesheetEntryRequest request) {
         return ResponseEntity.ok(timesheetEntryService.updateTimesheetEntry(id, request));
     }
 

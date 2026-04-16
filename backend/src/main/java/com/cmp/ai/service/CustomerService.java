@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.CustomerRequest;
@@ -27,6 +28,6 @@ public class CustomerService {
     public List<CustomerResponse> getAllCustomers() {
         return customerRepository.findAll().stream()
                 .map(CustomerTransformer::customerToCustomerResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

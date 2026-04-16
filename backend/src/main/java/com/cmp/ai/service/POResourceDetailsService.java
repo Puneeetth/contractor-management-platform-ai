@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.POResourceDetailsRequest;
@@ -27,29 +28,29 @@ public class POResourceDetailsService {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(request.getPurchaseOrderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Order not found"));
 
-        POResourceDetails details = POResourceDetailsTransformer.POResourceDetailsRequestToEntity(request, purchaseOrder);
-        return POResourceDetailsTransformer.POResourceDetailsToResponse(poResourceDetailsRepository.save(details));
+        POResourceDetails details = POResourceDetailsTransformer.pOResourceDetailsRequestToEntity(request, purchaseOrder);
+        return POResourceDetailsTransformer.pOResourceDetailsToResponse(poResourceDetailsRepository.save(details));
     }
 
-    public POResourceDetailsResponse getPOResourceDetailsById(Long id) {
+    public POResourceDetailsResponse getPOResourceDetailsById(@NonNull Long id) {
         POResourceDetails details = poResourceDetailsRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PO Resource Details not found"));
-        return POResourceDetailsTransformer.POResourceDetailsToResponse(details);
+        return POResourceDetailsTransformer.pOResourceDetailsToResponse(details);
     }
 
-    public POResourceDetailsResponse getPOResourceDetailsByPurchaseOrderId(Long purchaseOrderId) {
+    public POResourceDetailsResponse getPOResourceDetailsByPurchaseOrderId(@NonNull Long purchaseOrderId) {
         POResourceDetails details = poResourceDetailsRepository.findByPurchaseOrderId(purchaseOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException("PO Resource Details not found"));
-        return POResourceDetailsTransformer.POResourceDetailsToResponse(details);
+        return POResourceDetailsTransformer.pOResourceDetailsToResponse(details);
     }
 
     public List<POResourceDetailsResponse> getAllPOResourceDetails() {
         return poResourceDetailsRepository.findAll().stream()
-                .map(POResourceDetailsTransformer::POResourceDetailsToResponse)
-                .collect(Collectors.toList());
+                .map(POResourceDetailsTransformer::pOResourceDetailsToResponse)
+                .toList();
     }
 
-    public POResourceDetailsResponse updatePOResourceDetails(Long id, POResourceDetailsRequest request) {
+    public POResourceDetailsResponse updatePOResourceDetails(@NonNull Long id, POResourceDetailsRequest request) {
         POResourceDetails details = poResourceDetailsRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PO Resource Details not found"));
 
@@ -58,10 +59,10 @@ public class POResourceDetailsService {
         details.setTeamSize(request.getTeamSize());
         details.setRemark(request.getRemark());
 
-        return POResourceDetailsTransformer.POResourceDetailsToResponse(poResourceDetailsRepository.save(details));
+        return POResourceDetailsTransformer.pOResourceDetailsToResponse(poResourceDetailsRepository.save(details));
     }
 
-    public void deletePOResourceDetails(Long id) {
+    public void deletePOResourceDetails(@NonNull Long id) {
         if (!poResourceDetailsRepository.existsById(id)) {
             throw new ResourceNotFoundException("PO Resource Details not found");
         }

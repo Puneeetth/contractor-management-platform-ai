@@ -8,7 +8,7 @@ import com.cmp.ai.enums.Role;
 
 public class UserTransformer {
 
-    public static UserResponse UserToUserResponse(User user) {
+    public static UserResponse userToUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -19,7 +19,7 @@ public class UserTransformer {
                 .build();
     }
 
-    public static User UserRequestToUser(RegisterRequest req) {
+    public static User userRequestToUser(RegisterRequest req) {
         return User.builder()
                 .name(req.getName())
                 .email(req.getEmail())

@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.ExpenseRequest;
@@ -25,7 +26,7 @@ public class ExpenseService {
     private final ExpenseRepositoy expenseRepositoy;
     private final UserRepository userRepository;
 
-    public ExpenseResponse createExpense(Long contractorId, ExpenseRequest request) {
+    public ExpenseResponse createExpense(@NonNull Long contractorId, ExpenseRequest request) {
         User contractor = userRepository.findById(contractorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
 
@@ -33,27 +34,27 @@ public class ExpenseService {
             throw new BadRequestException("Expense amount must be greater than zero");
         }
 
-        Expense expense = ExpenseTransformer.ExpenseRequestToExpense(request, contractor);
-        return ExpenseTransformer.ExpenseToExpenseResponse(expenseRepositoy.save(expense));
+        Expense expense = ExpenseTransformer.expenseRequestToExpense(request, contractor);
+        return ExpenseTransformer.expenseToExpenseResponse(expenseRepositoy.save(expense));
     }
 
     public List<ExpenseResponse> getAllExpenses() {
         return expenseRepositoy.findAll().stream()
-                .map(ExpenseTransformer::ExpenseToExpenseResponse)
-                .collect(Collectors.toList());
+                .map(ExpenseTransformer::expenseToExpenseResponse)
+                .toList();
     }
 
-    public List<ExpenseResponse> getExpensesByContractor(Long contractorId) {
+    public List<ExpenseResponse> getExpensesByContractor(@NonNull Long contractorId) {
         return expenseRepositoy.findByContractorId(contractorId).stream()
-                .map(ExpenseTransformer::ExpenseToExpenseResponse)
-                .collect(Collectors.toList());
+                .map(ExpenseTransformer::expenseToExpenseResponse)
+                .toList();
     }
 
-    public ExpenseResponse approveExpense(Long expenseId) {
+    public ExpenseResponse approveExpense(@NonNull Long expenseId) {
         Expense expense = expenseRepositoy.findById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
         expense.setStatus(Status.APPROVED);
-        return ExpenseTransformer.ExpenseToExpenseResponse(expenseRepositoy.save(expense));
+        return ExpenseTransformer.expenseToExpenseResponse(expenseRepositoy.save(expense));
     }
 }

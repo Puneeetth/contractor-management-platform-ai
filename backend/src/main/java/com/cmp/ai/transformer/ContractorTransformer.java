@@ -7,7 +7,7 @@ import com.cmp.ai.entity.User;
 
 public class ContractorTransformer {
 
-    public static ContractorResponse ContractorToContractorResponse(Contractor contractor) {
+    public static ContractorResponse contractorToContractorResponse(Contractor contractor) {
         return ContractorResponse.builder()
                 .id(contractor.getId())
                 .userId(contractor.getUser() == null ? null : contractor.getUser().getId())
@@ -22,7 +22,7 @@ public class ContractorTransformer {
                 .build();
     }
 
-    public static Contractor ContractorRequestToContractor(ContractorRequest request, User user) {
+    public static Contractor contractorRequestToContractor(ContractorRequest request, User user) {
         return new Contractor(
                 null,
                 user,

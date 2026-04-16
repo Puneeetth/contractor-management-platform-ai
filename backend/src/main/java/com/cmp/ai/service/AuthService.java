@@ -14,11 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-  
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -37,17 +37,16 @@ public class AuthService {
 
     public String login(String email, String password) {
 
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    if (user.getStatus() != Status.APPROVED) {
-        throw new BadRequestException("User not approved");
+        if (user.getStatus() != Status.APPROVED) {
+            throw new BadRequestException("User not approved");
+        }
+
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password));
+
+        return jwtUtil.generateToken(email, password);
     }
-
-    authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(email, password)
-    );
-
-    return jwtUtil.generateToken(email, password);
-}
 }

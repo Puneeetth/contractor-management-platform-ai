@@ -5,7 +5,7 @@ import com.cmp.ai.entity.Invoice;
 
 public class InvoiceTransformer {
 
-    public static InvoiceResponse InvoiceToInvoiceResponse(Invoice i) {
+    public static InvoiceResponse invoiceToInvoiceResponse(Invoice i) {
         return InvoiceResponse.builder()
                 .id(i.getId())
                 .contractorId(i.getContractor().getId())

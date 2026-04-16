@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.TimesheetRequest;
@@ -34,29 +35,29 @@ public class TimesheetService {
                     throw new BadRequestException("Timesheet already exists for this contractor and month");
                 });
 
-        Timesheet timesheet = TimesheetTransformer.TimesheetRequestToTimesheet(request, contractor);
+        Timesheet timesheet = TimesheetTransformer.timesheetRequestToTimesheet(request, contractor);
         timesheet.getEntries().forEach(entry -> entry.setTimesheet(timesheet));
 
-        return TimesheetTransformer.TimesheetToTimesheetResponse(timesheetRepository.save(timesheet));
+        return TimesheetTransformer.timesheetToTimesheetResponse(timesheetRepository.save(timesheet));
     }
 
     public List<TimesheetResponse> getAllTimesheets() {
         return timesheetRepository.findAll().stream()
-                .map(TimesheetTransformer::TimesheetToTimesheetResponse)
-                .collect(Collectors.toList());
+                .map(TimesheetTransformer::timesheetToTimesheetResponse)
+                .toList();
     }
 
-    public List<TimesheetResponse> getTimesheetsByContractor(Long contractorId) {
+    public List<TimesheetResponse> getTimesheetsByContractor(@NonNull Long contractorId) {
         return timesheetRepository.findByContractorId(contractorId).stream()
-                .map(TimesheetTransformer::TimesheetToTimesheetResponse)
-                .collect(Collectors.toList());
+                .map(TimesheetTransformer::timesheetToTimesheetResponse)
+                .toList();
     }
 
-    public TimesheetResponse approveTimesheet(Long timesheetId) {
+    public TimesheetResponse approveTimesheet(@NonNull Long timesheetId) {
         Timesheet timesheet = timesheetRepository.findById(timesheetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Timesheet not found"));
 
         timesheet.setStatus(Status.APPROVED);
-        return TimesheetTransformer.TimesheetToTimesheetResponse(timesheetRepository.save(timesheet));
+        return TimesheetTransformer.timesheetToTimesheetResponse(timesheetRepository.save(timesheet));
     }
 }

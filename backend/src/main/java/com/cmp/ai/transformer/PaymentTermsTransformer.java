@@ -7,7 +7,7 @@ import com.cmp.ai.entity.PaymentTerms;
 
 public class PaymentTermsTransformer {
 
-    public static PaymentTermsResponse PaymentTermsToResponse(PaymentTerms paymentTerms) {
+    public static PaymentTermsResponse paymentTermsToResponse(PaymentTerms paymentTerms) {
         return PaymentTermsResponse.builder()
                 .id(paymentTerms.getId())
                 .customerId(paymentTerms.getCustomer() == null ? null : paymentTerms.getCustomer().getId())
@@ -16,7 +16,7 @@ public class PaymentTermsTransformer {
                 .build();
     }
 
-    public static PaymentTerms PaymentTermsRequestToEntity(PaymentTermsRequest request, Customer customer) {
+    public static PaymentTerms paymentTermsRequestToEntity(PaymentTermsRequest request, Customer customer) {
         return new PaymentTerms(
                 request.getCustomerId(),
                 request.getTerms(),
