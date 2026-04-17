@@ -22,11 +22,13 @@ const POsPage = () => {
     poValue: '', currency: 'USD', paymentTermsDays: 30, 
     customerId: '', remark: '', numberOfResources: '', 
     sharedWith: '', fileUrl: '',
+    file: null,
   })
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [selectedPO, setSelectedPO] = useState(null)
+  
 
  useEffect(() => {
   loadInitialData()
@@ -93,6 +95,14 @@ const POsPage = () => {
     setFormErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
+  const handleFileChange = (e) => {
+  const file = e.target.files[0]
+
+  setFormData(prev => ({
+    ...prev,
+    file
+  }))
+}
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -239,7 +249,7 @@ const POsPage = () => {
           )}
         </Card>
 
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Purchase Order" size="lg"
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Purchase Order" size="xxl"
           footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create PO</Button></>}>
           <form className="space-y-4">
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
@@ -275,7 +285,13 @@ const POsPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <Input label="No. of resources - contractors" name="numberOfResources" type="number" value={formData.numberOfResources} onChange={handleInputChange} />
-              <Input label="PO Upload (File URL)" name="fileUrl" value={formData.fileUrl} onChange={handleInputChange} placeholder="https://storage.com/po-file.pdf" />
+              <Input
+  label="PO Upload (File)"
+  type="file"
+  name="file"
+  onChange={handleFileChange}
+  accept=".pdf,.doc,.docx"
+/>
             </div>
 
             <Input label="Remark" name="remark" value={formData.remark} onChange={handleInputChange} />
@@ -293,7 +309,7 @@ const POsPage = () => {
           isOpen={isViewModalOpen}
           onClose={() => setIsViewModalOpen(false)}
           title="Purchase Order Details"
-          size="lg"
+          size="xxl"
           footer={<Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>Cancel</Button>}
         >
           {selectedPO && (
