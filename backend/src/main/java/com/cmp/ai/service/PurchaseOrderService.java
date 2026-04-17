@@ -19,6 +19,7 @@ import com.cmp.ai.repository.PurchaseOrderRepository;
 import com.cmp.ai.transformer.POTransformer;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -28,9 +29,12 @@ public class PurchaseOrderService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final ContractRepository contractRepository;
     private final CustomerRepository customerRepository;
+    private final FileService fileService;
+
 
     @Transactional
-    public POResponse createPurchaseOrder(PORequest request) {
+    public POResponse createPurchaseOrder(PORequest request, MultipartFile file) {
+
         Contract contract = null;
         if (request.getContractId() != null) {
             contract = contractRepository.findById(request.getContractId())
@@ -43,8 +47,15 @@ public class PurchaseOrderService {
         if (contract != null && contract.getCustomer() != null && !request.getCustomerId().equals(contract.getCustomer().getId())) {
             throw new BadRequestException("Contract is not linked to the requested customer");
         }
-
+        //upload file
+        String fileUrl = null;
+        if(file != null && !file.isEmpty()){
+            fileUrl = fileService.uploadFile(file);
+        }
         PurchaseOrder purchaseOrder = POTransformer.pORequestToPO(request, contract, customer);
+        //set file URL
+
+        purchaseOrder.setFileUrl(fileUrl);
         return POTransformer.pOToPOResponse(purchaseOrderRepository.save(purchaseOrder));
     }
 

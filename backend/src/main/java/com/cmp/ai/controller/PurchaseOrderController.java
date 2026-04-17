@@ -3,12 +3,7 @@ package com.cmp.ai.controller;
 import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.cmp.ai.dto.request.PORequest;
 import com.cmp.ai.dto.response.POResponse;
@@ -16,6 +11,7 @@ import com.cmp.ai.service.PurchaseOrderService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin/purchase-orders")
@@ -26,8 +22,8 @@ public class PurchaseOrderController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public POResponse createPurchaseOrder(@Valid @RequestBody PORequest request) {
-        return purchaseOrderService.createPurchaseOrder(request);
+    public POResponse createPurchaseOrder(@ModelAttribute @Valid @RequestBody PORequest request, @RequestParam("file")MultipartFile file) {
+        return purchaseOrderService.createPurchaseOrder(request,file);
     }
 
     @GetMapping
@@ -41,4 +37,5 @@ public class PurchaseOrderController {
     public List<POResponse> getPurchaseOrdersByContractId(@PathVariable Long contractId) {
         return purchaseOrderService.getPurchaseOrdersByContractId(contractId);
     }
+
 }

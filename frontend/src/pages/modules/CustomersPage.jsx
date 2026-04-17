@@ -16,7 +16,6 @@ const CustomersPage = () => {
     name: '',
     address: '',
     msa: '',
-    msaRenewalDate: '',
     msaContactPerson: '',
     msaContactEmail: '',
     countriesApplicable: '',
@@ -37,7 +36,7 @@ const CustomersPage = () => {
       setIsLoading(true)
       setError(null)
       const data = await customerService.getAllCustomers()
-setCustomers(Array.isArray(data) ? data : data?.data || [])
+      setCustomers(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err?.error?.message || 'Failed to load customers')
       setCustomers([])
@@ -51,7 +50,6 @@ setCustomers(Array.isArray(data) ? data : data?.data || [])
     if (!validators.isRequired(formData.name)) newErrors.name = 'Customer name is required'
     if (!validators.isRequired(formData.address)) newErrors.address = 'Address is required'
     if (!validators.isRequired(formData.msa)) newErrors.msa = 'MSA is required'
-    if(!validators.isRequired(formData.msaRenewalDate)) newErrors.msaRenewalDate = 'MSA renewal date is required'
     if (!validators.isRequired(formData.msaContactPerson)) newErrors.msaContactPerson = 'Contact person is required'
     if (!validators.isRequired(formData.msaContactEmail)) {
       newErrors.msaContactEmail = 'Contact email is required'
@@ -86,7 +84,6 @@ setCustomers(Array.isArray(data) ? data : data?.data || [])
         name: '',
         address: '',
         msa: '',
-        msaRenewalDate: '',
         msaContactPerson: '',
         msaContactEmail: '',
         countriesApplicable: '',
@@ -143,12 +140,7 @@ setCustomers(Array.isArray(data) ? data : data?.data || [])
   const summaryStats = [
     { icon: Users, label: 'Total Customers', value: customers.length, color: 'text-blue-400', bg: 'bg-blue-100' },
     { icon: Building2, label: 'Active MSAs', value: customers.length, color: 'text-emerald-400', bg: 'bg-emerald-100' },
-    { icon: Globe, label: 'Countries', value: new Set(
-  customers
-    .flatMap(c => c.countriesApplicable?.split(',') || [])
-    .map(c => c.trim())
-    .filter(Boolean)
-).size || 0, color: 'text-purple-400', bg: 'bg-purple-100' },
+    { icon: Globe, label: 'Countries', value: new Set(customers.map(c => c.countriesApplicable).filter(Boolean)).size || 0, color: 'text-purple-400', bg: 'bg-purple-100' },
   ]
 
   return (
@@ -216,13 +208,13 @@ setCustomers(Array.isArray(data) ? data : data?.data || [])
         </Card>
 
         {/* Create Customer Modal */}
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Customer" size="lg"
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Customer" size="xxl"
           footer={<>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create Customer</Button>
           </>}
         >
-          <form className="space-y-4">
+          <form className="grid grid-cols-1 md:grid-cols-2 gap-8 gpa-y-2">
             {formErrors.submit && (
               <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
                 <p className="text-sm text-red-400">{formErrors.submit}</p>
@@ -231,10 +223,9 @@ setCustomers(Array.isArray(data) ? data : data?.data || [])
             <Input label="Customer Name" name="name" value={formData.name} onChange={handleInputChange} error={formErrors.name} placeholder="Acme Corporation" required />
             <Input label="Address" name="address" value={formData.address} onChange={handleInputChange} error={formErrors.address} placeholder="123 Business St, City, State 12345" required />
             <Input label="MSA (Master Service Agreement)" name="msa" value={formData.msa} onChange={handleInputChange} error={formErrors.msa} placeholder="MSA agreement details or reference" required />
-            <Input label="MSA Renewal Date" type="date" name="msaRenewalDate" value={formData.msaRenewalDate} onChange={handleInputChange} error={formErrors.msaRenewalDate} required />  
-            <Input label="MSA Contact Person" name="msaContactPerson" value={formData.msaContactPerson} onChange={handleInputChange} error={formErrors.msaContactPerson} placeholder="name" required />
+            <Input label="MSA Contact Person" name="msaContactPerson" value={formData.msaContactPerson} onChange={handleInputChange} error={formErrors.msaContactPerson} placeholder="John Doe" required />
             <Input label="MSA Contact Email" type="email" name="msaContactEmail" value={formData.msaContactEmail} onChange={handleInputChange} error={formErrors.msaContactEmail} placeholder="contact@acme.com" required />
-            <Input label="Countries Applicable" name="countriesApplicable" value={formData.countriesApplicable} onChange={handleInputChange} placeholder="Eg: US, Canada, Mexico" />
+            <Input label="Countries Applicable" name="countriesApplicable" value={formData.countriesApplicable} onChange={handleInputChange} placeholder="US, Canada, Mexico" />
             <Input label="Notice Period (days)" type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} min="0" />
             <Input label="MSA Remarks" name="msaRemark" value={formData.msaRemark} onChange={handleInputChange} placeholder="Additional remarks about MSA" />
           </form>
@@ -243,9 +234,11 @@ setCustomers(Array.isArray(data) ? data : data?.data || [])
         {/* View Customer Modal */}
         <Modal
           isOpen={isViewModalOpen}
+          className="!w-screen !h-screen !max-w-none !rounded-none"
           onClose={() => setIsViewModalOpen(false)}
           title="Customer Details"
-          size="lg"
+          size="xxl"
+          
           footer={
             <Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>
               Cancel
@@ -253,8 +246,11 @@ setCustomers(Array.isArray(data) ? data : data?.data || [])
           }
         >
           {selectedCustomer && (
-            <div className="space-y-6">
+            
+            <div className="space-y-6 p-2">
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer Name</p>
                   <p className="text-sm font-medium text-gray-900">{selectedCustomer.name}</p>
@@ -271,7 +267,7 @@ setCustomers(Array.isArray(data) ? data : data?.data || [])
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Created Date</p>
-                  <p className="text-sm text-gray-900">{formatters.formatDate(selectedCustomer.createdDate || null) || 'N/A'}</p>
+                  <p className="text-sm text-gray-900">{formatters.formatDate(selectedCustomer.createdDate) || 'N/A'}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">MSA Renewal Date</p>
