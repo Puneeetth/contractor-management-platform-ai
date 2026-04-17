@@ -22,13 +22,17 @@ const POsPage = () => {
     poValue: '', currency: 'USD', paymentTermsDays: 30, 
     customerId: '', remark: '', numberOfResources: '', 
     sharedWith: '', fileUrl: '',
+    file: null,
   })
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [selectedPO, setSelectedPO] = useState(null)
+  
 
-  useEffect(() => { loadPOs() }, [])
+ useEffect(() => {
+  loadInitialData()
+}, [])
   useEffect(() => {
     if (isModalOpen) {
       loadReferenceData()
@@ -62,6 +66,25 @@ const POsPage = () => {
       setIsReferenceLoading(false)
     }
   }
+  const loadInitialData = async () => {
+  try {
+    setIsLoading(true)
+    setError(null)
+
+    const [poData, customerData] = await Promise.all([
+      poService.getAllPurchaseOrders(),
+      customerService.getAllCustomers(),
+    ])
+
+    setPos(Array.isArray(poData) ? poData : [])
+    setCustomers(Array.isArray(customerData) ? customerData : [])
+
+  } catch (err) {
+    setError(err?.error?.message || 'Failed to load data')
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   const validateForm = () => {
     const newErrors = {}
@@ -72,6 +95,14 @@ const POsPage = () => {
     setFormErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
+  const handleFileChange = (e) => {
+  const file = e.target.files[0]
+
+  setFormData(prev => ({
+    ...prev,
+    file
+  }))
+}
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -128,8 +159,7 @@ const POsPage = () => {
     { key: 'poNumber', label: 'PO Number', render: (row) => <span className="font-mono text-indigo-400 font-medium">{row.poNumber}</span> },
     { key: 'customer', label: 'Customer', render: (row) => <span className="text-gray-900">{customerNameById(row.customerId)}</span> },
     { key: 'poDate', label: 'PO Date', render: (row) => formatters.formatDate(row.poDate) },
-    { key: 'poValue', label: 'PO Value', render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.poValue)} {row.currency}</span> },
-    {
+{ key: 'poValue', label: 'PO Value', render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.poValue, row.currency)}</span> },    {
       key: 'actions',
       label: 'Actions',
       render: (row) => (
@@ -162,10 +192,27 @@ const POsPage = () => {
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[
-              { icon: FileText, label: 'Total POs', value: pos.length, color: 'text-blue-400', bg: 'bg-blue-100' },
-              { icon: DollarSign, label: 'Total Value', value: formatters.formatCurrency(totalValue), color: 'text-emerald-400', bg: 'bg-emerald-100' },
-              { icon: Hash, label: 'Total Resources', value: pos.reduce((a, p) => a + (p.numberOfResources || 0), 0), color: 'text-purple-400', bg: 'bg-purple-100' },
-            ].map((stat, i) => (
+              { icon: FileText, label: (
+                <>
+                <b>Total POs</b>
+                </>
+              ), value: pos.length, color: 'text-blue-400', bg: 'bg-blue-100' },
+              { icon: DollarSign, label :(
+                <>
+                <b>Total Value</b>
+                </>
+              ), value: formatters.formatCurrency(totalValue), color: 'text-emerald-400', bg: 'bg-emerald-100' },
+{
+  icon: Hash,
+  label: (
+    <>
+      <b>TotalResources</b> (Contractors)
+    </>
+  ),
+  value: pos.reduce((a, p) => a + (p.numberOfResources || 0), 0),
+  color: 'text-purple-400',
+  bg: 'bg-purple-100'
+}            ].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <Card className="!p-4">
                   <div className="flex items-center gap-3">
@@ -202,7 +249,7 @@ const POsPage = () => {
           )}
         </Card>
 
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Purchase Order" size="lg"
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Purchase Order" size="xxl"
           footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create PO</Button></>}>
           <form className="space-y-4">
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
@@ -238,11 +285,22 @@ const POsPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <Input label="No. of resources - contractors" name="numberOfResources" type="number" value={formData.numberOfResources} onChange={handleInputChange} />
-              <Input label="PO Upload (File URL)" name="fileUrl" value={formData.fileUrl} onChange={handleInputChange} placeholder="https://storage.com/po-file.pdf" />
+              <Input
+  label="PO Upload (File)"
+  type="file"
+  name="file"
+  onChange={handleFileChange}
+  accept=".pdf,.doc,.docx"
+/>
             </div>
 
             <Input label="Remark" name="remark" value={formData.remark} onChange={handleInputChange} />
-            <Input label="Remark indicating with whom its being shared e.g co-worker" name="sharedWith" value={formData.sharedWith} onChange={handleInputChange} placeholder="Shared with Finance team" />
+            <Input label = {
+              <>
+                    Remarks <i>(Indicating with whom it’s being shared e.g. co-worker)</i>
+
+              </>
+            } name="sharedWith" value={formData.sharedWith} onChange={handleInputChange} placeholder="Shared with Finance team" />
           </form>
         </Modal>
 
@@ -251,7 +309,7 @@ const POsPage = () => {
           isOpen={isViewModalOpen}
           onClose={() => setIsViewModalOpen(false)}
           title="Purchase Order Details"
-          size="lg"
+          size="xxl"
           footer={<Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>Cancel</Button>}
         >
           {selectedPO && (

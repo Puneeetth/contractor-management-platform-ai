@@ -17,6 +17,7 @@ export const Modal = ({
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-xl',
+     xxl: 'w-[95vw] max-w-none'
   }
 
   return (
@@ -36,7 +37,7 @@ export const Modal = ({
         className={`
           bg-white rounded-2xl shadow-xl w-full mx-4
           border border-gray-200
-          max-h-[85vh] flex flex-col
+          ${size === 'xxl' ? 'h-[95vh]' : 'max-h-[85vh]'} flex flex-col
           ${sizes[size]}
         `}
       >

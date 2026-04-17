@@ -208,13 +208,13 @@ const CustomersPage = () => {
         </Card>
 
         {/* Create Customer Modal */}
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Customer" size="lg"
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Customer" size="xxl"
           footer={<>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create Customer</Button>
           </>}
         >
-          <form className="space-y-4">
+          <form className="grid grid-cols-1 md:grid-cols-2 gap-8 gpa-y-2">
             {formErrors.submit && (
               <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
                 <p className="text-sm text-red-400">{formErrors.submit}</p>
@@ -234,9 +234,11 @@ const CustomersPage = () => {
         {/* View Customer Modal */}
         <Modal
           isOpen={isViewModalOpen}
+          className="!w-screen !h-screen !max-w-none !rounded-none"
           onClose={() => setIsViewModalOpen(false)}
           title="Customer Details"
-          size="lg"
+          size="xxl"
+          
           footer={
             <Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>
               Cancel
@@ -244,8 +246,11 @@ const CustomersPage = () => {
           }
         >
           {selectedCustomer && (
-            <div className="space-y-6">
+            
+            <div className="space-y-6 p-2">
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer Name</p>
                   <p className="text-sm font-medium text-gray-900">{selectedCustomer.name}</p>
