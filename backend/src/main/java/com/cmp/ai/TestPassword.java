@@ -6,5 +6,7 @@ public class TestPassword {
     public static void main(String[] args) {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         System.out.println(encoder.encode("admin123"));
+        System.out.println(encoder.encode("Punithreddy@123"));
+
     }
 }

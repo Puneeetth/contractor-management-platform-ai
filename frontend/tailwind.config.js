@@ -35,9 +35,18 @@ export default {
           input: '#0f1219',
         },
       },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-      },
+     fontFamily: {
+  sans: [
+    'Inter',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'Segoe UI',
+    'Roboto',
+    'Helvetica Neue',
+    'Arial',
+    'sans-serif',
+  ],
+},
       borderColor: {
         DEFAULT: 'rgba(255,255,255,0.06)',
         border: 'oklch(var(--border))',
