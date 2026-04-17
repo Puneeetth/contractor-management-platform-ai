@@ -28,7 +28,9 @@ const POsPage = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [selectedPO, setSelectedPO] = useState(null)
 
-  useEffect(() => { loadPOs() }, [])
+ useEffect(() => {
+  loadInitialData()
+}, [])
   useEffect(() => {
     if (isModalOpen) {
       loadReferenceData()
@@ -62,6 +64,25 @@ const POsPage = () => {
       setIsReferenceLoading(false)
     }
   }
+  const loadInitialData = async () => {
+  try {
+    setIsLoading(true)
+    setError(null)
+
+    const [poData, customerData] = await Promise.all([
+      poService.getAllPurchaseOrders(),
+      customerService.getAllCustomers(),
+    ])
+
+    setPos(Array.isArray(poData) ? poData : [])
+    setCustomers(Array.isArray(customerData) ? customerData : [])
+
+  } catch (err) {
+    setError(err?.error?.message || 'Failed to load data')
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   const validateForm = () => {
     const newErrors = {}
@@ -128,8 +149,7 @@ const POsPage = () => {
     { key: 'poNumber', label: 'PO Number', render: (row) => <span className="font-mono text-indigo-400 font-medium">{row.poNumber}</span> },
     { key: 'customer', label: 'Customer', render: (row) => <span className="text-gray-900">{customerNameById(row.customerId)}</span> },
     { key: 'poDate', label: 'PO Date', render: (row) => formatters.formatDate(row.poDate) },
-    { key: 'poValue', label: 'PO Value', render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.poValue)} {row.currency}</span> },
-    {
+{ key: 'poValue', label: 'PO Value', render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.poValue, row.currency)}</span> },    {
       key: 'actions',
       label: 'Actions',
       render: (row) => (
@@ -162,10 +182,27 @@ const POsPage = () => {
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[
-              { icon: FileText, label: 'Total POs', value: pos.length, color: 'text-blue-400', bg: 'bg-blue-100' },
-              { icon: DollarSign, label: 'Total Value', value: formatters.formatCurrency(totalValue), color: 'text-emerald-400', bg: 'bg-emerald-100' },
-              { icon: Hash, label: 'Total Resources', value: pos.reduce((a, p) => a + (p.numberOfResources || 0), 0), color: 'text-purple-400', bg: 'bg-purple-100' },
-            ].map((stat, i) => (
+              { icon: FileText, label: (
+                <>
+                <b>Total POs</b>
+                </>
+              ), value: pos.length, color: 'text-blue-400', bg: 'bg-blue-100' },
+              { icon: DollarSign, label :(
+                <>
+                <b>Total Value</b>
+                </>
+              ), value: formatters.formatCurrency(totalValue), color: 'text-emerald-400', bg: 'bg-emerald-100' },
+{
+  icon: Hash,
+  label: (
+    <>
+      <b>TotalResources</b> (Contractors)
+    </>
+  ),
+  value: pos.reduce((a, p) => a + (p.numberOfResources || 0), 0),
+  color: 'text-purple-400',
+  bg: 'bg-purple-100'
+}            ].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <Card className="!p-4">
                   <div className="flex items-center gap-3">
@@ -242,7 +279,12 @@ const POsPage = () => {
             </div>
 
             <Input label="Remark" name="remark" value={formData.remark} onChange={handleInputChange} />
-            <Input label="Remark indicating with whom its being shared e.g co-worker" name="sharedWith" value={formData.sharedWith} onChange={handleInputChange} placeholder="Shared with Finance team" />
+            <Input label = {
+              <>
+                    Remarks <i>(Indicating with whom it’s being shared e.g. co-worker)</i>
+
+              </>
+            } name="sharedWith" value={formData.sharedWith} onChange={handleInputChange} placeholder="Shared with Finance team" />
           </form>
         </Modal>
 

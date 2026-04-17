@@ -3,6 +3,7 @@ package com.cmp.ai.dto.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,6 +25,7 @@ public class CustomerRequest {
     private String createdDate;
 
     private String msaRenewalDate;
+    @Size(max = 500)
     private String msaRemark;
     private String countriesApplicable;
 

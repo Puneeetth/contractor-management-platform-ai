@@ -1,5 +1,6 @@
 package com.cmp.ai.dto.response;
 
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,7 @@ public class CustomerResponse {
     private String msa;
     private String createdDate;
     private String msaRenewalDate;
+    @Size(max = 500)
     private String msaRemark;
     private String countriesApplicable;
     private String msaContactPerson;
