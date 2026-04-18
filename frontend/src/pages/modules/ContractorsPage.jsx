@@ -76,8 +76,8 @@ const ContractorsPage = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : (
         ['billRate', 'payRate', 'estimatedBudget'].includes(name) ? parseFloat(value) || '' :
-        ['estimatedHours', 'noticePeriodDays'].includes(name) ? parseInt(value) || '' :
-        value
+          ['estimatedHours', 'noticePeriodDays'].includes(name) ? parseInt(value) || '' :
+            value
       ),
     }))
     if (formErrors[name]) {
@@ -181,7 +181,7 @@ const ContractorsPage = () => {
           )}
         </Card>
 
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Contract" size="lg"
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Contract" size="xxl"
           footer={<>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create</Button>

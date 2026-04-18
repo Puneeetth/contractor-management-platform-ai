@@ -2,6 +2,13 @@ import axios from 'axios'
 import { useAuthStore } from '../hooks/useAuth'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
+const API_ORIGIN = (() => {
+  try {
+    return new URL(API_BASE_URL, window.location.origin).origin
+  } catch {
+    return window.location.origin
+  }
+})()
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -40,4 +47,5 @@ apiClient.interceptors.response.use(
   }
 )
 
+export { API_BASE_URL, API_ORIGIN }
 export default apiClient

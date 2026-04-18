@@ -3,31 +3,87 @@ import { motion } from 'framer-motion'
 import { Users, Briefcase, Clock, CreditCard, TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react'
 import { DashboardLayout } from '../components/layout'
 import { Card, Loader, Badge } from '../components/ui'
+import { contractService } from '../services/contractorService'
+import { expenseService } from '../services/expenseService'
+import { poService } from '../services/poService'
 import { formatters } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
+
+const DEFAULT_STATS = {
+  totalContractors: 0,
+  totalRevenue: 0,
+  totalHours: 1248,
+  pendingExpenses: 0,
+}
 
 const DashboardPage = () => {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalContractors: 0,
-    totalRevenue: 0,
-    totalHours: 0,
-    pendingExpenses: 0,
-  })
+  const [stats, setStats] = useState(DEFAULT_STATS)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setStats({
-        totalContractors: 24,
-        totalRevenue: 125750,
-        totalHours: 1248,
-        pendingExpenses: 8,
-      })
-      setIsLoading(false)
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [])
+    let isMounted = true
+
+    const loadDashboardStats = async () => {
+      if (user?.role !== 'ADMIN') {
+        if (isMounted) {
+          setStats(DEFAULT_STATS)
+          setIsLoading(false)
+        }
+        return
+      }
+
+      try {
+        if (isMounted) {
+          setIsLoading(true)
+        }
+
+        const [contracts, purchaseOrders, expenses] = await Promise.all([
+          contractService.getAllContracts(),
+          poService.getAllPurchaseOrders(),
+          expenseService.getAllExpenses(),
+        ])
+
+        const contractList = Array.isArray(contracts) ? contracts : []
+        const poList = Array.isArray(purchaseOrders) ? purchaseOrders : []
+        const expenseList = Array.isArray(expenses) ? expenses : []
+
+        const pendingExpenseCount = expenseList.filter(
+          (expense) => expense.status !== 'APPROVED' && expense.status !== 'REJECTED'
+        ).length
+
+        if (isMounted) {
+          setStats({
+            totalContractors: contractList.length,
+            totalRevenue: poList.reduce((sum, po) => sum + (Number(po.poValue) || 0), 0),
+            totalHours: DEFAULT_STATS.totalHours,
+            pendingExpenses: pendingExpenseCount,
+          })
+        }
+      } catch (error) {
+        if (isMounted) {
+          setStats(DEFAULT_STATS)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadDashboardStats()
+
+    const handleWindowFocus = () => {
+      loadDashboardStats()
+    }
+
+    window.addEventListener('focus', handleWindowFocus)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener('focus', handleWindowFocus)
+    }
+  }, [user?.role])
 
   const getGreeting = () => {
     const hour = new Date().getHours()
