@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Plus, AlertCircle, FileText, DollarSign, Hash } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Modal, Input, Badge, Loader, Select } from '../../components/ui'
+import { API_ORIGIN } from '../../services/apiClient'
 import { poService } from '../../services/poService'
 import { contractService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
@@ -150,6 +151,13 @@ const POsPage = () => {
 
   const totalValue = pos.reduce((acc, po) => acc + (po.poValue || 0), 0)
   const customerNameById = (id) => customers.find(c => c.id === id)?.name || `Customer #${id}`
+  const getFileViewUrl = (fileUrl) => {
+    if (!fileUrl) return ''
+    if (/^https?:\/\//i.test(fileUrl)) return fileUrl
+
+    const normalizedPath = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`
+    return `${API_ORIGIN}${normalizedPath}`
+  }
   const contractOptions = contracts.map(contract => ({
     value: contract.id,
     label: `Contract #${contract.id} · ${customerNameById(contract.customerId)}`,
@@ -350,7 +358,7 @@ const POsPage = () => {
                 {selectedPO.fileUrl && (
                   <div className="space-y-1 md:col-span-2">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PO Document</p>
-                    <a href={selectedPO.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:underline flex items-center gap-1">
+                    <a href={getFileViewUrl(selectedPO.fileUrl)} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:underline flex items-center gap-1">
                       <FileText className="w-4 h-4" /> View PO Upload
                     </a>
                   </div>
