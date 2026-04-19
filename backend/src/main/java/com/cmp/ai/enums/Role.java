@@ -4,5 +4,7 @@ public enum Role {
     ADMIN,
     CONTRACTOR,
     MANAGER,
-    FINANCE
+    FINANCE,
+    SALES,
+    HR
 }

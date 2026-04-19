@@ -2,10 +2,8 @@ package com.cmp.ai.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
-import com.cmp.ai.dto.request.PORequest;
-import com.cmp.ai.entity.PurchaseOrder;
-import com.cmp.ai.repository.PurchaseOrderRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +22,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final PurchaseOrderRepository purchaseOrderRepository;
+    private static final Set<Role> ADMIN_MANAGED_ROLES = Set.of(Role.FINANCE, Role.SALES, Role.HR);
 
     /**
      * Get all pending users awaiting approval
@@ -98,6 +96,35 @@ public class AdminService {
                 .build();
 
         return userRepository.save(contractor);
+    }
+
+    public User createAdminManagedUser(String name, String email, String password, String role, String region) {
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new BadRequestException("Email already exists");
+        }
+
+        Role requestedRole;
+        try {
+            requestedRole = Role.valueOf(role.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("Invalid role");
+        }
+
+        if (!ADMIN_MANAGED_ROLES.contains(requestedRole)) {
+            throw new BadRequestException("Only Finance, Sales, and HR users can be created from Administration");
+        }
+
+        User user = User.builder()
+                .name(name)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .role(requestedRole)
+                .region(region)
+                .status(Status.APPROVED)
+                .registeredDate(LocalDateTime.now())
+                .build();
+
+        return userRepository.save(user);
     }
 
     /**

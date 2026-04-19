@@ -35,6 +35,17 @@ const ContractorsPage = () => {
     loadCustomers()
   }, [])
 
+  const calculateEstimatedBudget = (billRate, estimatedHours) => {
+    const normalizedBillRate = Number(billRate)
+    const normalizedHours = Number(estimatedHours)
+
+    if (!normalizedBillRate || !normalizedHours) {
+      return ''
+    }
+
+    return Number((normalizedBillRate * normalizedHours).toFixed(2))
+  }
+
   const loadContracts = async () => {
     try {
       setIsLoading(true)
@@ -64,6 +75,9 @@ const ContractorsPage = () => {
     if (!validators.isRequired(formData.payRate)) newErrors.payRate = 'Pay rate is required'
     if (!validators.isRequired(formData.estimatedHours)) newErrors.estimatedHours = 'Estimated hours is required'
     if (!validators.isRequired(formData.estimatedBudget)) newErrors.estimatedBudget = 'Estimated budget is required'
+    if (validators.isRequired(formData.billRate) && validators.isRequired(formData.payRate) && Number(formData.payRate) >= Number(formData.billRate)) {
+      newErrors.rateValidation = 'Pay rate must be less than bill rate'
+    }
     if (!validators.isRequired(formData.startDate)) newErrors.startDate = 'Start date is required'
     if (!validators.isRequired(formData.endDate)) newErrors.endDate = 'End date is required'
     setFormErrors(newErrors)
@@ -72,16 +86,58 @@ const ContractorsPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : (
-        ['billRate', 'payRate', 'estimatedBudget'].includes(name) ? parseFloat(value) || '' :
+    let blockedRateEntry = false
+
+    setFormData(prev => {
+      const parsedValue = type === 'checkbox' ? checked : (
+        ['billRate', 'payRate'].includes(name) ? parseFloat(value) || '' :
           ['estimatedHours', 'noticePeriodDays'].includes(name) ? parseInt(value) || '' :
             value
-      ),
-    }))
+      )
+
+      const nextFormData = {
+        ...prev,
+        [name]: parsedValue,
+      }
+
+      if (name === 'payRate' && parsedValue !== '' && prev.billRate !== '' && Number(parsedValue) > Number(prev.billRate)) {
+        blockedRateEntry = true
+        return prev
+      }
+
+      if (name === 'billRate' && parsedValue !== '' && prev.payRate !== '' && Number(prev.payRate) >= Number(parsedValue)) {
+        blockedRateEntry = true
+        return prev
+      }
+
+      if (name === 'billRate' || name === 'estimatedHours') {
+        nextFormData.estimatedBudget = calculateEstimatedBudget(
+          name === 'billRate' ? parsedValue : prev.billRate,
+          name === 'estimatedHours' ? parsedValue : prev.estimatedHours
+        )
+      }
+
+      return nextFormData
+    })
+
+    if (blockedRateEntry) {
+      setFormErrors(prev => ({
+        ...prev,
+        rateValidation: 'Pay rate must be less than bill rate',
+      }))
+      return
+    }
+
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }))
+    }
+
+    if ((name === 'billRate' || name === 'estimatedHours') && formErrors.estimatedBudget) {
+      setFormErrors(prev => ({ ...prev, estimatedBudget: '' }))
+    }
+
+    if ((name === 'billRate' || name === 'payRate') && (formErrors.billRate || formErrors.payRate || formErrors.rateValidation)) {
+      setFormErrors(prev => ({ ...prev, billRate: '', payRate: '', rateValidation: '' }))
     }
   }
 
@@ -190,13 +246,18 @@ const ContractorsPage = () => {
           <form className="space-y-4">
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
             <Input label="Contractor ID" name="contractorId" type="number" value={formData.contractorId} onChange={handleInputChange} error={formErrors.contractorId} required />
+            {formErrors.rateValidation && (
+              <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                <p className="text-sm text-red-400">{formErrors.rateValidation}</p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <Input label="Bill Rate ($)" name="billRate" type="number" step="0.01" value={formData.billRate} onChange={handleInputChange} error={formErrors.billRate} required />
               <Input label="Pay Rate ($)" name="payRate" type="number" step="0.01" value={formData.payRate} onChange={handleInputChange} error={formErrors.payRate} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input label="Estimated Hours" name="estimatedHours" type="number" value={formData.estimatedHours} onChange={handleInputChange} error={formErrors.estimatedHours} required />
-              <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" step="0.01" value={formData.estimatedBudget} onChange={handleInputChange} error={formErrors.estimatedBudget} required />
+              <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" step="0.01" value={formData.estimatedBudget} error={formErrors.estimatedBudget} readOnly className="bg-gray-50 cursor-not-allowed" required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} required />
