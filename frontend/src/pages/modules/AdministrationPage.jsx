@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, AlertCircle, UserPlus, Mail, Lock, MapPin, Eye, EyeOff, Briefcase } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout/DashboardLayout'
@@ -8,6 +8,14 @@ const ROLE_OPTIONS = [
   { value: 'FINANCE', label: 'Finance' },
   { value: 'SALES', label: 'Sales' },
   { value: 'HR', label: 'HR' },
+  { value: 'GEO_MANAGER', label: 'GEO Manager' },
+  { value: 'BDM', label: 'BDM' },
+]
+
+const GEO_REGION_OPTIONS = [
+  { value: 'US', label: 'US' },
+  { value: 'EU', label: 'EU' },
+  { value: 'APAC', label: 'APAC' },
 ]
 
 const INITIAL_FORM_DATA = {
@@ -17,6 +25,8 @@ const INITIAL_FORM_DATA = {
   confirmPassword: '',
   role: 'FINANCE',
   region: 'US',
+  regions: [],
+  country: '',
 }
 
 const AdministrationPage = () => {
@@ -28,14 +38,58 @@ const AdministrationPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [createdUser, setCreatedUser] = useState(null)
+  const [countries, setCountries] = useState([])
+  const [lastSubmissionMeta, setLastSubmissionMeta] = useState({ regions: [], country: '' })
+
+  const isGeoManager = formData.role === 'GEO_MANAGER'
+  const isBdm = formData.role === 'BDM'
+  const isManagerRole = isGeoManager || isBdm
 
   const selectedRoleLabel = useMemo(
     () => ROLE_OPTIONS.find((option) => option.value === formData.role)?.label || formData.role,
     [formData.role]
   )
 
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const response = await apiClient.get('/countries')
+        setCountries(Array.isArray(response) ? response : [])
+      } catch {
+        setCountries([])
+      }
+    }
+
+    loadCountries()
+  }, [])
+
   const handleChange = (e) => {
-    const { name, value } = e.target
+    const { name, value, options } = e.target
+
+    if (name === 'role') {
+      setFormData((prev) => ({
+        ...prev,
+        role: value,
+        region: ['GEO_MANAGER', 'BDM'].includes(value) ? '' : prev.region || 'US',
+        regions: value === 'GEO_MANAGER' ? prev.regions : [],
+        country: value === 'BDM' ? prev.country : '',
+      }))
+      setErrors((prev) => ({ ...prev, role: '', region: '', regions: '', country: '' }))
+      return
+    }
+
+    if (name === 'regions') {
+      const selectedRegions = Array.from(options)
+        .filter((option) => option.selected)
+        .map((option) => option.value)
+
+      setFormData((prev) => ({ ...prev, regions: selectedRegions }))
+      if (errors.regions) {
+        setErrors((prev) => ({ ...prev, regions: '' }))
+      }
+      return
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }))
@@ -72,7 +126,15 @@ const AdministrationPage = () => {
       newErrors.confirmPassword = 'Passwords do not match'
     }
 
-    if (!formData.region.trim()) {
+    if (isGeoManager && formData.regions.length === 0) {
+      newErrors.regions = 'At least one region is required'
+    }
+
+    if (isBdm && !formData.country.trim()) {
+      newErrors.country = 'Country is required'
+    }
+
+    if (!isManagerRole && !formData.region.trim()) {
       newErrors.region = 'Region is required'
     }
 
@@ -94,10 +156,16 @@ const AdministrationPage = () => {
         email: formData.email,
         password: formData.password,
         role: formData.role,
-        region: formData.region,
+        region: isManagerRole ? '' : formData.region,
+        regions: isGeoManager ? formData.regions : [],
+        country: isBdm ? formData.country : '',
       })
 
       setCreatedUser(response)
+      setLastSubmissionMeta({
+        regions: [...formData.regions],
+        country: formData.country,
+      })
       setSuccess(`${selectedRoleLabel} user created successfully!`)
       setFormData(INITIAL_FORM_DATA)
       setErrors({})
@@ -108,12 +176,14 @@ const AdministrationPage = () => {
     }
   }
 
+  const createdCountryName = countries.find((country) => country.code === lastSubmissionMeta.country)?.name
+
   return (
     <DashboardLayout>
       <div className="p-6 w-full">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Administration</h1>
-          <p className="text-gray-600">Create Finance, Sales, and HR users from one place.</p>
+          <p className="text-gray-600">Create Finance, Sales, HR, GEO Manager, and BDM users from one place.</p>
         </div>
 
         {error && (
@@ -164,6 +234,18 @@ const AdministrationPage = () => {
                 <span className="text-gray-600">Role:</span>
                 <span className="font-semibold text-gray-900">{createdUser.role}</span>
               </div>
+              {createdUser.role === 'GEO_MANAGER' && lastSubmissionMeta.regions.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Regions:</span>
+                  <span className="font-semibold text-gray-900">{lastSubmissionMeta.regions.join(', ')}</span>
+                </div>
+              )}
+              {createdUser.role === 'BDM' && createdCountryName && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Country:</span>
+                  <span className="font-semibold text-gray-900">{createdCountryName}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-600">Status:</span>
                 <span className="inline-block px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-semibold">
@@ -200,6 +282,7 @@ const AdministrationPage = () => {
                   ))}
                 </select>
               </div>
+              {errors.role && <p className="text-red-500 text-xs mt-1">{errors.role}</p>}
             </div>
 
             <div>
@@ -302,26 +385,81 @@ const AdministrationPage = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Region <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  name="region"
-                  value={formData.region}
-                  onChange={handleChange}
-                  placeholder="US"
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.region
-                    ? 'border-red-400 focus:ring-2 focus:ring-red-50'
-                    : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
-                    }`}
-                />
+            {isGeoManager && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Regions <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-4 w-4 h-4 text-gray-400" />
+                  <select
+                    multiple
+                    name="regions"
+                    value={formData.regions}
+                    onChange={handleChange}
+                    className={`w-full min-h-32 pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.regions
+                      ? 'border-red-400 focus:ring-2 focus:ring-red-50'
+                      : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
+                      }`}
+                  >
+                    {GEO_REGION_OPTIONS.map((region) => (
+                      <option key={region.value} value={region.value}>{region.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple regions.</p>
+                {errors.regions && <p className="text-red-500 text-xs mt-1">{errors.regions}</p>}
               </div>
-              {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
-            </div>
+            )}
+
+            {isBdm && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <select
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.country
+                      ? 'border-red-400 focus:ring-2 focus:ring-red-50'
+                      : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
+                      }`}
+                  >
+                    <option value="">Select a country</option>
+                    {countries.map((country) => (
+                      <option key={country.code} value={country.code}>{country.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
+              </div>
+            )}
+
+            {!isManagerRole && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Region <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    name="region"
+                    value={formData.region}
+                    onChange={handleChange}
+                    placeholder="US"
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.region
+                      ? 'border-red-400 focus:ring-2 focus:ring-red-50'
+                      : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
+                      }`}
+                  />
+                </div>
+                {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
+              </div>
+            )}
 
             <div className="flex justify-end">
               <button
@@ -330,7 +468,7 @@ const AdministrationPage = () => {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
-                {loading ? 'Creating...' : 'Create User'}
+                {loading ? 'Creating...' : isManagerRole ? 'Create Manager' : 'Create User'}
               </button>
             </div>
           </form>

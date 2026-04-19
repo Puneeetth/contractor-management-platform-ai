@@ -38,6 +38,8 @@ export const ROLES = {
   CONTRACTOR: 'Contractor',
   SALES: 'Sales',
   HR: 'HR',
+  GEO_MANAGER: 'GEO Manager',
+  BDM: 'BDM',
 }
 
 export const ROLE_PERMISSIONS = {
@@ -45,6 +47,8 @@ export const ROLE_PERMISSIONS = {
   FINANCE: ['view_customers', 'view_invoices', 'approve_invoices', 'view_expenses', 'approve_expenses'],
   SALES: ['view_customers', 'view_invoices'],
   HR: ['view_contractors', 'view_timesheets'],
+  GEO_MANAGER: ['view_dashboard'],
+  BDM: ['view_dashboard'],
   MANAGER: ['view_contractors', 'view_timesheets', 'approve_timesheets', 'view_expenses', 'approve_expenses'],
   CONTRACTOR: ['submit_timesheet', 'submit_expense', 'view_invoices'],
 }
