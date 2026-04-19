@@ -6,5 +6,7 @@ public enum Role {
     MANAGER,
     FINANCE,
     SALES,
-    HR
+    HR,
+    GEO_MANAGER,
+    BDM
 }

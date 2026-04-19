@@ -141,7 +141,9 @@ public class AdminController {
                 request.getEmail(),
                 request.getPassword(),
                 request.getRole(),
-                request.getRegion());
+                request.getRegion(),
+                request.getRegions(),
+                request.getCountry());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(UserTransformer.userToUserResponse(createdUser));
     }
