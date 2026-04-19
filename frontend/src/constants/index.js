@@ -36,11 +36,15 @@ export const ROLES = {
   FINANCE: 'Finance',
   MANAGER: 'Manager',
   CONTRACTOR: 'Contractor',
+  SALES: 'Sales',
+  HR: 'HR',
 }
 
 export const ROLE_PERMISSIONS = {
   ADMIN: ['ALL'],
   FINANCE: ['view_customers', 'view_invoices', 'approve_invoices', 'view_expenses', 'approve_expenses'],
+  SALES: ['view_customers', 'view_invoices'],
+  HR: ['view_contractors', 'view_timesheets'],
   MANAGER: ['view_contractors', 'view_timesheets', 'approve_timesheets', 'view_expenses', 'approve_expenses'],
   CONTRACTOR: ['submit_timesheet', 'submit_expense', 'view_invoices'],
 }

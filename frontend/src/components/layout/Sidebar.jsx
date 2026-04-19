@@ -8,6 +8,7 @@ import {
   Clock, 
   Receipt, 
   CreditCard, 
+  ShieldCheck,
   LogOut,
   X,
   Sparkles
@@ -19,13 +20,14 @@ export const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuthStore()
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR'] },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR', 'SALES', 'HR'] },
     { icon: Users, label: 'Customers', path: '/customers', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
     { icon: Briefcase, label: 'Contractors', path: '/contractors', roles: ['ADMIN', 'MANAGER'] },
     { icon: FileText, label: 'POs', path: '/pos', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
     { icon: Clock, label: 'Timesheets', path: '/timesheets', roles: ['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE'] },
     { icon: Receipt, label: 'Invoices', path: '/invoices', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
     { icon: CreditCard, label: 'Expenses', path: '/expenses', roles: ['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE'] },
+    { icon: ShieldCheck, label: 'Administration', path: '/admin/administration', roles: ['ADMIN'] },
   ]
 
   const isActive = (path) => location.pathname === path

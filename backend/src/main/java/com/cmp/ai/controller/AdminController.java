@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cmp.ai.dto.request.ApprovalRequest;
+import com.cmp.ai.dto.request.AdminUserCreationRequest;
 import com.cmp.ai.dto.request.ContractorCreationRequest;
 import com.cmp.ai.dto.request.RejectionRequest;
 import com.cmp.ai.dto.response.UserResponse;
@@ -131,6 +132,18 @@ public class AdminController {
                 request.getSpecialization());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(UserTransformer.userToUserResponse(contractor));
+    }
+
+    @PostMapping("/users/create")
+    public ResponseEntity<UserResponse> createAdministrationUser(@RequestBody AdminUserCreationRequest request) {
+        User createdUser = adminService.createAdminManagedUser(
+                request.getName(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getRole(),
+                request.getRegion());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(UserTransformer.userToUserResponse(createdUser));
     }
 
     /**

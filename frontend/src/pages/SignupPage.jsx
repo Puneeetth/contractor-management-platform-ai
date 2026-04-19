@@ -73,7 +73,7 @@ const SignupPage = () => {
   }
 
   const roleOptions = Object.entries(ROLES)
-    .filter(([key]) => key !== 'CONTRACTOR')  // Exclude CONTRACTOR from self-registration
+    .filter(([key]) => ['FINANCE', 'MANAGER'].includes(key))
     .map(([key, value]) => ({ 
       value: key, 
       label: key === 'MANAGER' ? 'Client' : value  // Show "Client" instead of "Manager"
