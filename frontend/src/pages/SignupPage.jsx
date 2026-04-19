@@ -1,10 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useAuth } from '../hooks/useAuth'
 import { authService } from '../services/authService'
 import { validators } from '../utils/validators'
-import { ROLES } from '../constants'
 import { Mail, Lock, Eye, EyeOff, User, CheckCircle, Sparkles, Apple } from 'lucide-react'
 
 // Placeholder for SVG/Custom Icons - Add your custom images here
@@ -30,7 +28,7 @@ const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', confirmPassword: '', role: 'FINANCE',
+    name: '', email: '', password: '', confirmPassword: '',
   })
 
   const handleChange = (e) => {
@@ -57,12 +55,12 @@ const SignupPage = () => {
     setIsLoading(true)
     try {
       const response = await authService.register({
-        name: formData.name, email: formData.email, password: formData.password, role: formData.role, region: 'US',
+        name: formData.name, email: formData.email, password: formData.password, region: 'US',
       })
       if (response) {
         setSuccessMessage('Registration successful! Please wait for admin approval to login.')
         setErrors({})
-        setFormData({ name: '', email: '', password: '', confirmPassword: '', role: 'FINANCE' })
+        setFormData({ name: '', email: '', password: '', confirmPassword: '' })
         setTimeout(() => navigate('/pending-approval'), 3000)
       }
     } catch (error) {
@@ -71,13 +69,6 @@ const SignupPage = () => {
       setIsLoading(false)
     }
   }
-
-  const roleOptions = Object.entries(ROLES)
-    .filter(([key]) => ['FINANCE', 'MANAGER'].includes(key))
-    .map(([key, value]) => ({ 
-      value: key, 
-      label: key === 'MANAGER' ? 'Client' : value  // Show "Client" instead of "Manager"
-    }))
 
   // Orbiting icons data - Social Media & Educational platforms
   const orbitIcons1 = [
@@ -174,15 +165,6 @@ const SignupPage = () => {
                     className={`w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.email ? 'border-red-400 focus:ring-2 focus:ring-red-50' : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'}`} />
                 </div>
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-              </div>
-
-              {/* Role */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
-                <select name="role" value={formData.role} onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm appearance-none focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50">
-                  {roleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
               </div>
 
               {/* Password */}

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 
+import com.cmp.ai.dto.request.RegisterRequest;
 import com.cmp.ai.entity.User;
 import com.cmp.ai.enums.Role;
 import com.cmp.ai.enums.Status;
@@ -28,20 +29,21 @@ public class AuthService {
 
     private final JwtUtil jwtUtil;
 
-    public String register(User user) {
-        // Validate: Contractor cannot self-register
-        if (user.getRole() == Role.CONTRACTOR) {
-            throw new BadRequestException("Contractors can only be created by admin");
-        }
-
+    public String register(RegisterRequest request) {
         // Check if email already exists
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new BadRequestException("Email already registered");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setStatus(Status.PENDING);
-        user.setRegisteredDate(LocalDateTime.now());
+        User user = User.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.MANAGER)
+                .region(request.getRegion())
+                .status(Status.PENDING)
+                .registeredDate(LocalDateTime.now())
+                .build();
 
         userRepository.save(user);
 

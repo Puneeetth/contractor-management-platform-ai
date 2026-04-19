@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cmp.ai.entity.User;
+import com.cmp.ai.dto.request.RegisterRequest;
 import com.cmp.ai.service.AuthService;
 import lombok.RequiredArgsConstructor;
 
@@ -18,8 +18,8 @@ public class AuthController {
    private final AuthService authService;
 
     @PostMapping("/register")
-    public String register(@RequestBody User user) {
-        return authService.register(user);
+    public String register(@RequestBody RegisterRequest request) {
+        return authService.register(request);
     }
 
     @PostMapping("/login")
