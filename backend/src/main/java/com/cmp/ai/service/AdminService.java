@@ -3,6 +3,7 @@ package com.cmp.ai.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import com.cmp.ai.enums.Role;
 import com.cmp.ai.enums.Status;
 import com.cmp.ai.exception.BadRequestException;
 import com.cmp.ai.exception.ResourceNotFoundException;
+import com.cmp.ai.repository.CountryRepository;
 import com.cmp.ai.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,8 +23,9 @@ import lombok.RequiredArgsConstructor;
 public class AdminService {
 
     private final UserRepository userRepository;
+    private final CountryRepository countryRepository;
     private final PasswordEncoder passwordEncoder;
-    private static final Set<Role> ADMIN_MANAGED_ROLES = Set.of(Role.FINANCE, Role.SALES, Role.HR);
+    private static final Set<Role> ADMIN_MANAGED_ROLES = Set.of(Role.FINANCE, Role.SALES, Role.HR, Role.GEO_MANAGER, Role.BDM);
 
     /**
      * Get all pending users awaiting approval
@@ -98,7 +101,7 @@ public class AdminService {
         return userRepository.save(contractor);
     }
 
-    public User createAdminManagedUser(String name, String email, String password, String role, String region) {
+    public User createAdminManagedUser(String name, String email, String password, String role, String region, List<String> regions, String country) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new BadRequestException("Email already exists");
         }
@@ -111,7 +114,36 @@ public class AdminService {
         }
 
         if (!ADMIN_MANAGED_ROLES.contains(requestedRole)) {
-            throw new BadRequestException("Only Finance, Sales, and HR users can be created from Administration");
+            throw new BadRequestException("Only Finance, Sales, HR, GEO Manager, and BDM users can be created from Administration");
+        }
+
+        String resolvedRegion = region;
+        String resolvedLocation = null;
+
+        if (requestedRole == Role.GEO_MANAGER) {
+            if (regions == null || regions.isEmpty()) {
+                throw new BadRequestException("At least one region is required for GEO Manager");
+            }
+            resolvedRegion = regions.stream()
+                    .filter(value -> value != null && !value.isBlank())
+                    .map(String::trim)
+                    .distinct()
+                    .collect(Collectors.joining(", "));
+
+            if (resolvedRegion.isBlank()) {
+                throw new BadRequestException("At least one region is required for GEO Manager");
+            }
+        } else if (requestedRole == Role.BDM) {
+            if (country == null || country.isBlank()) {
+                throw new BadRequestException("Country is required for BDM");
+            }
+
+            var matchedCountry = countryRepository.findById(country.trim())
+                    .orElseThrow(() -> new BadRequestException("Selected country is invalid"));
+            resolvedLocation = matchedCountry.getCode();
+            resolvedRegion = matchedCountry.getName();
+        } else if (resolvedRegion == null || resolvedRegion.isBlank()) {
+            throw new BadRequestException("Region is required");
         }
 
         User user = User.builder()
@@ -119,7 +151,8 @@ public class AdminService {
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .role(requestedRole)
-                .region(region)
+                .region(resolvedRegion)
+                .location(resolvedLocation)
                 .status(Status.APPROVED)
                 .registeredDate(LocalDateTime.now())
                 .build();

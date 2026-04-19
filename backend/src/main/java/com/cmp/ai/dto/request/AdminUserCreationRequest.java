@@ -1,5 +1,7 @@
 package com.cmp.ai.dto.request;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,4 +15,6 @@ public class AdminUserCreationRequest {
     private String password;
     private String role;
     private String region;
+    private List<String> regions;
+    private String country;
 }
