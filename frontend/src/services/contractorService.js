@@ -9,3 +9,9 @@ export const contractService = {
     return apiClient.post('/admin/contracts', contractData)
   },
 }
+
+export const contractorService = {
+  getAllContractors: async () => {
+    return apiClient.get('/contractors')
+  },
+}

@@ -1,30 +1,28 @@
 package com.cmp.ai.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import java.util.List;
+
+import lombok.*;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Builder
 public class Contractor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
+    private String contractorId;
     @OneToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id",nullable = false)
     private User user;
+
 
     private String name;
 
@@ -41,4 +39,8 @@ public class Contractor {
     private Integer noticePeriodDays;
 
     private String remarks;
+
+    @OneToMany(mappedBy = "contractor", fetch = FetchType.LAZY)
+    private List<Contract> contracts;
+
 }

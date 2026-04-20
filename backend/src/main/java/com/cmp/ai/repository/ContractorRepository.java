@@ -9,4 +9,7 @@ public interface ContractorRepository extends JpaRepository<Contractor, Long> {
     Optional<Contractor> findByEmail(String email);
     
     Optional<Contractor> findByUserId(Long userId);
+
+    Optional<Contractor> findByContractorId(String contractorId);
+    boolean existsByContractorId(String contractorId);
 }

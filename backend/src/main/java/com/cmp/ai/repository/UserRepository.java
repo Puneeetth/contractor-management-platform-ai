@@ -3,6 +3,7 @@ package com.cmp.ai.repository;
 import java.util.List;
 import java.util.Optional;
 
+import com.cmp.ai.entity.Contractor;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.cmp.ai.entity.User;
@@ -22,4 +23,6 @@ public interface UserRepository extends JpaRepository<User,Long>{
          List<User> findByStatus(Status status);
          
          List<User> findByRoleAndStatus(Role role, Status status);
+
+    boolean existsByContractorId(String contractorId);
 }
