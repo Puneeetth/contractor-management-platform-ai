@@ -232,3 +232,24 @@ This platform delivers:
 - Accurate financial tracking
 - Controlled approval workflows
 - Scalable foundation for future expansion
+
+## Recent Updates & Fixes
+
+### ✅ Contract Creation Enhancement (April 2026)
+- **Fixed Contractor ID Integration**: Contract creation now properly uses contractor IDs instead of user IDs
+- **Entity Relationship Fix**: Updated Contract entity to reference Contractor instead of User
+- **Database Schema Update**: Fixed foreign key constraints to point to contractors table
+- **Frontend UX Improvement**: Replaced manual contractor ID input with dropdown selection
+- **Error Resolution**: Fixed NullPointerException and foreign key constraint violations
+
+### 🔧 Technical Improvements
+- **JPA Entity Mapping**: Corrected bidirectional relationships between Contract and Contractor entities
+- **Service Layer**: Updated ContractService to use ContractorRepository instead of UserRepository
+- **Transformer Updates**: Fixed both ContractorTransformer and ContractTransformer for proper entity handling
+- **Database Compatibility**: Resolved schema conflicts between existing data and new entity structure
+
+### 🎯 Key Features Now Working
+- **Contractor Selection**: Users can select from available contractors in dropdown
+- **Proper Relationships**: Contracts correctly reference contractor entities with proper foreign keys
+- **Error-Free Creation**: Contract creation works without constraint violations
+- **Data Integrity**: All entity relationships maintain referential integrity

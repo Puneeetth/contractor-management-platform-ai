@@ -10,11 +10,11 @@ import com.cmp.ai.dto.request.ContractRequest;
 import com.cmp.ai.dto.response.ContractResponse;
 import com.cmp.ai.entity.Customer;
 import com.cmp.ai.entity.Contract;
-import com.cmp.ai.entity.User;
+import com.cmp.ai.entity.Contractor;
 import com.cmp.ai.exception.ResourceNotFoundException;
 import com.cmp.ai.repository.ContractRepository;
 import com.cmp.ai.repository.CustomerRepository;
-import com.cmp.ai.repository.UserRepository;
+import com.cmp.ai.repository.ContractorRepository;
 import com.cmp.ai.transformer.ContractTransformer;
 
 import lombok.RequiredArgsConstructor;
@@ -24,12 +24,15 @@ import lombok.RequiredArgsConstructor;
 public class ContractService {
 
     private final ContractRepository contractRepository;
-    private final UserRepository userRepository;
+    private final ContractorRepository contractorRepository;
     private final CustomerRepository customerRepository;
 
     public ContractResponse createContract(ContractRequest request) {
-        User contractor = userRepository.findById(request.getContractorId())
+        System.out.println("Creating contract with contractor ID: " + request.getContractorId());
+        Contractor contractor = contractorRepository.findById(request.getContractorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
+        
+        System.out.println("Found contractor: " + contractor.getName() + " (ID: " + contractor.getId() + ")");
 
         Customer customer = null;
         if (request.getCustomerId() != null) {
@@ -38,7 +41,10 @@ public class ContractService {
         }
 
         Contract contract = ContractTransformer.contractRequestToContract(request, contractor, customer);
-        return ContractTransformer.contractToContractResponse(contractRepository.save(contract));
+        System.out.println("Contract created with contractor: " + contract.getContractor());
+        Contract savedContract = contractRepository.save(contract);
+        System.out.println("Saved contract with contractor: " + savedContract.getContractor());
+        return ContractTransformer.contractToContractResponse(savedContract);
     }
 
     public List<ContractResponse> getAllContracts() {

@@ -18,6 +18,7 @@ public class UserResponse {
     private String email;
     private String role;
     private String region;
+    private String contractorId;
     private String status;
     private LocalDateTime registeredDate;
     private LocalDateTime approvalDate;

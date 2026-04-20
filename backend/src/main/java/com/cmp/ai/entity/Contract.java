@@ -40,9 +40,9 @@ public class Contract {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "contractor_id")
-    private User contractor;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "contractor_entity_id")
+    private Contractor contractor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
