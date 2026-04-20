@@ -17,4 +17,5 @@ public class AdminUserCreationRequest {
     private String region;
     private List<String> regions;
     private String country;
+    private String contractorId;
 }

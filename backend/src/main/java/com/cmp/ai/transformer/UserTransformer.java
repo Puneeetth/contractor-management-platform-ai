@@ -11,6 +11,7 @@ public class UserTransformer {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .region(user.getRegion())
+                .contractorId(user.getContractorId())
                 .status(user.getStatus().name())
                 .registeredDate(user.getRegisteredDate())
                 .approvalDate(user.getApprovalDate())

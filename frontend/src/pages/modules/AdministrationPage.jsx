@@ -10,6 +10,8 @@ const ROLE_OPTIONS = [
   { value: 'HR', label: 'HR' },
   { value: 'GEO_MANAGER', label: 'GEO Manager' },
   { value: 'BDM', label: 'BDM' },
+   { value: 'CONTRACTOR', label: 'Contractor' },
+
 ]
 
 const GEO_REGION_OPTIONS = [
@@ -27,6 +29,7 @@ const INITIAL_FORM_DATA = {
   region: 'US',
   regions: [],
   country: '',
+  contractorId: ''
 }
 
 const AdministrationPage = () => {
@@ -44,6 +47,7 @@ const AdministrationPage = () => {
   const isGeoManager = formData.role === 'GEO_MANAGER'
   const isBdm = formData.role === 'BDM'
   const isManagerRole = isGeoManager || isBdm
+  const isContractor = formData.role === 'CONTRACTOR'
 
   const selectedRoleLabel = useMemo(
     () => ROLE_OPTIONS.find((option) => option.value === formData.role)?.label || formData.role,
@@ -55,7 +59,7 @@ const AdministrationPage = () => {
       try {
         const response = await apiClient.get('/countries')
         setCountries(Array.isArray(response) ? response : [])
-      } catch {
+      } catch { 
         setCountries([])
       }
     }
@@ -137,6 +141,9 @@ const AdministrationPage = () => {
     if (!isManagerRole && !formData.region.trim()) {
       newErrors.region = 'Region is required'
     }
+    if (isContractor && !formData.contractorId.trim()) {
+  newErrors.contractorId = 'Contractor ID is required'
+}
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -159,6 +166,7 @@ const AdministrationPage = () => {
         region: isManagerRole ? '' : formData.region,
         regions: isGeoManager ? formData.regions : [],
         country: isBdm ? formData.country : '',
+        contractorId: isContractor ? formData.contractorId : '',
       })
 
       setCreatedUser(response)
@@ -226,6 +234,7 @@ const AdministrationPage = () => {
                 <span className="text-gray-600">Name:</span>
                 <span className="font-semibold text-gray-900">{createdUser.name}</span>
               </div>
+             
               <div className="flex justify-between">
                 <span className="text-gray-600">Email:</span>
                 <span className="font-semibold text-gray-900">{createdUser.email}</span>
@@ -305,6 +314,29 @@ const AdministrationPage = () => {
               </div>
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
+            {/* Contractor ID */}
+{isContractor && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Contractor ID <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="text"
+      name="contractorId"
+      value={formData.contractorId}
+      onChange={handleChange}
+      placeholder="Enter unique contractor ID"
+      className={`w-full px-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${
+        errors.contractorId
+          ? 'border-red-400 focus:ring-2 focus:ring-red-50'
+          : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
+      }`}
+    />
+    {errors.contractorId && (
+      <p className="text-red-500 text-xs mt-1">{errors.contractorId}</p>
+    )}
+  </div>
+)}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

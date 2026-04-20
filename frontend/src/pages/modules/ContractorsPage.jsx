@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Plus, AlertCircle, Briefcase, DollarSign, CalendarDays } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Modal, Input, Select, Badge, Loader } from '../../components/ui'
-import { contractService } from '../../services/contractorService'
+import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
@@ -13,6 +13,7 @@ const ContractorsPage = () => {
   const [error, setError] = useState(null)
   const [contracts, setContracts] = useState([])
   const [customers, setCustomers] = useState([])
+  const [contractors, setContractors] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
     contractorId: '',
@@ -33,6 +34,7 @@ const ContractorsPage = () => {
   useEffect(() => {
     loadContracts()
     loadCustomers()
+    loadContractors()
   }, [])
 
   const calculateEstimatedBudget = (billRate, estimatedHours) => {
@@ -65,6 +67,15 @@ const ContractorsPage = () => {
       setCustomers(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error('Failed to load customers:', err)
+    }
+  }
+
+  const loadContractors = async () => {
+    try {
+      const data = await contractorService.getAllContractors()
+      setContractors(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('Failed to load contractors:', err)
     }
   }
 
@@ -245,7 +256,21 @@ const ContractorsPage = () => {
         >
           <form className="space-y-4">
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
-            <Input label="Contractor ID" name="contractorId" type="number" value={formData.contractorId} onChange={handleInputChange} error={formErrors.contractorId} required />
+            <Select 
+              label="Contractor" 
+              name="contractorId" 
+              value={formData.contractorId} 
+              onChange={handleInputChange} 
+              error={formErrors.contractorId} 
+              required
+              options={[
+                { value: '', label: 'Select a contractor...' },
+                ...contractors.map(contractor => ({
+                  value: contractor.id,
+                  label: `${contractor.name} (${contractor.contractorId})`
+                }))
+              ]}
+            />
             {formErrors.rateValidation && (
               <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
                 <p className="text-sm text-red-400">{formErrors.rateValidation}</p>

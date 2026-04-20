@@ -6,7 +6,7 @@ import com.cmp.ai.dto.request.ContractRequest;
 import com.cmp.ai.dto.response.ContractResponse;
 import com.cmp.ai.entity.Contract;
 import com.cmp.ai.entity.Customer;
-import com.cmp.ai.entity.User;
+import com.cmp.ai.entity.Contractor;
 import com.cmp.ai.enums.ContractStatus;
 
 public class ContractTransformer {
@@ -14,7 +14,7 @@ public class ContractTransformer {
     public static ContractResponse contractToContractResponse(Contract c) {
         return ContractResponse.builder()
                 .id(c.getId())
-                .contractorId(c.getContractor().getId())
+                .contractorId(c.getContractor() != null ? c.getContractor().getId() : null)
                 .customerId(c.getCustomer() == null ? null : c.getCustomer().getId())
                 .billRate(c.getBillRate())
                 .payRate(c.getPayRate())
@@ -30,7 +30,7 @@ public class ContractTransformer {
                 .build();
     }
 
-    public static Contract contractRequestToContract(ContractRequest req, User contractor, Customer customer) {
+    public static Contract contractRequestToContract(ContractRequest req, Contractor contractor, Customer customer) {
         return Contract.builder()
                 .contractor(contractor)
                 .customer(customer)
