@@ -129,6 +129,7 @@ public class AdminController {
                 request.getEmail(),
                 request.getPassword(),
                 request.getRegion(),
+                request.getContractorId(),
                 request.getSpecialization());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(UserTransformer.userToUserResponse(contractor));
@@ -140,10 +141,12 @@ public class AdminController {
                 request.getName(),
                 request.getEmail(),
                 request.getPassword(),
-                request.getRole(),
-                request.getRegion(),
-                request.getRegions(),
-                request.getCountry());
+                request.getRole(),           // ✅ correct
+                request.getRegion(),         // ✅ correct
+                request.getRegions(),        // ✅ correct
+                request.getCountry(),        // ✅ correct
+                request.getContractorId()    // ✅ LAST
+        );
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(UserTransformer.userToUserResponse(createdUser));
     }

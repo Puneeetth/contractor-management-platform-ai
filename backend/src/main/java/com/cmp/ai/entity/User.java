@@ -61,6 +61,10 @@ public class User {
 
     private String region;
 
+    
+    @Column(unique = true)
+    private String contractorId;
+
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -75,7 +79,5 @@ public class User {
     @Column(name = "registered_date", nullable = false, updatable = false)
     private LocalDateTime registeredDate; // When user registered
 
-    @OneToMany(mappedBy = "contractor", fetch = FetchType.LAZY)
-    private List<Contract> contracts;
-
+        
 }

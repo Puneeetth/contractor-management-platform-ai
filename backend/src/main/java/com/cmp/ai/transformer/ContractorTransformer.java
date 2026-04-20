@@ -23,17 +23,19 @@ public class ContractorTransformer {
     }
 
     public static Contractor contractorRequestToContractor(ContractorRequest request, User user) {
-        return new Contractor(
-                null,
-                user,
-                request.getName(),
-                request.getAddress(),
-                request.getCurrentLocation(),
-                request.getEmail(),
-                request.getSecondaryEmail(),
-                request.getPhoneNumber(),
-                request.getNoticePeriodDays(),
-                request.getRemarks()
-        );
+        return Contractor.builder()
+                .id(null)
+                .contractorId(request.getContractorId())
+                .user(user)
+                .name(request.getName())
+                .address(request.getAddress())
+                .currentLocation(request.getCurrentLocation())
+                .email(request.getEmail())
+                .secondaryEmail(request.getSecondaryEmail())
+                .phoneNumber(request.getPhoneNumber())
+                .noticePeriodDays(request.getNoticePeriodDays())
+                .remarks(request.getRemarks())
+                .contracts(null)
+                .build();
     }
 }

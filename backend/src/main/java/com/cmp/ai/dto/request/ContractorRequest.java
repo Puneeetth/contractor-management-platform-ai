@@ -15,6 +15,8 @@ public class ContractorRequest {
     @NotNull
     private Long userId;
 
+    private String ContractorId;
+
     @NotBlank
     private String name;
 

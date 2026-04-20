@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.cmp.ai.entity.Contractor;
+import com.cmp.ai.repository.ContractorRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,10 +24,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AdminService {
 
+    private final ContractorRepository contractorRepository;
     private final UserRepository userRepository;
     private final CountryRepository countryRepository;
     private final PasswordEncoder passwordEncoder;
-    private static final Set<Role> ADMIN_MANAGED_ROLES = Set.of(Role.FINANCE, Role.SALES, Role.HR, Role.GEO_MANAGER, Role.BDM);
+    private static final Set<Role> ADMIN_MANAGED_ROLES = Set.of(Role.FINANCE, Role.SALES, Role.HR, Role.GEO_MANAGER, Role.BDM, Role.CONTRACTOR);
 
     /**
      * Get all pending users awaiting approval
@@ -82,30 +85,68 @@ public class AdminService {
     /**
      * Create a new contractor (Admin only)
      */
-    public User createContractor(String name, String email, String password, String region, String specialization) {
-        // Validate email uniqueness
+    public User createContractor(String name, String email, String password, String region, String specialization, String contractorId) {
+
+        if (email == null || email.isBlank()) {
+            throw new BadRequestException("Email is required");
+        }
+
+        if (contractorId == null || contractorId.isBlank()) {
+            throw new BadRequestException("Contractor ID is required");
+        }
+
         if (userRepository.findByEmail(email).isPresent()) {
             throw new BadRequestException("Email already exists");
         }
 
-        User contractor = User.builder()
+        // ✅ Correct uniqueness check (Contractor table only)
+        if (contractorRepository.existsByContractorId(contractorId)) {
+            throw new BadRequestException("Contractor ID already exists");
+        }
+
+        // ✅ Create User
+        User user = User.builder()
                 .name(name)
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .role(Role.CONTRACTOR)
                 .region(region)
-                .status(Status.APPROVED) // Contractors created by admin are directly approved
+                .contractorId(contractorId)
+                .status(Status.APPROVED)
                 .registeredDate(LocalDateTime.now())
                 .build();
 
-        return userRepository.save(contractor);
+        User savedUser = userRepository.save(user);
+
+        // ✅ Create Contractor
+        Contractor contractor = new Contractor();
+        contractor.setContractorId(contractorId);
+        contractor.setUser(savedUser);
+        contractor.setName(name);
+        contractor.setEmail(email);
+        contractor.setCurrentLocation(region);
+
+        contractorRepository.save(contractor);
+
+        return savedUser;
     }
 
-    public User createAdminManagedUser(String name, String email, String password, String role, String region, List<String> regions, String country) {
+    public User createAdminManagedUser(
+            String name,
+            String email,
+            String password,
+            String role,
+            String region,
+            List<String> regions,
+            String country,
+            String contractorId
+    ) {
+
         if (userRepository.findByEmail(email).isPresent()) {
             throw new BadRequestException("Email already exists");
         }
 
+        // ✅ Parse role FIRST
         Role requestedRole;
         try {
             requestedRole = Role.valueOf(role.toUpperCase());
@@ -114,7 +155,18 @@ public class AdminService {
         }
 
         if (!ADMIN_MANAGED_ROLES.contains(requestedRole)) {
-            throw new BadRequestException("Only Finance, Sales, HR, GEO Manager, and BDM users can be created from Administration");
+            throw new BadRequestException("Invalid role");
+        }
+
+        // ✅ Contractor validation
+        if (requestedRole == Role.CONTRACTOR) {
+            if (contractorId == null || contractorId.isBlank()) {
+                throw new BadRequestException("Contractor ID is required");
+            }
+
+            if (contractorRepository.existsByContractorId(contractorId)) {
+                throw new BadRequestException("Contractor ID already exists");
+            }
         }
 
         String resolvedRegion = region;
@@ -124,6 +176,7 @@ public class AdminService {
             if (regions == null || regions.isEmpty()) {
                 throw new BadRequestException("At least one region is required for GEO Manager");
             }
+
             resolvedRegion = regions.stream()
                     .filter(value -> value != null && !value.isBlank())
                     .map(String::trim)
@@ -133,6 +186,7 @@ public class AdminService {
             if (resolvedRegion.isBlank()) {
                 throw new BadRequestException("At least one region is required for GEO Manager");
             }
+
         } else if (requestedRole == Role.BDM) {
             if (country == null || country.isBlank()) {
                 throw new BadRequestException("Country is required for BDM");
@@ -140,12 +194,15 @@ public class AdminService {
 
             var matchedCountry = countryRepository.findById(country.trim())
                     .orElseThrow(() -> new BadRequestException("Selected country is invalid"));
+
             resolvedLocation = matchedCountry.getCode();
             resolvedRegion = matchedCountry.getName();
-        } else if (resolvedRegion == null || resolvedRegion.isBlank()) {
+
+        } else if (requestedRole != Role.CONTRACTOR && (resolvedRegion == null || resolvedRegion.isBlank())) {
             throw new BadRequestException("Region is required");
         }
 
+        // ✅ Create User
         User user = User.builder()
                 .name(name)
                 .email(email)
@@ -153,13 +210,27 @@ public class AdminService {
                 .role(requestedRole)
                 .region(resolvedRegion)
                 .location(resolvedLocation)
+                .contractorId(requestedRole == Role.CONTRACTOR ? contractorId : null)
                 .status(Status.APPROVED)
                 .registeredDate(LocalDateTime.now())
                 .build();
 
-        return userRepository.save(user);
-    }
+        User savedUser = userRepository.save(user);
 
+        // ✅ Create Contractor ONLY if role is CONTRACTOR
+        if (requestedRole == Role.CONTRACTOR) {
+            Contractor contractor = new Contractor();
+            contractor.setContractorId(contractorId);
+            contractor.setUser(savedUser);
+            contractor.setName(name);
+            contractor.setEmail(email);
+            contractor.setCurrentLocation(region);
+
+            contractorRepository.save(contractor);
+        }
+
+        return savedUser;
+    }
     /**
      * Deactivate a user account
      */

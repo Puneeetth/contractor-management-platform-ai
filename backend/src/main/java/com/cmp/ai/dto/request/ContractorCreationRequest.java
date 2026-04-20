@@ -13,4 +13,5 @@ public class ContractorCreationRequest {
     private String password;
     private String region;
     private String specialization;
+    private String contractorId;
 }
