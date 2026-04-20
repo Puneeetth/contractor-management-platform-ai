@@ -14,4 +14,8 @@ export const contractorService = {
   getAllContractors: async () => {
     return apiClient.get('/contractors')
   },
+
+  createContractor: async (contractorData) => {
+    return apiClient.post('/admin/contractors/create', contractorData)
+  },
 }

@@ -8,10 +8,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ContractorCreationRequest {
-    private String name;
-    private String email;
-    private String password;
-    private String region;
-    private String specialization;
     private String contractorId;
+    private String name;
+    private String address;
+    private String currentLocation;
+    private String email;
+    private String secondaryEmail;
+    private String phoneNumber;
+    private Integer noticePeriodDays;
+    private String remarks;
+    private String password;
 }

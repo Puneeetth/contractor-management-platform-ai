@@ -124,13 +124,7 @@ public class AdminController {
      */
     @PostMapping("/contractors/create")
     public ResponseEntity<UserResponse> createContractor(@RequestBody ContractorCreationRequest request) {
-        User contractor = adminService.createContractor(
-                request.getName(),
-                request.getEmail(),
-                request.getPassword(),
-                request.getRegion(),
-                request.getContractorId(),
-                request.getSpecialization());
+        User contractor = adminService.createContractor(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(UserTransformer.userToUserResponse(contractor));
     }

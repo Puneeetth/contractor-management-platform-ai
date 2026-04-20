@@ -47,4 +47,5 @@ public class ContractRequest {
 
     private Boolean throughEor;
     private String remarks;
+    private String terminationRemarks;
 }
