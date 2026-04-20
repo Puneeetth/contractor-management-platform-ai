@@ -26,6 +26,7 @@ public class ContractService {
     private final ContractRepository contractRepository;
     private final ContractorRepository contractorRepository;
     private final CustomerRepository customerRepository;
+    private final AdminActivityService adminActivityService;
 
     public ContractResponse createContract(ContractRequest request) {
         System.out.println("Creating contract with contractor ID: " + request.getContractorId());
@@ -44,6 +45,16 @@ public class ContractService {
         System.out.println("Contract created with contractor: " + contract.getContractor());
         Contract savedContract = contractRepository.save(contract);
         System.out.println("Saved contract with contractor: " + savedContract.getContractor());
+        
+        // Log admin activity
+        adminActivityService.logActivity(
+            AdminActivityService.ACTIVITY_CREATE_CONTRACT,
+            "Created contract for contractor: " + contractor.getName(),
+            "CONTRACT",
+            savedContract.getId(),
+            "Contract #" + savedContract.getId()
+        );
+        
         return ContractTransformer.contractToContractResponse(savedContract);
     }
 

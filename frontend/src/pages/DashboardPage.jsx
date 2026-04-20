@@ -6,6 +6,7 @@ import { Card, Loader, Badge } from '../components/ui'
 import { contractService } from '../services/contractorService'
 import { expenseService } from '../services/expenseService'
 import { poService } from '../services/poService'
+import { adminActivityService } from '../services/adminActivityService'
 import { formatters } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
 
@@ -20,6 +21,8 @@ const DashboardPage = () => {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState(DEFAULT_STATS)
+  const [activities, setActivities] = useState([])
+  const [activitiesLoading, setActivitiesLoading] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -71,10 +74,32 @@ const DashboardPage = () => {
       }
     }
 
+    const loadActivities = async () => {
+      if (user?.role !== 'ADMIN') return
+      
+      try {
+        if (isMounted) {
+          setActivitiesLoading(true)
+        }
+        const data = await adminActivityService.getRecentActivities(10)
+        if (isMounted) {
+          setActivities(Array.isArray(data) ? data : [])
+        }
+      } catch (error) {
+        console.error('Failed to load activities:', error)
+      } finally {
+        if (isMounted) {
+          setActivitiesLoading(false)
+        }
+      }
+    }
+
     loadDashboardStats()
+    loadActivities()
 
     const handleWindowFocus = () => {
       loadDashboardStats()
+      loadActivities()
     }
 
     window.addEventListener('focus', handleWindowFocus)
@@ -90,6 +115,25 @@ const DashboardPage = () => {
     if (hour < 12) return 'Good Morning'
     if (hour < 17) return 'Good Afternoon'
     return 'Good Evening'
+  }
+
+  const formatRelativeTime = (timestamp) => {
+    if (!timestamp) return ''
+    
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffInMs = now - date
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60))
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+    
+    if (diffInMinutes < 1) return 'Just now'
+    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`
+    if (diffInDays === 1) return 'Yesterday'
+    if (diffInDays < 7) return `${diffInDays} days ago`
+    
+    return date.toLocaleDateString()
   }
 
   const statCards = [
@@ -136,44 +180,6 @@ const DashboardPage = () => {
       colorClass: 'stat-card-amber',
       iconColor: 'text-amber-400',
       iconBg: 'bg-amber-100',
-    },
-  ]
-
-  const recentActivity = [
-    {
-      title: 'Timesheet Submitted',
-      description: 'John Smith submitted their timesheet for March',
-      status: 'pending',
-      statusLabel: 'Pending Review',
-      time: '2 hours ago',
-    },
-    {
-      title: 'Invoice Generated',
-      description: 'Invoice #INV-2024-001 created automatically',
-      status: 'approved',
-      statusLabel: 'Completed',
-      time: '5 hours ago',
-    },
-    {
-      title: 'Expense Approved',
-      description: '$450 travel expense approved by finance',
-      status: 'approved',
-      statusLabel: 'Approved',
-      time: '1 day ago',
-    },
-    {
-      title: 'New Contract Created',
-      description: 'Contract for Project Alpha assigned',
-      status: 'info',
-      statusLabel: 'New',
-      time: '2 days ago',
-    },
-    {
-      title: 'Purchase Order Updated',
-      description: 'PO-2024-012 value updated to $85,000',
-      status: 'warning',
-      statusLabel: 'Updated',
-      time: '3 days ago',
     },
   ]
 
@@ -271,35 +277,47 @@ const DashboardPage = () => {
             }
           >
             <div className="space-y-1">
-              {recentActivity.map((activity, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  className={`flex items-center justify-between py-3.5 px-2 rounded-xl hover:bg-gray-50 transition-colors ${
-                    index < recentActivity.length - 1 ? 'border-b border-gray-200' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      activity.status === 'approved' ? 'bg-emerald-400' :
-                      activity.status === 'pending' ? 'bg-amber-400' :
-                      activity.status === 'info' ? 'bg-blue-400' :
-                      activity.status === 'warning' ? 'bg-purple-400' :
-                      'bg-slate-400'
-                    }`} />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{activity.description}</p>
+              {activitiesLoading ? (
+                <div className="py-8 flex justify-center">
+                  <Loader message="Loading activities..." />
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-gray-500 text-sm">No recent activity</p>
+                </div>
+              ) : (
+                activities.map((activity, index) => (
+                  <motion.div
+                    key={activity.id || index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                    className={`flex items-center justify-between py-3.5 px-2 rounded-xl hover:bg-gray-50 transition-colors ${
+                      index < activities.length - 1 ? 'border-b border-gray-200' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        activity.status === 'approved' ? 'bg-emerald-400' :
+                        activity.status === 'pending' ? 'bg-amber-400' :
+                        activity.status === 'info' ? 'bg-blue-400' :
+                        activity.status === 'warning' ? 'bg-purple-400' :
+                        'bg-slate-400'
+                      }`} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{activity.description}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">by {activity.userName}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <Badge variant={activity.status}>{activity.statusLabel}</Badge>
-                    <span className="text-xs text-gray-500 hidden sm:block">{activity.time}</span>
-                  </div>
-                </motion.div>
-              ))}
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <Badge variant={activity.status}>{activity.statusLabel}</Badge>
+                      <span className="text-xs text-gray-500 hidden sm:block">
+                        {formatRelativeTime(activity.createdAt)}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </div>
           </Card>
         </motion.div>
