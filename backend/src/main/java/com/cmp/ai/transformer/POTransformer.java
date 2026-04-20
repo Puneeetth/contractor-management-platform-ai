@@ -27,7 +27,6 @@ public class POTransformer {
                 .sharedWith(po.getSharedWith())
                 .fileUrl(po.getFileUrl())
                 .totalHoursLimit(po.getTotalHoursLimit())
-                .poDocumentName(po.getPoDocumentName())
                 .build();
     }
 
