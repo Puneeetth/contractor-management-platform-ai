@@ -22,7 +22,7 @@ const InvoicesPage = () => {
       const data = await invoiceService.getAllInvoices()
       setInvoices(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(err?.error?.message || 'Failed to load invoices')
+      setError(err?.message || 'Failed to load invoices')
     } finally {
       setIsLoading(false)
     }
@@ -34,7 +34,7 @@ const InvoicesPage = () => {
       await invoiceService.approveInvoice(id)
       await loadInvoices()
     } catch (err) {
-      setError(err?.error?.message || 'Failed to approve invoice')
+      setError(err?.message || 'Failed to approve invoice')
     } finally {
       setApproving(null)
     }

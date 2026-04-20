@@ -53,7 +53,7 @@ const ContractorsPage = () => {
       const data = await contractService.getAllContracts()
       setContracts(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(err?.error?.message || 'Failed to load contracts')
+      setError(err?.message || 'Failed to load contracts')
     } finally {
       setIsLoading(false)
     }
@@ -156,7 +156,7 @@ const ContractorsPage = () => {
       })
       await loadContracts()
     } catch (err) {
-      setFormErrors({ submit: err?.error?.message || 'Failed to create contract' })
+      setFormErrors({ submit: err?.message || 'Failed to create contract' })
     } finally {
       setIsSubmitting(false)
     }

@@ -31,7 +31,7 @@ const ExpensesPage = () => {
       const data = await expenseService.getAllExpenses()
       setExpenses(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(err?.error?.message || 'Failed to load expenses')
+      setError(err?.message || 'Failed to load expenses')
     } finally {
       setIsLoading(false)
     }
@@ -65,7 +65,7 @@ const ExpensesPage = () => {
       setFormData({ amount: '', description: '', proofUrl: '' })
       await loadExpenses()
     } catch (err) {
-      setFormErrors({ submit: err?.error?.message || 'Failed to create expense' })
+      setFormErrors({ submit: err?.message || 'Failed to create expense' })
     } finally {
       setIsSubmitting(false)
     }
@@ -77,7 +77,7 @@ const ExpensesPage = () => {
       await expenseService.approveExpense(id)
       await loadExpenses()
     } catch (err) {
-      setError(err?.error?.message || 'Failed to approve expense')
+      setError(err?.message || 'Failed to approve expense')
     } finally {
       setApproving(null)
     }
