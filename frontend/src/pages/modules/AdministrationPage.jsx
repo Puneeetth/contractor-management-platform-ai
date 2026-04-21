@@ -169,7 +169,7 @@ const AdministrationPage = () => {
       setFormData(INITIAL_FORM_DATA)
       setErrors({})
     } catch (err) {
-      setError(err?.error?.message || err?.message || 'Failed to create user')
+      setError(err?.message || 'Failed to create user')
     } finally {
       setLoading(false)
     }

@@ -13,6 +13,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -56,6 +57,12 @@ public class Invoice {
     private Double taxAmount;
 
     private Double totalAmount;
+
+    @Column(length = 500)
+    private String invoiceFileUrl;
+
+    @Column(length = 500)
+    private String timesheetFileUrl;
 
     @Enumerated(EnumType.STRING)
     private Status status;

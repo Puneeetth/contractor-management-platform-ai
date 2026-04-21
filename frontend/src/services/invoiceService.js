@@ -6,7 +6,19 @@ export const invoiceService = {
   },
 
   createInvoice: async (invoiceData) => {
-    return apiClient.post('/invoices', invoiceData)
+    const formData = new FormData()
+    formData.append('contractorId', invoiceData.contractorId)
+    formData.append('invoiceMonth', invoiceData.invoiceMonth)
+    formData.append('amount', invoiceData.amount)
+
+    if (invoiceData.invoiceFile) {
+      formData.append('invoiceFile', invoiceData.invoiceFile)
+    }
+    if (invoiceData.timesheetFile) {
+      formData.append('timesheetFile', invoiceData.timesheetFile)
+    }
+
+    return apiClient.post('/invoices', formData)
   },
 
   approveInvoice: async (id) => {
