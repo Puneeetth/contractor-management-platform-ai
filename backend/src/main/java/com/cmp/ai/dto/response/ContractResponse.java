@@ -13,6 +13,7 @@ public class ContractResponse {
 
     private Long id;
     private Long contractorId;
+    private String contractorName;
     private Long customerId;
     private Double billRate;
     private Double payRate;
