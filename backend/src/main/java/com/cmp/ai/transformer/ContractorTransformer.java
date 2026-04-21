@@ -20,6 +20,8 @@ public class ContractorTransformer {
                 .phoneNumber(contractor.getPhoneNumber())
                 .noticePeriodDays(contractor.getNoticePeriodDays())
                 .remarks(contractor.getRemarks())
+                .customerManager(contractor.getCustomerManager())
+                .customerManagerEmail(contractor.getCustomerManagerEmail())
                 .build();
     }
 
@@ -36,6 +38,8 @@ public class ContractorTransformer {
                 .phoneNumber(request.getPhoneNumber())
                 .noticePeriodDays(request.getNoticePeriodDays())
                 .remarks(request.getRemarks())
+                .customerManager(request.getCustomerManager())
+                .customerManagerEmail(request.getCustomerManagerEmail())
                 .build();
     }
 }

@@ -38,4 +38,8 @@ public class Contractor {
     private Integer noticePeriodDays;
 
     private String remarks;
+
+    private String customerManager;
+
+    private String customerManagerEmail;
 }

@@ -144,6 +144,8 @@ public class AdminService {
         contractor.setPhoneNumber(request.getPhoneNumber());
         contractor.setNoticePeriodDays(request.getNoticePeriodDays());
         contractor.setRemarks(request.getRemarks());
+        contractor.setCustomerManager(request.getCustomerManager());
+        contractor.setCustomerManagerEmail(request.getCustomerManagerEmail());
 
         contractorRepository.save(contractor);
 
