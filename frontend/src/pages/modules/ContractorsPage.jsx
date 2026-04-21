@@ -50,6 +50,12 @@ const EMPTY_CONTRACT_FORM = {
   terminationRemarks: '',
 }
 
+const REGION_FILTER_OPTIONS = [
+  { value: 'US', label: 'US' },
+  { value: 'EU', label: 'EU' },
+  { value: 'APAC', label: 'APAC' },
+]
+
 const ContractorsPage = () => {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'ADMIN'
@@ -72,6 +78,8 @@ const ContractorsPage = () => {
   const [contractFormErrors, setContractFormErrors] = useState({})
   const [isCreatingContractor, setIsCreatingContractor] = useState(false)
   const [isCreatingContract, setIsCreatingContract] = useState(false)
+  const [selectedRegionFilter, setSelectedRegionFilter] = useState('')
+  const [selectedCustomerFilter, setSelectedCustomerFilter] = useState('')
 
   useEffect(() => {
     loadPageData()
@@ -125,8 +133,26 @@ const ContractorsPage = () => {
     [contractors, contractsByContractorId]
   )
 
-  const contractorCountWithContracts = contractorRows.filter((contractor) => contractor.contracts.length > 0).length
-  const totalContractBudget = contractorRows.reduce((sum, contractor) => sum + contractor.totalBudget, 0)
+  const filteredContractorRows = useMemo(() => {
+    if (!isAdmin) {
+      return contractorRows
+    }
+
+    return contractorRows.filter((contractor) => {
+      const matchesRegion =
+        !selectedRegionFilter ||
+        String(contractor.currentLocation || '').trim().toUpperCase() === selectedRegionFilter
+
+      const matchesCustomer =
+        !selectedCustomerFilter ||
+        contractor.contracts.some((contract) => String(contract.customerId || '') === selectedCustomerFilter)
+
+      return matchesRegion && matchesCustomer
+    })
+  }, [contractorRows, isAdmin, selectedRegionFilter, selectedCustomerFilter])
+
+  const contractorCountWithContracts = filteredContractorRows.filter((contractor) => contractor.contracts.length > 0).length
+  const totalContractBudget = filteredContractorRows.reduce((sum, contractor) => sum + contractor.totalBudget, 0)
 
   const calculateEstimatedBudget = (billRate, estimatedHours) => {
     const normalizedBillRate = Number(billRate)
@@ -444,6 +470,36 @@ const ContractorsPage = () => {
           </div>
         </div>
 
+        {isAdmin && (
+          <Card className="mb-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Select
+                label="Filter by Region"
+                name="regionFilter"
+                value={selectedRegionFilter}
+                onChange={(event) => setSelectedRegionFilter(event.target.value)}
+                options={[
+                  { value: '', label: 'All regions' },
+                  ...REGION_FILTER_OPTIONS.map((region) => ({ value: region.value, label: region.label })),
+                ]}
+              />
+              <Select
+                label="Filter by Customer"
+                name="customerFilter"
+                value={selectedCustomerFilter}
+                onChange={(event) => setSelectedCustomerFilter(event.target.value)}
+                options={[
+                  { value: '', label: 'All customers' },
+                  ...customers.map((customer) => ({
+                    value: String(customer.id),
+                    label: customer.name,
+                  })),
+                ]}
+              />
+            </div>
+          </Card>
+        )}
+
         {!isLoading && (
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
             {summaryStats.map((stat, index) => (
@@ -497,7 +553,7 @@ const ContractorsPage = () => {
                 <Loader message="Loading contractors..." />
               </div>
             </Card>
-          ) : contractorRows.length === 0 ? (
+          ) : filteredContractorRows.length === 0 ? (
             <Card>
               <div className="py-12 text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
@@ -522,7 +578,7 @@ const ContractorsPage = () => {
               </div>
             </Card>
           ) : (
-            contractorRows.map((contractor, index) => {
+            filteredContractorRows.map((contractor, index) => {
               const isExpanded = expandedContractorIds.includes(contractor.id)
 
               return (
