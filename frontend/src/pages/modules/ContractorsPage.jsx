@@ -77,6 +77,7 @@ const ContractorsPage = () => {
 
   const [isContractorModalOpen, setIsContractorModalOpen] = useState(false)
   const [isContractModalOpen, setIsContractModalOpen] = useState(false)
+  const [lockedContractorId, setLockedContractorId] = useState('')
 
   const [contractorFormData, setContractorFormData] = useState(EMPTY_CONTRACTOR_FORM)
   const [contractFormData, setContractFormData] = useState(EMPTY_CONTRACT_FORM)
@@ -162,6 +163,10 @@ const ContractorsPage = () => {
 
   const contractorCountWithContracts = filteredContractorRows.filter((contractor) => contractor.contracts.length > 0).length
   const totalContractBudget = filteredContractorRows.reduce((sum, contractor) => sum + contractor.totalBudget, 0)
+  const selectedContractor = useMemo(
+    () => contractors.find((contractor) => String(contractor.id) === String(contractFormData.contractorId)) || null,
+    [contractors, contractFormData.contractorId]
+  )
 
   const calculateEstimatedBudget = (billRate, estimatedHours) => {
     const normalizedBillRate = Number(billRate)
@@ -260,8 +265,6 @@ const ContractorsPage = () => {
           ? checked
           : ['billRate', 'payRate'].includes(name)
             ? parseFloat(value) || ''
-            : ['contractorId', 'customerId'].includes(name)
-              ? parseInt(value, 10) || ''
             : ['estimatedHours', 'noticePeriodDays'].includes(name)
               ? parseInt(value, 10) || ''
               : value
@@ -660,19 +663,38 @@ const ContractorsPage = () => {
                                 </Badge>
                               </div>
                             </div>
-
-                            <div className="flex flex-wrap gap-2 lg:flex-shrink-0 lg:justify-end">
+                          </td>
+                          <td className="px-4 py-3 align-middle">
+                            <p className="truncate text-sm text-gray-900">
+                              {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
+                            {latestContract ? formatters.formatDate(latestContract.startDate) : '-'}
+                          </td>
+                          <td className="px-4 py-3 align-middle">
+                            <p className="text-sm text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
+                            <p className="text-[11px] text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
+                          </td>
+                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
+                            {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
+                          </td>
+                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
+                            {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
+                          </td>
+                          <td className="px-4 py-3 align-middle text-sm font-semibold text-gray-900">
+                            {contractor.contracts.length}
+                          </td>
+                          <td className="border-l border-gray-100 px-4 py-3 align-middle">
+                            <div className="flex flex-col items-start gap-1.5 whitespace-nowrap text-xs font-medium">
                               {canCreateContracts && (
-                                <Button
-                                  variant="secondary"
-                                  className="min-w-[160px]"
-                                  onClick={() => {
-                                    resetContractForm(String(contractor.id))
-                                    setIsContractModalOpen(true)
-                                  }}
+                                <button
+                                  type="button"
+                                  onClick={() => openContractModalForContractor(contractor)}
+                                  className="text-indigo-600 transition hover:text-indigo-700"
                                 >
                                   Add Contract
-                                </Button>
+                                </button>
                               )}
                               <button
                                 type="button"
@@ -994,12 +1016,12 @@ const ContractorsPage = () => {
 
         <Modal
           isOpen={isContractModalOpen}
-          onClose={() => setIsContractModalOpen(false)}
+          onClose={closeContractModal}
           title="Create Contract"
           size="xxl"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setIsContractModalOpen(false)}>
+              <Button variant="secondary" onClick={closeContractModal}>
                 Cancel
               </Button>
               <Button variant="primary" isLoading={isCreatingContract} onClick={submitContract}>
@@ -1015,21 +1037,31 @@ const ContractorsPage = () => {
               </div>
             )}
 
-            <Select
-              label="Contractor"
-              name="contractorId"
-              value={contractFormData.contractorId}
-              onChange={handleContractInputChange}
-              error={contractFormErrors.contractorId}
-              required
-              options={[
-                { value: '', label: 'Select a contractor...' },
-                ...contractors.map((contractor) => ({
-                  value: contractor.id,
-                  label: `${contractor.name} (${contractor.contractorId || `ID-${contractor.id}`})`,
-                })),
-              ]}
-            />
+            {lockedContractorId ? (
+              <Input
+                label="Contractor"
+                value={getContractorDisplayName(selectedContractor)}
+                required
+                readOnly
+                className="cursor-not-allowed bg-gray-50"
+              />
+            ) : (
+              <Select
+                label="Contractor"
+                name="contractorId"
+                value={contractFormData.contractorId}
+                onChange={handleContractInputChange}
+                error={contractFormErrors.contractorId}
+                required
+                options={[
+                  { value: '', label: 'Select a contractor...' },
+                  ...contractors.map((contractor) => ({
+                    value: String(contractor.id),
+                    label: getContractorDisplayName(contractor),
+                  })),
+                ]}
+              />
+            )}
 
             <Select
               label="Customer"
@@ -1039,7 +1071,7 @@ const ContractorsPage = () => {
               options={[
                 { value: '', label: 'Select a customer...' },
                 ...customers.map((customer) => ({
-                  value: customer.id,
+                  value: String(customer.id),
                   label: customer.name,
                 })),
               ]}
