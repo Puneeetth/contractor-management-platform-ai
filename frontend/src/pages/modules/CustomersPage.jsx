@@ -4,11 +4,8 @@ import { Plus, AlertCircle, Users, Building2, Globe, Eye } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Modal, Input, Badge, Loader } from '../../components/ui'
 import { customerService } from '../../services/customerService'
-<<<<<<< feature/customer-po-stats-view
 import { poService } from '../../services/poService'
-=======
 import { useAuth } from '../../hooks/useAuth'
->>>>>>> main
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 
