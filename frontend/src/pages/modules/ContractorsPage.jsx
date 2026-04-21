@@ -120,7 +120,7 @@ const ContractorsPage = () => {
   const contractorRows = useMemo(
     () =>
       [...contractors]
-        .sort((left, right) => left.name.localeCompare(right.name))
+        .sort((left, right) => (left?.name || '').localeCompare(right?.name || ''))
         .map((contractor) => {
           const contractorContracts = [
             ...(contractsByContractorId[contractor.userId] || contractsByContractorId[contractor.id] || []),
@@ -240,6 +240,23 @@ const ContractorsPage = () => {
   const resetContractForm = (contractorId = '') => {
     setContractFormData({ ...EMPTY_CONTRACT_FORM, contractorId })
     setContractFormErrors({})
+  }
+
+  const getContractorDisplayName = (contractor) => {
+    if (!contractor) return ''
+    return contractor.contractorId ? `${contractor.name} (${contractor.contractorId})` : contractor.name
+  }
+
+  const openContractModalForContractor = (contractor) => {
+    setLockedContractorId(String(contractor.id))
+    resetContractForm(String(contractor.id))
+    setIsContractModalOpen(true)
+  }
+
+  const closeContractModal = () => {
+    setLockedContractorId('')
+    resetContractForm()
+    setIsContractModalOpen(false)
   }
 
   const handleContractorInputChange = (event) => {
@@ -663,35 +680,12 @@ const ContractorsPage = () => {
                                 </Badge>
                               </div>
                             </div>
-                          </td>
-                          <td className="px-4 py-3 align-middle">
-                            <p className="truncate text-sm text-gray-900">
-                              {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
-                            {latestContract ? formatters.formatDate(latestContract.startDate) : '-'}
-                          </td>
-                          <td className="px-4 py-3 align-middle">
-                            <p className="text-sm text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
-                            <p className="text-[11px] text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
-                          </td>
-                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
-                            {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
-                          </td>
-                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
-                            {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
-                          </td>
-                          <td className="px-4 py-3 align-middle text-sm font-semibold text-gray-900">
-                            {contractor.contracts.length}
-                          </td>
-                          <td className="border-l border-gray-100 px-4 py-3 align-middle">
-                            <div className="flex flex-col items-start gap-1.5 whitespace-nowrap text-xs font-medium">
+                            <div className="flex items-center gap-3">
                               {canCreateContracts && (
                                 <button
                                   type="button"
                                   onClick={() => openContractModalForContractor(contractor)}
-                                  className="text-indigo-600 transition hover:text-indigo-700"
+                                  className="text-sm font-medium text-indigo-600 transition hover:text-indigo-700"
                                 >
                                   Add Contract
                                 </button>
@@ -707,6 +701,7 @@ const ContractorsPage = () => {
                               </button>
                             </div>
                           </div>
+
 
                           <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
                             <div className="rounded-xl bg-gray-50 px-3 py-2.5">
