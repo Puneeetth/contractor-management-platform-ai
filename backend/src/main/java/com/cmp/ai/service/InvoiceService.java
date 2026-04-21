@@ -39,10 +39,19 @@ public class InvoiceService {
                     throw new BadRequestException("Invoice already exists for this contractor and month");
                 });
 
-        contractRepository.findByContractorId(contractor.getId()).stream()
+        Double activeContractRate = contractRepository.findByContractorId(contractor.getId()).stream()
                 .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
                 .findFirst()
+                .map(c -> c.getBillRate())
                 .orElseThrow(() -> new BadRequestException("No active contract found for this contractor"));
+
+        if (activeContractRate == null || activeContractRate <= 0) {
+            throw new BadRequestException("Active contract does not have a valid rate");
+        }
+
+        Double baseAmount = request.getTotalHours() * activeContractRate;
+        Double taxAmount = baseAmount * (request.getTaxPercentage() / 100.0);
+        Double totalAmount = baseAmount + taxAmount;
 
         String invoiceFileUrl = invoiceFile != null && !invoiceFile.isEmpty()
                 ? fileService.uploadFile(invoiceFile)
@@ -54,13 +63,28 @@ public class InvoiceService {
         Invoice invoice = Invoice.builder()
                 .contractor(contractor)
                 .invoiceMonth(request.getInvoiceMonth())
-                .totalAmount(request.getAmount())
+                .totalHours(request.getTotalHours())
+                .baseAmount(baseAmount)
+                .taxAmount(taxAmount)
+                .totalAmount(totalAmount)
                 .invoiceFileUrl(invoiceFileUrl)
                 .timesheetFileUrl(timesheetFileUrl)
                 .status(Status.PENDING)
                 .build();
 
         return InvoiceTransformer.invoiceToInvoiceResponse(invoiceRepository.save(invoice));
+    }
+
+    public Double getActiveContractRate(@NonNull Long contractorId) {
+        userRepository.findById(contractorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
+
+        return contractRepository.findByContractorId(contractorId).stream()
+                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
+                .findFirst()
+                .map(c -> c.getBillRate())
+                .filter(rate -> rate != null && rate > 0)
+                .orElseThrow(() -> new BadRequestException("No active contract with valid rate found for this contractor"));
     }
 
     public List<InvoiceResponse> getAllInvoices() {

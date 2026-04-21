@@ -20,5 +20,9 @@ public class InvoiceRequest {
 
     @NotNull
     @Positive
-    private Double amount;
+    private Double totalHours;
+
+    @NotNull
+    @Positive
+    private Double taxPercentage;
 }

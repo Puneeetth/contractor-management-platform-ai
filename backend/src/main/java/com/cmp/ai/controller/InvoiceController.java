@@ -30,11 +30,18 @@ public class InvoiceController {
     public InvoiceResponse createInvoice(
             @RequestParam Long contractorId,
             @RequestParam String invoiceMonth,
-            @RequestParam Double amount,
+            @RequestParam Double totalHours,
+            @RequestParam Double taxPercentage,
             @RequestParam(value = "invoiceFile", required = false) MultipartFile invoiceFile,
             @RequestParam(value = "timesheetFile", required = false) MultipartFile timesheetFile) {
-        InvoiceRequest request = new InvoiceRequest(contractorId, invoiceMonth, amount);
+        InvoiceRequest request = new InvoiceRequest(contractorId, invoiceMonth, totalHours, taxPercentage);
         return invoiceService.createInvoice(request, invoiceFile, timesheetFile);
+    }
+
+    @GetMapping("/contractor/{contractorId}/rate")
+    @PreAuthorize("hasAnyRole('ADMIN','FINANCE','MANAGER','CONTRACTOR')")
+    public Double getContractorRate(@PathVariable Long contractorId) {
+        return invoiceService.getActiveContractRate(contractorId);
     }
 
     @GetMapping

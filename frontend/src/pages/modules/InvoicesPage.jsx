@@ -17,13 +17,24 @@ const InvoicesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formErrors, setFormErrors] = useState({})
+  const [rateError, setRateError] = useState('')
   const [formData, setFormData] = useState({
     contractorId: user?.id || '',
     invoiceMonth: new Date().toISOString().slice(0, 7),
-    amount: '',
+    totalHours: '',
+    rate: '',
+    taxPercentage: '',
     invoiceFile: null,
     timesheetFile: null,
   })
+
+  const getErrorMessage = (err, fallback) => {
+    if (!err) return fallback
+    if (typeof err === 'string') return err
+    if (typeof err?.message === 'string' && err.message.trim()) return err.message
+    if (typeof err?.error === 'string' && err.error.trim()) return err.error
+    return fallback
+  }
 
   useEffect(() => {
     if (user?.id) {
@@ -36,6 +47,20 @@ const InvoicesPage = () => {
       setFormData(prev => ({ ...prev, contractorId: user.id }))
     }
   }, [user?.id])
+
+  useEffect(() => {
+    const loadRate = async () => {
+      if (!user?.id || user?.role !== 'CONTRACTOR') return
+      try {
+        setRateError('')
+        const rate = await invoiceService.getContractorRate(user.id)
+        setFormData(prev => ({ ...prev, rate: rate ?? '' }))
+      } catch (err) {
+        setRateError(getErrorMessage(err, 'Unable to fetch rate. Please ensure the backend is restarted with the latest invoice API changes.'))
+      }
+    }
+    loadRate()
+  }, [user?.id, user?.role])
 
   const loadInvoices = async () => {
     try {
@@ -76,7 +101,9 @@ const InvoicesPage = () => {
     const newErrors = {}
     if (!formData.contractorId) newErrors.contractorId = 'Contractor is required'
     if (!formData.invoiceMonth) newErrors.invoiceMonth = 'Month is required'
-    if (!formData.amount || Number(formData.amount) <= 0) newErrors.amount = 'Amount must be greater than 0'
+    if (!formData.totalHours || Number(formData.totalHours) <= 0) newErrors.totalHours = 'Total hours must be greater than 0'
+    if (formData.taxPercentage === '' || Number(formData.taxPercentage) < 0) newErrors.taxPercentage = 'Tax must be 0 or greater'
+    if (!formData.rate || Number(formData.rate) <= 0) newErrors.rate = 'Rate must be available before creating invoice'
     if (!formData.invoiceFile) newErrors.invoiceFile = 'Invoice file is required'
     if (!formData.timesheetFile) newErrors.timesheetFile = 'Timesheet file is required'
 
@@ -88,7 +115,8 @@ const InvoicesPage = () => {
       await invoiceService.createInvoice({
         contractorId: formData.contractorId,
         invoiceMonth: formData.invoiceMonth,
-        amount: Number(formData.amount),
+        totalHours: Number(formData.totalHours),
+        taxPercentage: Number(formData.taxPercentage),
         invoiceFile: formData.invoiceFile,
         timesheetFile: formData.timesheetFile,
       })
@@ -96,13 +124,15 @@ const InvoicesPage = () => {
       setFormData({
         contractorId: user?.id || '',
         invoiceMonth: new Date().toISOString().slice(0, 7),
-        amount: '',
+        totalHours: '',
+        rate: formData.rate,
+        taxPercentage: '',
         invoiceFile: null,
         timesheetFile: null,
       })
       await loadInvoices()
     } catch (err) {
-      setFormErrors(prev => ({ ...prev, submit: err?.message || 'Failed to create invoice' }))
+      setFormErrors(prev => ({ ...prev, submit: getErrorMessage(err, 'Failed to create invoice') }))
     } finally {
       setIsSubmitting(false)
     }
@@ -117,6 +147,9 @@ const InvoicesPage = () => {
   const totalAmount = invoices.reduce((acc, inv) => acc + (inv.amount || 0), 0)
   const approvedAmount = invoices.filter(i => i.status === 'APPROVED').reduce((acc, inv) => acc + (inv.amount || 0), 0)
   const pendingAmount = invoices.filter(i => i.status !== 'APPROVED' && i.status !== 'REJECTED').reduce((acc, inv) => acc + (inv.amount || 0), 0)
+  const baseAmount = (Number(formData.totalHours) || 0) * (Number(formData.rate) || 0)
+  const taxAmount = baseAmount * ((Number(formData.taxPercentage) || 0) / 100)
+  const calculatedTotalAmount = baseAmount + taxAmount
 
   const columns = [
     { 
@@ -239,8 +272,13 @@ const InvoicesPage = () => {
         >
           <form className="space-y-4">
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
+            {rateError && <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20"><p className="text-sm text-amber-500">{rateError}</p></div>}
             <Input label="Month" name="invoiceMonth" type="month" value={formData.invoiceMonth} onChange={handleInputChange} error={formErrors.invoiceMonth} required />
-            <Input label="Amount" name="amount" type="number" min="0" step="0.01" value={formData.amount} onChange={handleInputChange} error={formErrors.amount} required />
+            <Input label="Total Hours" name="totalHours" type="number" min="0" step="0.01" value={formData.totalHours} onChange={handleInputChange} error={formErrors.totalHours} required />
+            <Input label="Rate" name="rate" type="number" min="0" step="0.01" value={formData.rate} onChange={handleInputChange} error={formErrors.rate} readOnly />
+            <Input label="Base Amount" name="baseAmount" type="number" value={baseAmount.toFixed(2)} readOnly />
+            <Input label="Tax (%)" name="taxPercentage" type="number" min="0" step="0.01" value={formData.taxPercentage} onChange={handleInputChange} error={formErrors.taxPercentage} required />
+            <Input label="Total Amount" name="totalAmount" type="number" value={calculatedTotalAmount.toFixed(2)} readOnly />
             <Input label="Invoice File (PDF)" name="invoiceFile" type="file" accept="application/pdf" onChange={handleInputChange} error={formErrors.invoiceFile} required />
             <Input label="Timesheet File (PDF)" name="timesheetFile" type="file" accept="application/pdf" onChange={handleInputChange} error={formErrors.timesheetFile} required />
           </form>

@@ -9,7 +9,8 @@ export const invoiceService = {
     const formData = new FormData()
     formData.append('contractorId', invoiceData.contractorId)
     formData.append('invoiceMonth', invoiceData.invoiceMonth)
-    formData.append('amount', invoiceData.amount)
+    formData.append('totalHours', invoiceData.totalHours)
+    formData.append('taxPercentage', invoiceData.taxPercentage)
 
     if (invoiceData.invoiceFile) {
       formData.append('invoiceFile', invoiceData.invoiceFile)
@@ -19,6 +20,10 @@ export const invoiceService = {
     }
 
     return apiClient.post('/invoices', formData)
+  },
+
+  getContractorRate: async (contractorId) => {
+    return apiClient.get(`/invoices/contractor/${contractorId}/rate`)
   },
 
   approveInvoice: async (id) => {
