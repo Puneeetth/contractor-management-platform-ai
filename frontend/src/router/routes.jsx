@@ -10,7 +10,6 @@ import DashboardPage from '../pages/DashboardPage'
 import CustomersPage from '../pages/modules/CustomersPage'
 import ContractorsPage from '../pages/modules/ContractorsPage'
 import POsPage from '../pages/modules/POsPage'
-import TimesheetsPage from '../pages/modules/TimesheetsPage'
 import InvoicesPage from '../pages/modules/InvoicesPage'
 import ExpensesPage from '../pages/modules/ExpensesPage'
 import AdminPendingApprovalsPage from '../pages/modules/AdminPendingApprovalsPage'
@@ -81,15 +80,6 @@ export const AppRoutes = () => {
           element={
             <PrivateRoute requiredRoles={['ADMIN', 'FINANCE', 'MANAGER']}>
               <POsPage />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/timesheets"
-          element={
-            <PrivateRoute requiredRoles={['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE']}>
-              <TimesheetsPage />
             </PrivateRoute>
           }
         />

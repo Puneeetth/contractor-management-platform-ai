@@ -35,7 +35,6 @@ public class ContractorTransformer {
                 .phoneNumber(request.getPhoneNumber())
                 .noticePeriodDays(request.getNoticePeriodDays())
                 .remarks(request.getRemarks())
-                .contracts(null)
                 .build();
     }
 }

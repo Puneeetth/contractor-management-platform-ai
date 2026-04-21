@@ -1,23 +1,22 @@
 package com.cmp.ai.service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.cmp.ai.dto.request.InvoiceRequest;
 import com.cmp.ai.dto.response.InvoiceResponse;
-import com.cmp.ai.entity.Contract;
 import com.cmp.ai.entity.Invoice;
-import com.cmp.ai.entity.Timesheet;
+import com.cmp.ai.entity.User;
 import com.cmp.ai.enums.ContractStatus;
 import com.cmp.ai.enums.Status;
 import com.cmp.ai.exception.BadRequestException;
 import com.cmp.ai.exception.ResourceNotFoundException;
 import com.cmp.ai.repository.ContractRepository;
 import com.cmp.ai.repository.InvoiceRepository;
-import com.cmp.ai.repository.TimesheetRepository;
+import com.cmp.ai.repository.UserRepository;
 import com.cmp.ai.transformer.InvoiceTransformer;
 
 import lombok.RequiredArgsConstructor;
@@ -27,44 +26,37 @@ import lombok.RequiredArgsConstructor;
 public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
-    private final TimesheetRepository timesheetRepository;
     private final ContractRepository contractRepository;
+    private final UserRepository userRepository;
+    private final FileService fileService;
 
-    public InvoiceResponse createInvoice(InvoiceRequest request) {
-        Timesheet timesheet = timesheetRepository.findById(request.getTimesheetId())
-                .orElseThrow(() -> new ResourceNotFoundException("Timesheet not found"));
+    public InvoiceResponse createInvoice(InvoiceRequest request, MultipartFile invoiceFile, MultipartFile timesheetFile) {
+        User contractor = userRepository.findById(request.getContractorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
 
-        if (timesheet.getStatus() != Status.APPROVED) {
-            throw new BadRequestException("Only approved timesheets can be invoiced");
-        }
-
-        invoiceRepository.findByContractorIdAndInvoiceMonth(timesheet.getContractor().getId(), timesheet.getMonth())
+        invoiceRepository.findByContractorIdAndInvoiceMonth(contractor.getId(), request.getInvoiceMonth())
                 .ifPresent(i -> {
                     throw new BadRequestException("Invoice already exists for this contractor and month");
                 });
 
-        Contract activeContract = contractRepository.findByContractorId(timesheet.getContractor().getId()).stream()
+        contractRepository.findByContractorId(contractor.getId()).stream()
                 .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
                 .findFirst()
                 .orElseThrow(() -> new BadRequestException("No active contract found for this contractor"));
 
-        Double hourlyRate = activeContract.getBillRate();
-        if (hourlyRate == null) {
-            throw new BadRequestException("Active contract hourly rate is not set");
-        }
-
-        double baseAmount = timesheet.getTotalHours() * hourlyRate;
-        double taxAmount = baseAmount * 0.10;
-        double totalAmount = baseAmount + taxAmount;
+        String invoiceFileUrl = invoiceFile != null && !invoiceFile.isEmpty()
+                ? fileService.uploadFile(invoiceFile)
+                : null;
+        String timesheetFileUrl = timesheetFile != null && !timesheetFile.isEmpty()
+                ? fileService.uploadFile(timesheetFile)
+                : null;
 
         Invoice invoice = Invoice.builder()
-                .timesheet(timesheet)
-                .contractor(timesheet.getContractor())
-                .invoiceMonth(timesheet.getMonth())
-                .totalHours(timesheet.getTotalHours())
-                .baseAmount(baseAmount)
-                .taxAmount(taxAmount)
-                .totalAmount(totalAmount)
+                .contractor(contractor)
+                .invoiceMonth(request.getInvoiceMonth())
+                .totalAmount(request.getAmount())
+                .invoiceFileUrl(invoiceFileUrl)
+                .timesheetFileUrl(timesheetFileUrl)
                 .status(Status.PENDING)
                 .build();
 

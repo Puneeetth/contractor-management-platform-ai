@@ -13,10 +13,10 @@ public class InvoiceResponse {
 
     private Long id;
     private Long contractorId;
+    private String contractorName;
     private String invoiceMonth;
-    private Double totalHours;
-    private Double baseAmount;
-    private Double taxAmount;
-    private Double totalAmount;
+    private Double amount;
+    private String invoiceFileUrl;
+    private String timesheetFileUrl;
     private String status;
 }

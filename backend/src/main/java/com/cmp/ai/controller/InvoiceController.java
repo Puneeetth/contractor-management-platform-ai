@@ -7,15 +7,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.cmp.ai.dto.request.InvoiceRequest;
 import com.cmp.ai.dto.response.InvoiceResponse;
 import com.cmp.ai.service.InvoiceService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -27,8 +27,14 @@ public class InvoiceController {
 
     @PostMapping
     @PreAuthorize("hasRole('CONTRACTOR')")
-    public InvoiceResponse createInvoice(@Valid @RequestBody InvoiceRequest request) {
-        return invoiceService.createInvoice(request);
+    public InvoiceResponse createInvoice(
+            @RequestParam Long contractorId,
+            @RequestParam String invoiceMonth,
+            @RequestParam Double amount,
+            @RequestParam(value = "invoiceFile", required = false) MultipartFile invoiceFile,
+            @RequestParam(value = "timesheetFile", required = false) MultipartFile timesheetFile) {
+        InvoiceRequest request = new InvoiceRequest(contractorId, invoiceMonth, amount);
+        return invoiceService.createInvoice(request, invoiceFile, timesheetFile);
     }
 
     @GetMapping

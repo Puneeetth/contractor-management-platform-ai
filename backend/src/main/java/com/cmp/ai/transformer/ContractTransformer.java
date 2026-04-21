@@ -6,7 +6,7 @@ import com.cmp.ai.dto.request.ContractRequest;
 import com.cmp.ai.dto.response.ContractResponse;
 import com.cmp.ai.entity.Contract;
 import com.cmp.ai.entity.Customer;
-import com.cmp.ai.entity.Contractor;
+import com.cmp.ai.entity.User;
 import com.cmp.ai.enums.ContractStatus;
 
 public class ContractTransformer {
@@ -30,7 +30,7 @@ public class ContractTransformer {
                 .build();
     }
 
-    public static Contract contractRequestToContract(ContractRequest req, Contractor contractor, Customer customer) {
+    public static Contract contractRequestToContract(ContractRequest req, User contractor, Customer customer) {
         return Contract.builder()
                 .contractor(contractor)
                 .customer(customer)
