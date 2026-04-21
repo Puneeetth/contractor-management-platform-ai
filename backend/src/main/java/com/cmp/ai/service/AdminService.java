@@ -5,16 +5,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.cmp.ai.entity.Contractor;
-import com.cmp.ai.repository.ContractorRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.cmp.ai.dto.request.ContractorCreationRequest;
+import com.cmp.ai.entity.Contractor;
 import com.cmp.ai.entity.User;
 import com.cmp.ai.enums.Role;
 import com.cmp.ai.enums.Status;
 import com.cmp.ai.exception.BadRequestException;
 import com.cmp.ai.exception.ResourceNotFoundException;
+import com.cmp.ai.repository.ContractorRepository;
 import com.cmp.ai.repository.CountryRepository;
 import com.cmp.ai.repository.UserRepository;
 
@@ -28,7 +29,13 @@ public class AdminService {
     private final UserRepository userRepository;
     private final CountryRepository countryRepository;
     private final PasswordEncoder passwordEncoder;
-    private static final Set<Role> ADMIN_MANAGED_ROLES = Set.of(Role.FINANCE, Role.SALES, Role.HR, Role.GEO_MANAGER, Role.BDM, Role.CONTRACTOR);
+
+    private static final Set<Role> ADMIN_MANAGED_ROLES = Set.of(
+            Role.FINANCE,
+            Role.SALES,
+            Role.HR,
+            Role.GEO_MANAGER,
+            Role.BDM);
 
     /**
      * Get all pending users awaiting approval
@@ -85,10 +92,16 @@ public class AdminService {
     /**
      * Create a new contractor (Admin only)
      */
-    public User createContractor(String name, String email, String password, String region, String specialization, String contractorId) {
+    public User createContractor(ContractorCreationRequest request) {
+        String email = request.getEmail();
+        String contractorId = request.getContractorId();
 
         if (email == null || email.isBlank()) {
             throw new BadRequestException("Email is required");
+        }
+
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new BadRequestException("Password is required");
         }
 
         if (contractorId == null || contractorId.isBlank()) {
@@ -99,18 +112,20 @@ public class AdminService {
             throw new BadRequestException("Email already exists");
         }
 
-        // ✅ Correct uniqueness check (Contractor table only)
         if (contractorRepository.existsByContractorId(contractorId)) {
             throw new BadRequestException("Contractor ID already exists");
         }
 
-        // ✅ Create User
         User user = User.builder()
-                .name(name)
+                .name(request.getName())
                 .email(email)
-                .password(passwordEncoder.encode(password))
+                .secondaryEmail(request.getSecondaryEmail())
+                .address(request.getAddress())
+                .location(request.getCurrentLocation())
+                .phoneNumber(request.getPhoneNumber())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.CONTRACTOR)
-                .region(region)
+                .region(request.getCurrentLocation())
                 .contractorId(contractorId)
                 .status(Status.APPROVED)
                 .registeredDate(LocalDateTime.now())
@@ -118,13 +133,17 @@ public class AdminService {
 
         User savedUser = userRepository.save(user);
 
-        // ✅ Create Contractor
         Contractor contractor = new Contractor();
         contractor.setContractorId(contractorId);
         contractor.setUser(savedUser);
-        contractor.setName(name);
+        contractor.setName(request.getName());
+        contractor.setAddress(request.getAddress());
+        contractor.setCurrentLocation(request.getCurrentLocation());
         contractor.setEmail(email);
-        contractor.setCurrentLocation(region);
+        contractor.setSecondaryEmail(request.getSecondaryEmail());
+        contractor.setPhoneNumber(request.getPhoneNumber());
+        contractor.setNoticePeriodDays(request.getNoticePeriodDays());
+        contractor.setRemarks(request.getRemarks());
 
         contractorRepository.save(contractor);
 
@@ -139,14 +158,12 @@ public class AdminService {
             String region,
             List<String> regions,
             String country,
-            String contractorId
-    ) {
+            String contractorId) {
 
         if (userRepository.findByEmail(email).isPresent()) {
             throw new BadRequestException("Email already exists");
         }
 
-        // ✅ Parse role FIRST
         Role requestedRole;
         try {
             requestedRole = Role.valueOf(role.toUpperCase());
@@ -156,17 +173,6 @@ public class AdminService {
 
         if (!ADMIN_MANAGED_ROLES.contains(requestedRole)) {
             throw new BadRequestException("Invalid role");
-        }
-
-        // ✅ Contractor validation
-        if (requestedRole == Role.CONTRACTOR) {
-            if (contractorId == null || contractorId.isBlank()) {
-                throw new BadRequestException("Contractor ID is required");
-            }
-
-            if (contractorRepository.existsByContractorId(contractorId)) {
-                throw new BadRequestException("Contractor ID already exists");
-            }
         }
 
         String resolvedRegion = region;
@@ -198,11 +204,10 @@ public class AdminService {
             resolvedLocation = matchedCountry.getCode();
             resolvedRegion = matchedCountry.getName();
 
-        } else if (requestedRole != Role.CONTRACTOR && (resolvedRegion == null || resolvedRegion.isBlank())) {
+        } else if (resolvedRegion == null || resolvedRegion.isBlank()) {
             throw new BadRequestException("Region is required");
         }
 
-        // ✅ Create User
         User user = User.builder()
                 .name(name)
                 .email(email)
@@ -210,27 +215,14 @@ public class AdminService {
                 .role(requestedRole)
                 .region(resolvedRegion)
                 .location(resolvedLocation)
-                .contractorId(requestedRole == Role.CONTRACTOR ? contractorId : null)
+                .contractorId(null)
                 .status(Status.APPROVED)
                 .registeredDate(LocalDateTime.now())
                 .build();
 
-        User savedUser = userRepository.save(user);
-
-        // ✅ Create Contractor ONLY if role is CONTRACTOR
-        if (requestedRole == Role.CONTRACTOR) {
-            Contractor contractor = new Contractor();
-            contractor.setContractorId(contractorId);
-            contractor.setUser(savedUser);
-            contractor.setName(name);
-            contractor.setEmail(email);
-            contractor.setCurrentLocation(region);
-
-            contractorRepository.save(contractor);
-        }
-
-        return savedUser;
+        return userRepository.save(user);
     }
+
     /**
      * Deactivate a user account
      */
@@ -275,5 +267,4 @@ public class AdminService {
     public List<User> getUsersByRoleAndStatus(Role role, Status status) {
         return userRepository.findByRoleAndStatus(role, status);
     }
-
 }
