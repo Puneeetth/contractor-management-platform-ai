@@ -35,4 +35,9 @@ public class ContractorRequest {
     private Integer noticePeriodDays;
 
     private String remarks;
+
+    private String customerManager;
+
+    @Email
+    private String customerManagerEmail;
 }

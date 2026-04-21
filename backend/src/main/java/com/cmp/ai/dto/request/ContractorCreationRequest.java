@@ -17,5 +17,7 @@ public class ContractorCreationRequest {
     private String phoneNumber;
     private Integer noticePeriodDays;
     private String remarks;
+    private String customerManager;
+    private String customerManagerEmail;
     private String password;
 }
