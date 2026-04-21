@@ -4,13 +4,18 @@ import { Plus, AlertCircle, Users, Building2, Globe, Eye } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Modal, Input, Badge, Loader } from '../../components/ui'
 import { customerService } from '../../services/customerService'
+import { poService } from '../../services/poService'
+import { useAuth } from '../../hooks/useAuth'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 
 const CustomersPage = () => {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [customers, setCustomers] = useState([])
+  const [pos, setPos] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -35,15 +40,43 @@ const CustomersPage = () => {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await customerService.getAllCustomers()
-      setCustomers(Array.isArray(data) ? data : [])
+      const [customersData, poData] = await Promise.all([
+        customerService.getAllCustomers(),
+        poService.getAllPurchaseOrders(),
+      ])
+      setCustomers(Array.isArray(customersData) ? customersData : [])
+      setPos(Array.isArray(poData) ? poData : [])
     } catch (err) {
-      setError(err?.error?.message || 'Failed to load customers')
+      setError(err?.message || 'Failed to load customers')
       setCustomers([])
+      setPos([])
     } finally {
       setIsLoading(false)
     }
   }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const poCountsByCustomer = pos.reduce((acc, po) => {
+    if (!po?.customerId) return acc
+
+    const endDate = po.endDate ? new Date(po.endDate) : null
+    const isInactive = endDate instanceof Date && !Number.isNaN(endDate.getTime()) && endDate < today
+
+    if (!acc[po.customerId]) {
+      acc[po.customerId] = { total: 0, active: 0, inactive: 0 }
+    }
+
+    acc[po.customerId].total += 1
+    if (isInactive) {
+      acc[po.customerId].inactive += 1
+    } else {
+      acc[po.customerId].active += 1
+    }
+
+    return acc
+  }, {})
 
   const validateForm = () => {
     const newErrors = {}
@@ -74,6 +107,10 @@ const CustomersPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!isAdmin) {
+      setFormErrors({ submit: 'Only admins can create customers.' })
+      return
+    }
     if (!validateForm()) return
 
     setIsSubmitting(true)
@@ -92,7 +129,7 @@ const CustomersPage = () => {
       })
       await loadCustomers()
     } catch (err) {
-      setFormErrors({ submit: err?.error?.message || 'Failed to create customer' })
+      setFormErrors({ submit: err?.message || 'Failed to create customer' })
     } finally {
       setIsSubmitting(false)
     }
@@ -110,6 +147,21 @@ const CustomersPage = () => {
       )
     },
     { key: 'msaContactPerson', label: 'Contact Person' },
+    {
+      key: 'totalPos',
+      label: 'Total POs',
+      render: (row) => <span className="font-medium text-gray-900">{poCountsByCustomer[row.id]?.total || 0}</span>,
+    },
+    {
+      key: 'activePos',
+      label: 'Active POs',
+      render: (row) => <span className="font-medium text-emerald-500">{poCountsByCustomer[row.id]?.active || 0}</span>,
+    },
+    {
+      key: 'inactivePos',
+      label: 'Inactive POs',
+      render: (row) => <span className="font-medium text-amber-500">{poCountsByCustomer[row.id]?.inactive || 0}</span>,
+    },
     {
       key: 'msaContactEmail',
       label: 'Contact Email',
@@ -152,9 +204,11 @@ const CustomersPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
             <p className="text-gray-600 mt-1 text-sm">Manage your customer database and MSA agreements</p>
           </div>
-          <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Add Customer
-          </Button>
+          {isAdmin && (
+            <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Add Customer
+            </Button>
+          )}
         </div>
 
         {/* Summary Stats */}
@@ -198,9 +252,11 @@ const CustomersPage = () => {
               </div>
               <p className="text-gray-600 text-lg font-medium">No customers found</p>
               <p className="text-gray-500 text-sm mt-1">Get started by creating your first customer</p>
-              <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">
-                Create First Customer
-              </Button>
+              {isAdmin && (
+                <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">
+                  Create First Customer
+                </Button>
+              )}
             </div>
           ) : (
             <Table columns={columns} data={customers} isLoading={false} />
@@ -208,28 +264,30 @@ const CustomersPage = () => {
         </Card>
 
         {/* Create Customer Modal */}
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Customer" size="xxl"
-          footer={<>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create Customer</Button>
-          </>}
-        >
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-8 gpa-y-2">
-            {formErrors.submit && (
-              <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
-                <p className="text-sm text-red-400">{formErrors.submit}</p>
-              </div>
-            )}
-            <Input label="Customer Name" name="name" value={formData.name} onChange={handleInputChange} error={formErrors.name} placeholder="Acme Corporation" required />
-            <Input label="Address" name="address" value={formData.address} onChange={handleInputChange} error={formErrors.address} placeholder="123 Business St, City, State 12345" required />
-            <Input label="MSA (Master Service Agreement)" name="msa" value={formData.msa} onChange={handleInputChange} error={formErrors.msa} placeholder="MSA agreement details or reference" required />
-            <Input label="MSA Contact Person" name="msaContactPerson" value={formData.msaContactPerson} onChange={handleInputChange} error={formErrors.msaContactPerson} placeholder="John Doe" required />
-            <Input label="MSA Contact Email" type="email" name="msaContactEmail" value={formData.msaContactEmail} onChange={handleInputChange} error={formErrors.msaContactEmail} placeholder="contact@acme.com" required />
-            <Input label="Countries Applicable" name="countriesApplicable" value={formData.countriesApplicable} onChange={handleInputChange} placeholder="US, Canada, Mexico" />
-            <Input label="Notice Period (days)" type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} min="0" />
-            <Input label="MSA Remarks" name="msaRemark" value={formData.msaRemark} onChange={handleInputChange} placeholder="Additional remarks about MSA" />
-          </form>
-        </Modal>
+        {isAdmin && (
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Customer" size="xxl"
+            footer={<>
+              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create Customer</Button>
+            </>}
+          >
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-8 gpa-y-2">
+              {formErrors.submit && (
+                <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                  <p className="text-sm text-red-400">{formErrors.submit}</p>
+                </div>
+              )}
+              <Input label="Customer Name" name="name" value={formData.name} onChange={handleInputChange} error={formErrors.name} placeholder="Acme Corporation" required />
+              <Input label="Address" name="address" value={formData.address} onChange={handleInputChange} error={formErrors.address} placeholder="123 Business St, City, State 12345" required />
+              <Input label="MSA (Master Service Agreement)" name="msa" value={formData.msa} onChange={handleInputChange} error={formErrors.msa} placeholder="MSA agreement details or reference" required />
+              <Input label="MSA Contact Person" name="msaContactPerson" value={formData.msaContactPerson} onChange={handleInputChange} error={formErrors.msaContactPerson} placeholder="John Doe" required />
+              <Input label="MSA Contact Email" type="email" name="msaContactEmail" value={formData.msaContactEmail} onChange={handleInputChange} error={formErrors.msaContactEmail} placeholder="contact@acme.com" required />
+              <Input label="Countries Applicable" name="countriesApplicable" value={formData.countriesApplicable} onChange={handleInputChange} placeholder="US, Canada, Mexico" />
+              <Input label="Notice Period (days)" type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} min="0" />
+              <Input label="MSA Remarks" name="msaRemark" value={formData.msaRemark} onChange={handleInputChange} placeholder="Additional remarks about MSA" />
+            </form>
+          </Modal>
+        )}
 
         {/* View Customer Modal */}
         <Modal

@@ -5,7 +5,6 @@ import {
   Users, 
   Briefcase, 
   FileText, 
-  Clock, 
   Receipt, 
   CreditCard, 
   ShieldCheck,
@@ -25,8 +24,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     { icon: Briefcase, label: 'Contractors', path: '/contractors', roles: ['ADMIN', 'MANAGER'] },
     { icon: Briefcase, label: 'Contracts', path: '/contracts', roles: ['ADMIN', 'MANAGER'] },
     { icon: FileText, label: 'POs', path: '/pos', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
-    { icon: Clock, label: 'Timesheets', path: '/timesheets', roles: ['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE'] },
-    { icon: Receipt, label: 'Invoices', path: '/invoices', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
+    { icon: Receipt, label: 'Invoices', path: '/invoices', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR'] },
     { icon: CreditCard, label: 'Expenses', path: '/expenses', roles: ['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE'] },
     { icon: ShieldCheck, label: 'Administration', path: '/admin/administration', roles: ['ADMIN'] },
   ]

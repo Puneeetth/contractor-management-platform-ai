@@ -10,7 +10,7 @@ import { formatters } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
 
 const DEFAULT_STATS = {
-  totalContractors: 0,
+  totalContracts: 0,
   totalRevenue: 0,
   totalHours: 1248,
   pendingExpenses: 0,
@@ -54,7 +54,7 @@ const DashboardPage = () => {
 
         if (isMounted) {
           setStats({
-            totalContractors: contractList.length,
+            totalContracts: contractList.length,
             totalRevenue: poList.reduce((sum, po) => sum + (Number(po.poValue) || 0), 0),
             totalHours: DEFAULT_STATS.totalHours,
             pendingExpenses: pendingExpenseCount,
@@ -95,8 +95,8 @@ const DashboardPage = () => {
   const statCards = [
     {
       icon: Users,
-      label: 'Total Contractors',
-      value: stats.totalContractors,
+      label: 'Total Contracts',
+      value: stats.totalContracts,
       trend: '+12%',
       trendUp: true,
       trendLabel: 'from last month',

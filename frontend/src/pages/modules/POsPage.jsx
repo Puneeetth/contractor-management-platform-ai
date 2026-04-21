@@ -46,7 +46,7 @@ const POsPage = () => {
       const data = await poService.getAllPurchaseOrders()
       setPos(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(err?.error?.message || 'Failed to load purchase orders')
+      setError(err?.message || 'Failed to load purchase orders')
     } finally {
       setIsLoading(false)
     }
@@ -62,7 +62,7 @@ const POsPage = () => {
       setContracts(Array.isArray(contractsData) ? contractsData : [])
       setCustomers(Array.isArray(customersData) ? customersData : [])
     } catch (err) {
-      setFormErrors({ submit: err?.error?.message || 'Failed to load contracts/customers' })
+      setFormErrors({ submit: err?.message || 'Failed to load contracts/customers' })
     } finally {
       setIsReferenceLoading(false)
     }
@@ -81,7 +81,7 @@ const POsPage = () => {
     setCustomers(Array.isArray(customerData) ? customerData : [])
 
   } catch (err) {
-    setError(err?.error?.message || 'Failed to load data')
+    setError(err?.message || 'Failed to load data')
   } finally {
     setIsLoading(false)
   }
@@ -143,7 +143,7 @@ const POsPage = () => {
       })
       await loadPOs()
     } catch (err) {
-      setFormErrors({ submit: err?.error?.message || 'Failed to create PO' })
+      setFormErrors({ submit: err?.message || 'Failed to create PO' })
     } finally {
       setIsSubmitting(false)
     }

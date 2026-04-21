@@ -11,6 +11,7 @@ import com.cmp.ai.dto.response.ContractResponse;
 import com.cmp.ai.entity.Customer;
 import com.cmp.ai.entity.Contract;
 import com.cmp.ai.entity.Contractor;
+import com.cmp.ai.entity.User;
 import com.cmp.ai.exception.ResourceNotFoundException;
 import com.cmp.ai.repository.ContractRepository;
 import com.cmp.ai.repository.CustomerRepository;
@@ -28,11 +29,12 @@ public class ContractService {
     private final CustomerRepository customerRepository;
 
     public ContractResponse createContract(ContractRequest request) {
-        System.out.println("Creating contract with contractor ID: " + request.getContractorId());
-        Contractor contractor = contractorRepository.findById(request.getContractorId())
+        Contractor contractorEntity = contractorRepository.findById(request.getContractorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
-        
-        System.out.println("Found contractor: " + contractor.getName() + " (ID: " + contractor.getId() + ")");
+        User contractor = contractorEntity.getUser();
+        if (contractor == null) {
+            throw new ResourceNotFoundException("User not found for contractor");
+        }
 
         Customer customer = null;
         if (request.getCustomerId() != null) {
@@ -41,10 +43,7 @@ public class ContractService {
         }
 
         Contract contract = ContractTransformer.contractRequestToContract(request, contractor, customer);
-        System.out.println("Contract created with contractor: " + contract.getContractor());
-        Contract savedContract = contractRepository.save(contract);
-        System.out.println("Saved contract with contractor: " + savedContract.getContractor());
-        return ContractTransformer.contractToContractResponse(savedContract);
+        return ContractTransformer.contractToContractResponse(contractRepository.save(contract));
     }
 
     public List<ContractResponse> getAllContracts() {
