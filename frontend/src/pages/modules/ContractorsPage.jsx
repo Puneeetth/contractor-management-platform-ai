@@ -385,18 +385,9 @@ const ContractorsPage = () => {
         contractorId: Number(contractFormData.contractorId),
         customerId: contractFormData.customerId ? Number(contractFormData.customerId) : null,
       })
-      setIsContractModalOpen(false)
-      setSuccess('Contract created successfully.')
-      const createdForContractorId = Number(contractFormData.contractorId)
-      resetContractForm()
-      await loadPageData()
-      if (!expandedContractorIds.includes(createdForContractorId)) {
-        setExpandedContractorIds((previousIds) => [...previousIds, createdForContractorId])
-      }
-    } catch (submissionError) {
-      setContractFormErrors({
-        submit: submissionError?.error?.message || submissionError?.message || 'Failed to create contract',
-      })
+      await loadContracts()
+    } catch (err) {
+      setFormErrors({ submit: err?.error?.message || 'Failed to create contract' })
     } finally {
       setIsCreatingContract(false)
     }

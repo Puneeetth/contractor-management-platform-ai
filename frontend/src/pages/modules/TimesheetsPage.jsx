@@ -30,7 +30,7 @@ const TimesheetsPage = () => {
       const data = await timesheetService.getAllTimesheets()
       setTimesheets(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(err?.error?.message || 'Failed to load timesheets')
+      setError(err?.message || 'Failed to load timesheets')
     } finally {
       setIsLoading(false)
     }
@@ -62,7 +62,7 @@ const TimesheetsPage = () => {
       await timesheetService.approveTimesheet(id)
       await loadTimesheets()
     } catch (err) {
-      setError(err?.error?.message || 'Failed to approve timesheet')
+      setError(err?.message || 'Failed to approve timesheet')
     } finally {
       setApproving(null)
     }
@@ -84,7 +84,7 @@ const TimesheetsPage = () => {
       setFormData({ contractorId: user?.id || '', month: new Date().toISOString().slice(0, 7), entries: [{ date: '', hours: '' }] })
       await loadTimesheets()
     } catch (err) {
-      setFormErrors({ submit: err?.error?.message || 'Failed to create timesheet' })
+      setFormErrors({ submit: err?.message || 'Failed to create timesheet' })
     } finally {
       setIsSubmitting(false)
     }
