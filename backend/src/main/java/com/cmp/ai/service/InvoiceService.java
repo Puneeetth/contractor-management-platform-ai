@@ -31,36 +31,68 @@ public class InvoiceService {
     private final FileService fileService;
 
     public InvoiceResponse createInvoice(InvoiceRequest request, MultipartFile invoiceFile, MultipartFile timesheetFile) {
+
+        // ✅ Get contractor
         User contractor = userRepository.findById(request.getContractorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
 
+        // ✅ Prevent duplicate invoice for same month
         invoiceRepository.findByContractorIdAndInvoiceMonth(contractor.getId(), request.getInvoiceMonth())
                 .ifPresent(i -> {
                     throw new BadRequestException("Invoice already exists for this contractor and month");
                 });
 
-        contractRepository.findByContractorId(contractor.getId()).stream()
+        // ✅ Get active contract rate
+        Double activeContractRate = contractRepository.findByContractorId(contractor.getId()).stream()
                 .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
                 .findFirst()
+                .map(c -> c.getBillRate())
                 .orElseThrow(() -> new BadRequestException("No active contract found for this contractor"));
 
-        String invoiceFileUrl = invoiceFile != null && !invoiceFile.isEmpty()
+        if (activeContractRate == null || activeContractRate <= 0) {
+            throw new BadRequestException("Active contract does not have a valid rate");
+        }
+
+        // ✅ Calculate amounts
+        Double baseAmount = request.getTotalHours() * activeContractRate;
+        Double taxAmount = baseAmount * (request.getTaxPercentage() / 100.0);
+        Double totalAmount = baseAmount + taxAmount;
+
+        // ✅ File upload
+        String invoiceFileUrl = (invoiceFile != null && !invoiceFile.isEmpty())
                 ? fileService.uploadFile(invoiceFile)
                 : null;
-        String timesheetFileUrl = timesheetFile != null && !timesheetFile.isEmpty()
+
+        String timesheetFileUrl = (timesheetFile != null && !timesheetFile.isEmpty())
                 ? fileService.uploadFile(timesheetFile)
                 : null;
 
+        // ✅ Create invoice
         Invoice invoice = Invoice.builder()
                 .contractor(contractor)
                 .invoiceMonth(request.getInvoiceMonth())
-                .totalAmount(request.getAmount())
+                .totalHours(request.getTotalHours())
+                .baseAmount(baseAmount)
+                .taxAmount(taxAmount)
+                .totalAmount(totalAmount)
                 .invoiceFileUrl(invoiceFileUrl)
                 .timesheetFileUrl(timesheetFileUrl)
                 .status(Status.PENDING)
                 .build();
 
         return InvoiceTransformer.invoiceToInvoiceResponse(invoiceRepository.save(invoice));
+    }
+
+    public Double getActiveContractRate(@NonNull Long contractorId) {
+        userRepository.findById(contractorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
+
+        return contractRepository.findByContractorId(contractorId).stream()
+                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
+                .findFirst()
+                .map(c -> c.getBillRate())
+                .filter(rate -> rate != null && rate > 0)
+                .orElseThrow(() -> new BadRequestException("No active contract with valid rate found for this contractor"));
     }
 
     public List<InvoiceResponse> getAllInvoices() {
