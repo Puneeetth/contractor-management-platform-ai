@@ -24,5 +24,6 @@ public class ContractResponse {
     private Integer noticePeriodDays;
     private Boolean throughEor;
     private String remarks;
+    private String terminationRemarks;
     private String status;
 }

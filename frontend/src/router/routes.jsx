@@ -9,11 +9,11 @@ import PendingApprovalPage from '../pages/PendingApprovalPage'
 import DashboardPage from '../pages/DashboardPage'
 import CustomersPage from '../pages/modules/CustomersPage'
 import ContractorsPage from '../pages/modules/ContractorsPage'
+import ContractsPage from '../pages/modules/ContractsPage'
 import POsPage from '../pages/modules/POsPage'
 import InvoicesPage from '../pages/modules/InvoicesPage'
 import ExpensesPage from '../pages/modules/ExpensesPage'
 import AdminPendingApprovalsPage from '../pages/modules/AdminPendingApprovalsPage'
-import ContractorCreationPage from '../pages/modules/ContractorCreationPage'
 import AdministrationPage from '../pages/modules/AdministrationPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
 
@@ -76,6 +76,15 @@ export const AppRoutes = () => {
         />
 
         <Route
+          path="/contracts"
+          element={
+            <PrivateRoute requiredRoles={['ADMIN', 'MANAGER']}>
+              <ContractsPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/pos"
           element={
             <PrivateRoute requiredRoles={['ADMIN', 'FINANCE', 'MANAGER']}>
@@ -117,15 +126,6 @@ export const AppRoutes = () => {
           element={
             <PrivateRoute requiredRoles={['ADMIN']}>
               <AdministrationPage />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/admin/contractors/create"
-          element={
-            <PrivateRoute requiredRoles={['ADMIN']}>
-              <ContractorCreationPage />
             </PrivateRoute>
           }
         />

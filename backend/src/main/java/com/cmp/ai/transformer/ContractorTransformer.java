@@ -11,6 +11,7 @@ public class ContractorTransformer {
         return ContractorResponse.builder()
                 .id(contractor.getId())
                 .userId(contractor.getUser() == null ? null : contractor.getUser().getId())
+                .contractorId(contractor.getContractorId())
                 .name(contractor.getName())
                 .address(contractor.getAddress())
                 .currentLocation(contractor.getCurrentLocation())

@@ -21,7 +21,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR', 'SALES', 'HR', 'GEO_MANAGER', 'BDM'] },
     { icon: Users, label: 'Customers', path: '/customers', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
-    { icon: Briefcase, label: 'Contracts', path: '/contractors', roles: ['ADMIN', 'MANAGER'] },
+    { icon: Briefcase, label: 'Contractors', path: '/contractors', roles: ['ADMIN', 'MANAGER'] },
+    { icon: Briefcase, label: 'Contracts', path: '/contracts', roles: ['ADMIN', 'MANAGER'] },
     { icon: FileText, label: 'POs', path: '/pos', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
     { icon: Receipt, label: 'Invoices', path: '/invoices', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR'] },
     { icon: CreditCard, label: 'Expenses', path: '/expenses', roles: ['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE'] },

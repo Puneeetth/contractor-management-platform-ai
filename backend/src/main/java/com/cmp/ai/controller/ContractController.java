@@ -24,13 +24,13 @@ public class ContractController {
     private final ContractService contractService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ContractResponse createContract(@Valid @RequestBody ContractRequest request) {
         return contractService.createContract(request);
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public List<ContractResponse> getAllContracts() {
         return contractService.getAllContracts();
     }

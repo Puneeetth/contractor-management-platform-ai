@@ -235,7 +235,7 @@ This platform delivers:
 
 ## Recent Updates & Fixes
 
-### ✅ Contract Creation Enhancement (April 2026)
+### ✅ Contract Creation Enhancement (18-19 April 2026)
 - **Fixed Contractor ID Integration**: Contract creation now properly uses contractor IDs instead of user IDs
 - **Entity Relationship Fix**: Updated Contract entity to reference Contractor instead of User
 - **Database Schema Update**: Fixed foreign key constraints to point to contractors table

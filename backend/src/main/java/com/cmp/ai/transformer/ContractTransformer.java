@@ -26,6 +26,7 @@ public class ContractTransformer {
                 .noticePeriodDays(c.getNoticePeriodDays())
                 .throughEor(c.getThroughEor())
                 .remarks(c.getRemarks())
+                .terminationRemarks(c.getTerminationRemarks())
                 .status(c.getStatus().name())
                 .build();
     }
@@ -44,6 +45,7 @@ public class ContractTransformer {
                 .noticePeriodDays(req.getNoticePeriodDays())
                 .throughEor(req.getThroughEor())
                 .remarks(req.getRemarks())
+                .terminationRemarks(req.getTerminationRemarks())
                 .status(ContractStatus.ACTIVE)
                 .build();
     }

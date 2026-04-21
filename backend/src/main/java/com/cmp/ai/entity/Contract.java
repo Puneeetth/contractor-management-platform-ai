@@ -55,6 +55,7 @@ public class Contract {
     private Double estimatedBudget;
     private Boolean throughEor;
     private String remarks;
+    private String terminationRemarks;
 
     private LocalDate startDate;
     private LocalDate endDate;
