@@ -31,14 +31,18 @@ public class InvoiceService {
     private final FileService fileService;
 
     public InvoiceResponse createInvoice(InvoiceRequest request, MultipartFile invoiceFile, MultipartFile timesheetFile) {
+
+        // ✅ Get contractor
         User contractor = userRepository.findById(request.getContractorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
 
+        // ✅ Prevent duplicate invoice for same month
         invoiceRepository.findByContractorIdAndInvoiceMonth(contractor.getId(), request.getInvoiceMonth())
                 .ifPresent(i -> {
                     throw new BadRequestException("Invoice already exists for this contractor and month");
                 });
 
+        // ✅ Get active contract rate
         Double activeContractRate = contractRepository.findByContractorId(contractor.getId()).stream()
                 .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
                 .findFirst()
@@ -49,17 +53,21 @@ public class InvoiceService {
             throw new BadRequestException("Active contract does not have a valid rate");
         }
 
+        // ✅ Calculate amounts
         Double baseAmount = request.getTotalHours() * activeContractRate;
         Double taxAmount = baseAmount * (request.getTaxPercentage() / 100.0);
         Double totalAmount = baseAmount + taxAmount;
 
-        String invoiceFileUrl = invoiceFile != null && !invoiceFile.isEmpty()
+        // ✅ File upload
+        String invoiceFileUrl = (invoiceFile != null && !invoiceFile.isEmpty())
                 ? fileService.uploadFile(invoiceFile)
                 : null;
-        String timesheetFileUrl = timesheetFile != null && !timesheetFile.isEmpty()
+
+        String timesheetFileUrl = (timesheetFile != null && !timesheetFile.isEmpty())
                 ? fileService.uploadFile(timesheetFile)
                 : null;
 
+        // ✅ Create invoice
         Invoice invoice = Invoice.builder()
                 .contractor(contractor)
                 .invoiceMonth(request.getInvoiceMonth())
