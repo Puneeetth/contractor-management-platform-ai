@@ -190,9 +190,9 @@ const ContractsPage = () => {
 
   const columns = [
     {
-      key: 'id',
-      label: 'Contract ID',
-      render: (row) => <span className="font-mono text-indigo-400">#CT-{String(row.id).padStart(3, '0')}</span>,
+      key: 'contractorName',
+      label: 'Contractor Name',
+      render: (row) => <span className="font-medium text-gray-900">{row.contractorName || 'N/A'}</span>,
     },
     {
       key: 'billRate',

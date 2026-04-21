@@ -15,6 +15,7 @@ public class ContractTransformer {
         return ContractResponse.builder()
                 .id(c.getId())
                 .contractorId(c.getContractor() != null ? c.getContractor().getId() : null)
+                .contractorName(c.getContractor() != null ? c.getContractor().getName() : null)
                 .customerId(c.getCustomer() == null ? null : c.getCustomer().getId())
                 .billRate(c.getBillRate())
                 .payRate(c.getPayRate())
