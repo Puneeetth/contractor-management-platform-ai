@@ -13,6 +13,7 @@ public class ContractResponse {
 
     private Long id;
     private Long contractorId;
+    private String contractorName;
     private Long customerId;
     private Double billRate;
     private Double payRate;
@@ -24,5 +25,6 @@ public class ContractResponse {
     private Integer noticePeriodDays;
     private Boolean throughEor;
     private String remarks;
+    private String terminationRemarks;
     private String status;
 }

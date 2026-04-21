@@ -11,6 +11,7 @@ public class ContractorTransformer {
         return ContractorResponse.builder()
                 .id(contractor.getId())
                 .userId(contractor.getUser() == null ? null : contractor.getUser().getId())
+                .contractorId(contractor.getContractorId())
                 .name(contractor.getName())
                 .address(contractor.getAddress())
                 .currentLocation(contractor.getCurrentLocation())
@@ -19,6 +20,8 @@ public class ContractorTransformer {
                 .phoneNumber(contractor.getPhoneNumber())
                 .noticePeriodDays(contractor.getNoticePeriodDays())
                 .remarks(contractor.getRemarks())
+                .customerManager(contractor.getCustomerManager())
+                .customerManagerEmail(contractor.getCustomerManagerEmail())
                 .build();
     }
 
@@ -35,7 +38,8 @@ public class ContractorTransformer {
                 .phoneNumber(request.getPhoneNumber())
                 .noticePeriodDays(request.getNoticePeriodDays())
                 .remarks(request.getRemarks())
-                .contracts(null)
+                .customerManager(request.getCustomerManager())
+                .customerManagerEmail(request.getCustomerManagerEmail())
                 .build();
     }
 }

@@ -41,8 +41,8 @@ public class Contract {
     private Long id;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "contractor_entity_id")
-    private Contractor contractor;
+    @JoinColumn(name = "contractor_id")
+    private User contractor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
@@ -55,6 +55,7 @@ public class Contract {
     private Double estimatedBudget;
     private Boolean throughEor;
     private String remarks;
+    private String terminationRemarks;
 
     private LocalDate startDate;
     private LocalDate endDate;

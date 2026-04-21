@@ -9,11 +9,11 @@ public class InvoiceTransformer {
         return InvoiceResponse.builder()
                 .id(i.getId())
                 .contractorId(i.getContractor().getId())
+                .contractorName(i.getContractor().getName())
                 .invoiceMonth(i.getInvoiceMonth())
-                .totalHours(i.getTotalHours())
-                .baseAmount(i.getBaseAmount())
-                .taxAmount(i.getTaxAmount())
-                .totalAmount(i.getTotalAmount())
+                .amount(i.getTotalAmount())
+                .invoiceFileUrl(i.getInvoiceFileUrl())
+                .timesheetFileUrl(i.getTimesheetFileUrl())
                 .status(i.getStatus().name())
                 .build();
     }

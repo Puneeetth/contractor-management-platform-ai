@@ -1,7 +1,6 @@
 package com.cmp.ai.entity;
 
 import jakarta.persistence.*;
-import java.util.List;
 
 import lombok.*;
 
@@ -40,7 +39,7 @@ public class Contractor {
 
     private String remarks;
 
-    @OneToMany(mappedBy = "contractor", fetch = FetchType.LAZY)
-    private List<Contract> contracts;
+    private String customerManager;
 
+    private String customerManagerEmail;
 }

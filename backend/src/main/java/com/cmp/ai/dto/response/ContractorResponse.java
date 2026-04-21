@@ -13,6 +13,7 @@ public class ContractorResponse {
 
     private Long id;
     private Long userId;
+    private String contractorId;
     private String name;
     private String address;
     private String currentLocation;
@@ -21,4 +22,6 @@ public class ContractorResponse {
     private String phoneNumber;
     private Integer noticePeriodDays;
     private String remarks;
+    private String customerManager;
+    private String customerManagerEmail;
 }

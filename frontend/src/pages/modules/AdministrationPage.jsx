@@ -10,14 +10,29 @@ const ROLE_OPTIONS = [
   { value: 'HR', label: 'HR' },
   { value: 'GEO_MANAGER', label: 'GEO Manager' },
   { value: 'BDM', label: 'BDM' },
-   { value: 'CONTRACTOR', label: 'Contractor' },
-
 ]
 
 const GEO_REGION_OPTIONS = [
   { value: 'US', label: 'US' },
   { value: 'EU', label: 'EU' },
   { value: 'APAC', label: 'APAC' },
+]
+
+const DEFAULT_BDM_COUNTRIES = [
+  { code: 'IN', name: 'India' },
+  { code: 'US', name: 'USA' },
+  { code: 'UK', name: 'UK' },
+  { code: 'AE', name: 'UAE' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
 ]
 
 const INITIAL_FORM_DATA = {
@@ -29,7 +44,6 @@ const INITIAL_FORM_DATA = {
   region: 'US',
   regions: [],
   country: '',
-  contractorId: ''
 }
 
 const AdministrationPage = () => {
@@ -43,16 +57,18 @@ const AdministrationPage = () => {
   const [createdUser, setCreatedUser] = useState(null)
   const [countries, setCountries] = useState([])
   const [lastSubmissionMeta, setLastSubmissionMeta] = useState({ regions: [], country: '' })
+  const [showCountryPopup, setShowCountryPopup] = useState(false)
 
   const isGeoManager = formData.role === 'GEO_MANAGER'
   const isBdm = formData.role === 'BDM'
   const isManagerRole = isGeoManager || isBdm
-  const isContractor = formData.role === 'CONTRACTOR'
 
   const selectedRoleLabel = useMemo(
     () => ROLE_OPTIONS.find((option) => option.value === formData.role)?.label || formData.role,
     [formData.role]
   )
+  const availableCountries = countries.length > 0 ? countries : DEFAULT_BDM_COUNTRIES
+  const selectedCountryName = availableCountries.find((country) => country.code === formData.country)?.name || ''
 
   useEffect(() => {
     const loadCountries = async () => {
@@ -71,6 +87,7 @@ const AdministrationPage = () => {
     const { name, value, options } = e.target
 
     if (name === 'role') {
+      setShowCountryPopup(false)
       setFormData((prev) => ({
         ...prev,
         role: value,
@@ -141,10 +158,6 @@ const AdministrationPage = () => {
     if (!isManagerRole && !formData.region.trim()) {
       newErrors.region = 'Region is required'
     }
-    if (isContractor && !formData.contractorId.trim()) {
-  newErrors.contractorId = 'Contractor ID is required'
-}
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -166,7 +179,6 @@ const AdministrationPage = () => {
         region: isManagerRole ? '' : formData.region,
         regions: isGeoManager ? formData.regions : [],
         country: isBdm ? formData.country : '',
-        contractorId: isContractor ? formData.contractorId : '',
       })
 
       setCreatedUser(response)
@@ -178,13 +190,13 @@ const AdministrationPage = () => {
       setFormData(INITIAL_FORM_DATA)
       setErrors({})
     } catch (err) {
-      setError(err?.error?.message || err?.message || 'Failed to create user')
+      setError(err?.message || 'Failed to create user')
     } finally {
       setLoading(false)
     }
   }
 
-  const createdCountryName = countries.find((country) => country.code === lastSubmissionMeta.country)?.name
+  const createdCountryName = availableCountries.find((country) => country.code === lastSubmissionMeta.country)?.name
 
   return (
     <DashboardLayout>
@@ -314,30 +326,6 @@ const AdministrationPage = () => {
               </div>
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
-            {/* Contractor ID */}
-{isContractor && (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Contractor ID <span className="text-red-500">*</span>
-    </label>
-    <input
-      type="text"
-      name="contractorId"
-      value={formData.contractorId}
-      onChange={handleChange}
-      placeholder="Enter unique contractor ID"
-      className={`w-full px-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${
-        errors.contractorId
-          ? 'border-red-400 focus:ring-2 focus:ring-red-50'
-          : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
-      }`}
-    />
-    {errors.contractorId && (
-      <p className="text-red-500 text-xs mt-1">{errors.contractorId}</p>
-    )}
-  </div>
-)}
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address <span className="text-red-500">*</span>
@@ -449,22 +437,27 @@ const AdministrationPage = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Country <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <select
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.country
-                      ? 'border-red-400 focus:ring-2 focus:ring-red-50'
-                      : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
-                      }`}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={selectedCountryName}
+                      readOnly
+                      placeholder="Select a country"
+                      className={`w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.country
+                        ? 'border-red-400 focus:ring-2 focus:ring-red-50'
+                        : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
+                        }`}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCountryPopup(true)}
+                    className="px-4 py-2.5 rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 text-sm font-medium"
                   >
-                    <option value="">Select a country</option>
-                    {countries.map((country) => (
-                      <option key={country.code} value={country.code}>{country.name}</option>
-                    ))}
-                  </select>
+                    Select
+                  </button>
                 </div>
                 {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
               </div>
@@ -506,6 +499,41 @@ const AdministrationPage = () => {
           </form>
         </div>
       </div>
+      {showCountryPopup && isBdm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-xl border border-gray-200">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">Select Country</h3>
+              <button
+                type="button"
+                onClick={() => setShowCountryPopup(false)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Close
+              </button>
+            </div>
+            <div className="max-h-72 overflow-y-auto p-3">
+              {availableCountries.map((country) => (
+                <button
+                  key={country.code}
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, country: country.code }))
+                    setErrors((prev) => ({ ...prev, country: '' }))
+                    setShowCountryPopup(false)
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${formData.country === country.code
+                    ? 'bg-indigo-100 text-indigo-800'
+                    : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                >
+                  {country.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }
