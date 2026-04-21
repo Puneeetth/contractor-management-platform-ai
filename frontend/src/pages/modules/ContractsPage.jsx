@@ -320,7 +320,7 @@ const ContractsPage = () => {
               options={[
                 { value: '', label: 'Select a contractor...' },
                 ...contractors.map((contractor) => ({
-                  value: contractor.id,
+                  value: String(contractor.id),
                   label: `${contractor.name} (${contractor.contractorId})`,
                 })),
               ]}

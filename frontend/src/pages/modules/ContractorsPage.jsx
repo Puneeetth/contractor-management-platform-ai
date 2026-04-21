@@ -5,7 +5,6 @@ import {
   Briefcase,
   CalendarDays,
   DollarSign,
-  Eye,
   Filter,
   UserPlus,
 } from 'lucide-react'
@@ -77,6 +76,7 @@ const ContractorsPage = () => {
 
   const [isContractorModalOpen, setIsContractorModalOpen] = useState(false)
   const [isContractModalOpen, setIsContractModalOpen] = useState(false)
+  const [lockedContractorId, setLockedContractorId] = useState('')
 
   const [contractorFormData, setContractorFormData] = useState(EMPTY_CONTRACTOR_FORM)
   const [contractFormData, setContractFormData] = useState(EMPTY_CONTRACT_FORM)
@@ -162,6 +162,10 @@ const ContractorsPage = () => {
 
   const contractorCountWithContracts = filteredContractorRows.filter((contractor) => contractor.contracts.length > 0).length
   const totalContractBudget = filteredContractorRows.reduce((sum, contractor) => sum + contractor.totalBudget, 0)
+  const selectedContractor = useMemo(
+    () => contractors.find((contractor) => String(contractor.id) === String(contractFormData.contractorId)) || null,
+    [contractors, contractFormData.contractorId]
+  )
 
   const calculateEstimatedBudget = (billRate, estimatedHours) => {
     const normalizedBillRate = Number(billRate)
@@ -237,6 +241,22 @@ const ContractorsPage = () => {
     setContractFormErrors({})
   }
 
+  const getContractorDisplayName = (contractor) =>
+    contractor ? `${contractor.name} (${contractor.contractorId || `ID-${contractor.id}`})` : ''
+
+  const closeContractModal = () => {
+    setIsContractModalOpen(false)
+    setLockedContractorId('')
+    resetContractForm()
+  }
+
+  const openContractModalForContractor = (contractor) => {
+    const contractorId = String(contractor.id)
+    setLockedContractorId(contractorId)
+    resetContractForm(contractorId)
+    setIsContractModalOpen(true)
+  }
+
   const handleContractorInputChange = (event) => {
     const { name, value } = event.target
 
@@ -260,8 +280,6 @@ const ContractorsPage = () => {
           ? checked
           : ['billRate', 'payRate'].includes(name)
             ? parseFloat(value) || ''
-            : ['contractorId', 'customerId'].includes(name)
-              ? parseInt(value, 10) || ''
             : ['estimatedHours', 'noticePeriodDays'].includes(name)
               ? parseInt(value, 10) || ''
               : value
@@ -443,9 +461,8 @@ const ContractorsPage = () => {
         contractorId: Number(contractFormData.contractorId),
         customerId: contractFormData.customerId ? Number(contractFormData.customerId) : null,
       })
-      setIsContractModalOpen(false)
+      closeContractModal()
       setSuccess('Contract created successfully.')
-      resetContractForm()
       await loadPageData()
     } catch (err) {
       setContractFormErrors({ submit: err?.error?.message || err?.message || 'Failed to create contract' })
@@ -637,96 +654,104 @@ const ContractorsPage = () => {
               </div>
             </Card>
           ) : (
-            filteredContractorRows.map((contractor, index) => {
-              const latestContract = contractor.contracts[0]
-              return (
-                <motion.div
-                  key={contractor.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                >
-                  <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
-                    <div className="p-4 sm:p-5">
-                      <div className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-4">
-                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2.5">
-                                <h2 className="text-2xl font-semibold tracking-tight text-gray-900">{contractor.name}</h2>
-                                <Badge variant="indigo">{contractor.contractorId || 'No ID'}</Badge>
-                                <Badge variant={contractor.activeContractCount > 0 ? 'approved' : 'default'}>
-                                  {contractor.activeContractCount} active
-                                </Badge>
-                              </div>
+            <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-[1120px] w-full table-fixed border-collapse">
+                  <colgroup>
+                    <col className="w-[20%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[9%]" />
+                    <col className="w-[7%]" />
+                    <col className="w-[12%]" />
+                  </colgroup>
+                  <thead className="bg-gray-50">
+                    <tr className="border-b border-gray-200">
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Contractor</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Customer</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Start</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">End / Due</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Pay Rate</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Bill Rate</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Contracts</th>
+                      <th className="border-l border-gray-200 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredContractorRows.map((contractor, index) => {
+                      const latestContract = contractor.contracts[0]
+                      return (
+                        <motion.tr
+                          key={contractor.id}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="border-b border-gray-100 last:border-b-0"
+                        >
+                          <td className="px-4 py-3 align-middle">
+                            <div className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap">
+                              <span className="truncate text-base font-semibold text-gray-900">{contractor.name}</span>
+                              <Badge variant="indigo" className="shrink-0 px-2 py-0.5 text-[11px]">
+                                {contractor.contractorId || 'No ID'}
+                              </Badge>
+                              <Badge
+                                variant={contractor.activeContractCount > 0 ? 'approved' : 'default'}
+                                className="shrink-0 px-2 py-0.5 text-[11px]"
+                              >
+                                {contractor.activeContractCount} active
+                              </Badge>
                             </div>
-
-                            <div className="flex flex-wrap gap-2 lg:flex-shrink-0 lg:justify-end">
+                          </td>
+                          <td className="px-4 py-3 align-middle">
+                            <p className="truncate text-sm text-gray-900">
+                              {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
+                            {latestContract ? formatters.formatDate(latestContract.startDate) : '-'}
+                          </td>
+                          <td className="px-4 py-3 align-middle">
+                            <p className="text-sm text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
+                            <p className="text-[11px] text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
+                          </td>
+                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
+                            {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
+                          </td>
+                          <td className="px-4 py-3 align-middle text-sm text-gray-900">
+                            {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
+                          </td>
+                          <td className="px-4 py-3 align-middle text-sm font-semibold text-gray-900">
+                            {contractor.contracts.length}
+                          </td>
+                          <td className="border-l border-gray-100 px-4 py-3 align-middle">
+                            <div className="flex flex-col items-start gap-1.5 whitespace-nowrap text-xs font-medium">
                               {canCreateContracts && (
-                                <Button
-                                  variant="secondary"
-                                  className="min-w-[160px]"
-                                  onClick={() => {
-                                    resetContractForm(String(contractor.id))
-                                    setIsContractModalOpen(true)
-                                  }}
+                                <button
+                                  type="button"
+                                  onClick={() => openContractModalForContractor(contractor)}
+                                  className="text-indigo-600 transition hover:text-indigo-700"
                                 >
                                   Add Contract
-                                </Button>
+                                </button>
                               )}
                               <button
                                 type="button"
                                 onClick={() => setViewingContractor(contractor)}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-gray-800"
-                                title={`View contracts for ${contractor.name}`}
-                                aria-label={`View contracts for ${contractor.name}`}
+                                className="text-gray-600 transition hover:text-gray-900"
                               >
-                                <Eye className="h-4 w-4" />
+                                View Contracts
                               </button>
                             </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Customer</p>
-                              <p className="mt-1 truncate text-gray-900">
-                                {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
-                              </p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Start Date</p>
-                              <p className="mt-1 text-gray-900">{latestContract ? formatters.formatDate(latestContract.startDate) : '-'}</p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">End Date / Due</p>
-                              <p className="mt-1 text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
-                              <p className="mt-0.5 text-xs text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Pay Rate</p>
-                              <p className="mt-1 text-gray-900">
-                                {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
-                              </p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Bill Rate</p>
-                              <p className="mt-1 text-gray-900">
-                                {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Total Contracts</p>
-                          <p className="mt-1 text-2xl font-semibold text-gray-900">{contractor.contracts.length}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                  </Card>
-                </motion.div>
-              )
-            })
+                          </td>
+                        </motion.tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
         </div>
 
@@ -994,12 +1019,12 @@ const ContractorsPage = () => {
 
         <Modal
           isOpen={isContractModalOpen}
-          onClose={() => setIsContractModalOpen(false)}
+          onClose={closeContractModal}
           title="Create Contract"
           size="xxl"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setIsContractModalOpen(false)}>
+              <Button variant="secondary" onClick={closeContractModal}>
                 Cancel
               </Button>
               <Button variant="primary" isLoading={isCreatingContract} onClick={submitContract}>
@@ -1015,21 +1040,31 @@ const ContractorsPage = () => {
               </div>
             )}
 
-            <Select
-              label="Contractor"
-              name="contractorId"
-              value={contractFormData.contractorId}
-              onChange={handleContractInputChange}
-              error={contractFormErrors.contractorId}
-              required
-              options={[
-                { value: '', label: 'Select a contractor...' },
-                ...contractors.map((contractor) => ({
-                  value: contractor.id,
-                  label: `${contractor.name} (${contractor.contractorId || `ID-${contractor.id}`})`,
-                })),
-              ]}
-            />
+            {lockedContractorId ? (
+              <Input
+                label="Contractor"
+                value={getContractorDisplayName(selectedContractor)}
+                required
+                readOnly
+                className="cursor-not-allowed bg-gray-50"
+              />
+            ) : (
+              <Select
+                label="Contractor"
+                name="contractorId"
+                value={contractFormData.contractorId}
+                onChange={handleContractInputChange}
+                error={contractFormErrors.contractorId}
+                required
+                options={[
+                  { value: '', label: 'Select a contractor...' },
+                  ...contractors.map((contractor) => ({
+                    value: String(contractor.id),
+                    label: getContractorDisplayName(contractor),
+                  })),
+                ]}
+              />
+            )}
 
             <Select
               label="Customer"
@@ -1039,7 +1074,7 @@ const ContractorsPage = () => {
               options={[
                 { value: '', label: 'Select a customer...' },
                 ...customers.map((customer) => ({
-                  value: customer.id,
+                  value: String(customer.id),
                   label: customer.name,
                 })),
               ]}
