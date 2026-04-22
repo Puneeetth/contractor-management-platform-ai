@@ -53,6 +53,8 @@ const REGION_FILTER_OPTIONS = [
   { value: 'US', label: 'US' },
   { value: 'EU', label: 'EU' },
   { value: 'APAC', label: 'APAC' },
+  { value: 'UK', label: 'UK' },
+  { value: 'MIDDLE-EAST', label: 'Middle-East' },
 ]
 
 const EMPLOYMENT_TYPE_OPTIONS = [
@@ -945,81 +947,104 @@ const ContractorsPage = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {viewingContractor.contracts.map((contract) => {
-                const estimatedPayout = (Number(contract.payRate) || 0) * (Number(contract.estimatedHours) || 0)
-
-                return (
-                  <div key={contract.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h3 className="text-lg font-semibold text-gray-900">Contract #{String(contract.id).padStart(3, '0')}</h3>
-                          <Badge
-                            variant={
-                              contract.status === 'ACTIVE' ? 'approved' : contract.status === 'TERMINATED' ? 'rejected' : 'default'
-                            }
-                          >
-                            {contract.status}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-600">Customer: {customerNameById[contract.customerId] || 'Not assigned'}</p>
-                        <p className="mt-1 text-sm text-gray-600">
-                          {formatters.formatDate(contract.startDate)} to {formatters.formatDate(contract.endDate)}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant={contract.throughEor ? 'info' : 'default'}>
-                          {contract.throughEor ? 'Through EOR' : 'Direct'}
-                        </Badge>
-                        <Badge variant="indigo">{contract.noticePeriodDays ?? 0} day notice</Badge>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                      <div className="rounded-xl bg-gray-50 p-3">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Pay Rate</p>
-                        <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.payRate)}</p>
-                      </div>
-                      <div className="rounded-xl bg-gray-50 p-3">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Bill Rate</p>
-                        <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.billRate)}</p>
-                      </div>
-                      <div className="rounded-xl bg-gray-50 p-3">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Hours</p>
-                        <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatHours(contract.estimatedHours)}</p>
-                      </div>
-                      <div className="rounded-xl bg-gray-50 p-3">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Total Payout</p>
-                        <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(estimatedPayout)}</p>
-                      </div>
-                      <div className="rounded-xl bg-gray-50 p-3">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Budget</p>
-                        <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.estimatedBudget)}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                      <div className="rounded-xl border border-gray-200 p-4">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Remarks</p>
-                        <p className="mt-2 text-sm text-gray-800">{contract.remarks || '-'}</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-200 p-4">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Termination Remarks</p>
-                        <p className="mt-2 text-sm text-gray-800">{contract.terminationRemarks || '-'}</p>
-                      </div>
-                    </div>
-
-                    {contract.poAllocation && (
-                      <div className="mt-4 rounded-xl border border-gray-200 p-4">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">PO Allocation</p>
-                        <p className="mt-2 text-sm text-gray-800">{contract.poAllocation}</p>
-                      </div>
-                    )}
+            <div className="space-y-6">
+              {[
+                { key: 'ACTIVE', title: 'Active Contracts', variant: 'approved', contracts: viewingContractor.contracts.filter((contract) => contract.status === 'ACTIVE') },
+                { key: 'INACTIVE', title: 'Inactive Contracts', variant: 'default', contracts: viewingContractor.contracts.filter((contract) => contract.status !== 'ACTIVE') },
+              ].map((section) => (
+                <div key={section.key}>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-800">{section.title}</h3>
+                    <Badge variant={section.variant}>{section.contracts.length}</Badge>
                   </div>
-                )
-              })}
+                  {section.contracts.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
+                      No {section.title.toLowerCase()} for this contractor.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {section.contracts.map((contract) => {
+                        const estimatedPayout = (Number(contract.payRate) || 0) * (Number(contract.estimatedHours) || 0)
+
+                        return (
+                          <div key={contract.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <h3 className="text-lg font-semibold text-gray-900">Contract #{String(contract.id).padStart(3, '0')}</h3>
+                                  <Badge
+                                    variant={
+                                      contract.status === 'ACTIVE'
+                                        ? 'approved'
+                                        : contract.status === 'TERMINATED'
+                                          ? 'rejected'
+                                          : 'default'
+                                    }
+                                  >
+                                    {contract.status}
+                                  </Badge>
+                                </div>
+                                <p className="mt-1 text-sm text-gray-600">Customer: {customerNameById[contract.customerId] || 'Not assigned'}</p>
+                                <p className="mt-1 text-sm text-gray-600">
+                                  {formatters.formatDate(contract.startDate)} to {formatters.formatDate(contract.endDate)}
+                                </p>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant={contract.throughEor ? 'info' : 'default'}>
+                                  {contract.throughEor ? 'Through EOR' : 'Direct'}
+                                </Badge>
+                                <Badge variant="indigo">{contract.noticePeriodDays ?? 0} day notice</Badge>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                              <div className="rounded-xl bg-gray-50 p-3">
+                                <p className="text-xs uppercase tracking-wide text-gray-500">Pay Rate</p>
+                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.payRate)}</p>
+                              </div>
+                              <div className="rounded-xl bg-gray-50 p-3">
+                                <p className="text-xs uppercase tracking-wide text-gray-500">Bill Rate</p>
+                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.billRate)}</p>
+                              </div>
+                              <div className="rounded-xl bg-gray-50 p-3">
+                                <p className="text-xs uppercase tracking-wide text-gray-500">Hours</p>
+                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatHours(contract.estimatedHours)}</p>
+                              </div>
+                              <div className="rounded-xl bg-gray-50 p-3">
+                                <p className="text-xs uppercase tracking-wide text-gray-500">Total Payout</p>
+                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(estimatedPayout)}</p>
+                              </div>
+                              <div className="rounded-xl bg-gray-50 p-3">
+                                <p className="text-xs uppercase tracking-wide text-gray-500">Budget</p>
+                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.estimatedBudget)}</p>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                              <div className="rounded-xl border border-gray-200 p-4">
+                                <p className="text-xs uppercase tracking-wide text-gray-500">Remarks</p>
+                                <p className="mt-2 text-sm text-gray-800">{contract.remarks || '-'}</p>
+                              </div>
+                              <div className="rounded-xl border border-gray-200 p-4">
+                                <p className="text-xs uppercase tracking-wide text-gray-500">Termination Remarks</p>
+                                <p className="mt-2 text-sm text-gray-800">{contract.terminationRemarks || '-'}</p>
+                              </div>
+                            </div>
+
+                            {contract.poAllocation && (
+                              <div className="mt-4 rounded-xl border border-gray-200 p-4">
+                                <p className="text-xs uppercase tracking-wide text-gray-500">PO Allocation</p>
+                                <p className="mt-2 text-sm text-gray-800">{contract.poAllocation}</p>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </Modal>
