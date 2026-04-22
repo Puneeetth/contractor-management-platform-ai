@@ -9,6 +9,21 @@ import { useAuth } from '../../hooks/useAuth'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 
+const createInitialPoFormData = (customerId = '') => ({
+  poNumber: '',
+  poDate: '',
+  startDate: '',
+  endDate: '',
+  poValue: '',
+  currency: 'USD',
+  paymentTermsDays: 30,
+  customerId,
+  remark: '',
+  numberOfResources: '',
+  sharedWith: '',
+  file: null,
+})
+
 const CustomersPage = () => {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
@@ -31,6 +46,10 @@ const CustomersPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [isPoModalOpen, setIsPoModalOpen] = useState(false)
+  const [poFormData, setPoFormData] = useState(createInitialPoFormData())
+  const [poFormErrors, setPoFormErrors] = useState({})
+  const [isPoSubmitting, setIsPoSubmitting] = useState(false)
 
   useEffect(() => {
     loadCustomers()
@@ -135,22 +154,69 @@ const CustomersPage = () => {
     }
   }
 
+  const openPoModal = (customer) => {
+    setSelectedCustomer(customer)
+    setPoFormData(createInitialPoFormData(customer.id))
+    setPoFormErrors({})
+    setIsPoModalOpen(true)
+  }
+
+  const handlePoInputChange = (e) => {
+    const { name, value } = e.target
+    const numberFields = ['poValue', 'paymentTermsDays', 'numberOfResources', 'customerId']
+
+    setPoFormData(prev => ({
+      ...prev,
+      [name]: numberFields.includes(name)
+        ? (value === '' ? '' : Number(value))
+        : value,
+    }))
+
+    if (poFormErrors[name]) {
+      setPoFormErrors(prev => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  const handlePoFileChange = (e) => {
+    const file = e.target.files?.[0] || null
+    setPoFormData(prev => ({ ...prev, file }))
+  }
+
+  const validatePoForm = () => {
+    const newErrors = {}
+    if (!validators.isRequired(poFormData.customerId)) newErrors.customerId = 'Customer is required'
+    if (!validators.isRequired(poFormData.poNumber)) newErrors.poNumber = 'PO Number is required'
+    if (!validators.isRequired(poFormData.poDate)) newErrors.poDate = 'PO Date is required'
+    if (!validators.isRequired(poFormData.poValue)) newErrors.poValue = 'PO Value is required'
+    setPoFormErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handlePoSubmit = async (e) => {
+    e.preventDefault()
+    if (!validatePoForm()) return
+
+    setIsPoSubmitting(true)
+    try {
+      await poService.createPurchaseOrder(poFormData)
+      setIsPoModalOpen(false)
+      setPoFormData(createInitialPoFormData())
+      setPoFormErrors({})
+      await loadCustomers()
+    } catch (err) {
+      setPoFormErrors({ submit: err?.message || 'Failed to create PO' })
+    } finally {
+      setIsPoSubmitting(false)
+    }
+  }
+
   const columns = [
     { key: 'name', label: 'Customer Name', render: (row) => <span className="font-medium text-gray-900">{row.name}</span> },
-    { 
-      key: 'address', 
-      label: 'Address',
-      render: (row) => (
-        <div className="max-w-[200px] truncate cursor-help" title={row.address}>
-          {row.address}
-        </div>
-      )
-    },
     { key: 'msaContactPerson', label: 'Contact Person' },
     {
-      key: 'totalPos',
-      label: 'Total POs',
-      render: (row) => <span className="font-medium text-gray-900">{poCountsByCustomer[row.id]?.total || 0}</span>,
+      key: 'msaContactEmail',
+      label: 'Contact Email',
+      render: (row) => <a href={`mailto:${row.msaContactEmail}`} className="text-indigo-400 hover:text-indigo-300 transition-colors">{row.msaContactEmail}</a>,
     },
     {
       key: 'activePos',
@@ -163,28 +229,27 @@ const CustomersPage = () => {
       render: (row) => <span className="font-medium text-amber-500">{poCountsByCustomer[row.id]?.inactive || 0}</span>,
     },
     {
-      key: 'msaContactEmail',
-      label: 'Contact Email',
-      render: (row) => <a href={`mailto:${row.msaContactEmail}`} className="text-indigo-400 hover:text-indigo-300 transition-colors">{row.msaContactEmail}</a>,
-    },
-    {
-      key: 'noticePeriodDays',
-      label: 'Notice Period',
-      render: (row) => <Badge variant="default">{row.noticePeriodDays} days</Badge>,
-    },
-    {
       key: 'actions',
       label: 'Actions',
       render: (row) => (
-        <button
-          onClick={() => {
-            setSelectedCustomer(row)
-            setIsViewModalOpen(true)
-          }}
-          className="text-indigo-400 hover:text-indigo-300 font-medium text-sm transition-colors"
-        >
-          View
-        </button>
+        <div className="flex items-center gap-3 whitespace-nowrap">
+          <button
+            onClick={() => {
+              setSelectedCustomer(row)
+              setIsViewModalOpen(true)
+            }}
+            className="text-indigo-400 hover:text-indigo-300 font-medium text-sm transition-colors"
+          >
+            View
+          </button>
+          <span className="text-gray-300">|</span>
+          <button
+            onClick={() => openPoModal(row)}
+            className="text-emerald-600 hover:text-emerald-700 font-medium text-sm transition-colors"
+          >
+            Add PO
+          </button>
+        </div>
       ),
     },
   ]
@@ -213,22 +278,26 @@ const CustomersPage = () => {
 
         {/* Summary Stats */}
         {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="mb-6 overflow-x-auto">
+            <div className="flex min-w-max items-center rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm md:min-w-0">
             {summaryStats.map((stat, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`${stat.bg} p-2.5 rounded-xl`}>
-                      <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{stat.label}</p>
-                      <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-                    </div>
-                  </div>
-                </Card>
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className={`flex min-w-[240px] flex-1 items-center justify-center gap-4 md:min-w-0 ${i !== 0 ? 'ml-6 pl-6 border-l border-gray-200' : ''}`}
+              >
+                <div className={`${stat.bg} shrink-0 rounded-xl p-2.5`}>
+                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                </div>
+                <div className="flex items-baseline gap-3 whitespace-nowrap">
+                  <p className="text-lg font-medium text-gray-700">{stat.label}</p>
+                  <p className="text-2xl font-bold leading-none text-gray-900">{stat.value}</p>
+                </div>
               </motion.div>
             ))}
+            </div>
           </div>
         )}
 
@@ -360,6 +429,61 @@ const CustomersPage = () => {
               </div>
             </div>
           )}
+        </Modal>
+
+        <Modal
+          isOpen={isPoModalOpen}
+          onClose={() => setIsPoModalOpen(false)}
+          title={selectedCustomer ? `Add PO for ${selectedCustomer.name}` : 'Add PO'}
+          size="xxl"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setIsPoModalOpen(false)}>Cancel</Button>
+              <Button variant="primary" isLoading={isPoSubmitting} onClick={handlePoSubmit}>Create PO</Button>
+            </>
+          }
+        >
+          <form className="space-y-4">
+            {poFormErrors.submit && (
+              <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
+                <p className="text-sm text-red-400">{poFormErrors.submit}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="PO Number" name="poNumber" value={poFormData.poNumber} onChange={handlePoInputChange} error={poFormErrors.poNumber} placeholder="Enter PO number" required />
+              <Input label="PO Date" name="poDate" type="date" value={poFormData.poDate} onChange={handlePoInputChange} error={poFormErrors.poDate} required />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Start Date" name="startDate" type="date" value={poFormData.startDate} onChange={handlePoInputChange} />
+              <Input label="End Date" name="endDate" type="date" value={poFormData.endDate} onChange={handlePoInputChange} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="PO Value" name="poValue" type="number" step="0.01" value={poFormData.poValue} onChange={handlePoInputChange} error={poFormErrors.poValue} required />
+              <Input label="Currency" name="currency" value={poFormData.currency} onChange={handlePoInputChange} placeholder="USD" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Payment Terms (no. of days)" name="paymentTermsDays" type="number" value={poFormData.paymentTermsDays} onChange={handlePoInputChange} />
+              <Input label="Customer" value={selectedCustomer?.name || ''} readOnly disabled required />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="No. of resources - contractors" name="numberOfResources" type="number" value={poFormData.numberOfResources} onChange={handlePoInputChange} />
+              <Input label="PO Upload (File)" type="file" name="file" onChange={handlePoFileChange} accept=".pdf,.doc,.docx" />
+            </div>
+
+            <Input label="Remark" name="remark" value={poFormData.remark} onChange={handlePoInputChange} />
+            <Input
+              label={<>Remarks <i>(Indicating with whom it&apos;s being shared e.g. co-worker)</i></>}
+              name="sharedWith"
+              value={poFormData.sharedWith}
+              onChange={handlePoInputChange}
+              placeholder="Shared with Finance team"
+            />
+          </form>
         </Modal>
       </motion.div>
     </DashboardLayout>
