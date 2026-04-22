@@ -37,6 +37,23 @@ const DEFAULT_BDM_COUNTRIES = [
   { code: 'MX', name: 'Mexico' },
 ]
 
+const DEFAULT_BDM_COUNTRIES = [
+  { code: 'IN', name: 'India' },
+  { code: 'US', name: 'USA' },
+  { code: 'UK', name: 'UK' },
+  { code: 'AE', name: 'UAE' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+]
+
 const INITIAL_FORM_DATA = {
   name: '',
   email: '',

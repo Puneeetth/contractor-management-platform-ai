@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.cmp.ai.dto.request.InvoiceRequest;
 import com.cmp.ai.dto.response.InvoiceResponse;
+import com.cmp.ai.entity.Contract;
 import com.cmp.ai.entity.Invoice;
 import com.cmp.ai.entity.User;
 import com.cmp.ai.enums.ContractStatus;
@@ -78,9 +79,23 @@ public class InvoiceService {
                 .invoiceFileUrl(invoiceFileUrl)
                 .timesheetFileUrl(timesheetFileUrl)
                 .status(Status.PENDING)
+                .adminApprovalStatus(Status.PENDING)
+                .financeApprovalStatus(Status.PENDING)
                 .build();
 
-        return InvoiceTransformer.invoiceToInvoiceResponse(invoiceRepository.save(invoice));
+        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+    }
+
+    public Double getActiveContractRate(@NonNull Long contractorId) {
+        userRepository.findById(contractorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
+
+        return contractRepository.findByContractorId(contractorId).stream()
+                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
+                .findFirst()
+                .map(c -> c.getBillRate())
+                .filter(rate -> rate != null && rate > 0)
+                .orElseThrow(() -> new BadRequestException("No active contract with valid rate found for this contractor"));
     }
 
     public Double getActiveContractRate(@NonNull Long contractorId) {
@@ -97,14 +112,14 @@ public class InvoiceService {
 
     public List<InvoiceResponse> getAllInvoices() {
         return invoiceRepository.findAll().stream()
-                .map(InvoiceTransformer::invoiceToInvoiceResponse)
+                .map(this::toInvoiceResponseWithRates)
                 .toList();
     }
 
     public List<InvoiceResponse> getInvoicesByContractor(@NonNull Long contractorId) {
         return invoiceRepository.findAll().stream()
                 .filter(i -> i.getContractor().getId().equals(contractorId))
-                .map(InvoiceTransformer::invoiceToInvoiceResponse)
+                .map(this::toInvoiceResponseWithRates)
                 .toList();
     }
 
@@ -112,7 +127,53 @@ public class InvoiceService {
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
 
-        invoice.setStatus(Status.APPROVED);
-        return InvoiceTransformer.invoiceToInvoiceResponse(invoiceRepository.save(invoice));
+        invoice.setFinanceApprovalStatus(Status.APPROVED);
+        if (Status.APPROVED.equals(invoice.getAdminApprovalStatus())) {
+            invoice.setStatus(Status.APPROVED);
+        }
+        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+    }
+
+    public InvoiceResponse approveInvoiceByAdmin(@NonNull Long invoiceId) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
+
+        invoice.setAdminApprovalStatus(Status.APPROVED);
+        if (Status.APPROVED.equals(invoice.getFinanceApprovalStatus())) {
+            invoice.setStatus(Status.APPROVED);
+        }
+        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+    }
+
+    public InvoiceResponse approveInvoiceByFinance(@NonNull Long invoiceId) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
+
+        invoice.setFinanceApprovalStatus(Status.APPROVED);
+        if (Status.APPROVED.equals(invoice.getAdminApprovalStatus())) {
+            invoice.setStatus(Status.APPROVED);
+        }
+        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+    }
+
+    private InvoiceResponse toInvoiceResponseWithRates(Invoice invoice) {
+        Contract activeContract = contractRepository.findByContractorId(invoice.getContractor().getId()).stream()
+                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
+                .findFirst()
+                .orElse(null);
+
+        Double billRate = activeContract != null
+                ? activeContract.getBillRate()
+                : deriveBillRateFromInvoice(invoice);
+        Double payRate = activeContract != null ? activeContract.getPayRate() : null;
+
+        return InvoiceTransformer.invoiceToInvoiceResponse(invoice, billRate, payRate);
+    }
+
+    private Double deriveBillRateFromInvoice(Invoice invoice) {
+        if (invoice.getTotalHours() == null || invoice.getTotalHours() <= 0 || invoice.getBaseAmount() == null) {
+            return null;
+        }
+        return invoice.getBaseAmount() / invoice.getTotalHours();
     }
 }

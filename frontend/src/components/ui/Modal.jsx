@@ -9,6 +9,7 @@ export const Modal = ({
   children,
   footer = null,
   size = 'md',
+  titleClassName = 'text-lg font-semibold text-gray-900',
 }) => {
   if (!isOpen) return null
 
@@ -42,7 +43,7 @@ export const Modal = ({
         `}
       >
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <h2 className={titleClassName}>{title}</h2>
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
