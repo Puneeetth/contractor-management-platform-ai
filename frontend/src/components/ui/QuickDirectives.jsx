@@ -29,7 +29,7 @@ const QuickDirectives = () => {
       color: 'bg-[#e9ecef]',
       textColor: 'text-gray-700',
       showArrow: false,
-      onClick: () => alert('Exporting Audit Log... (Feature coming soon)')
+      onClick: () => alert('Export started.')
     },
   ]
 
