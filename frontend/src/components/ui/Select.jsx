@@ -13,6 +13,8 @@ export const Select = ({
   className = '',
   ...props
 }) => {
+  const hasEmptyOption = options.some((option) => String(option.value) === '')
+
   return (
     <div className="w-full">
       {label && (
@@ -39,7 +41,9 @@ export const Select = ({
           `}
           {...props}
         >
-          <option value="" className="bg-white">{placeholder}</option>
+          {!hasEmptyOption && (
+            <option value="" className="bg-white">{placeholder}</option>
+          )}
           {options.map((option) => (
             <option key={option.value} value={option.value} className="bg-white">
               {option.label}

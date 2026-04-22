@@ -5,7 +5,6 @@ import {
   Briefcase,
   CalendarDays,
   DollarSign,
-  Eye,
   Filter,
   UserPlus,
 } from 'lucide-react'
@@ -84,6 +83,7 @@ const ContractorsPage = () => {
   const [contractFormErrors, setContractFormErrors] = useState({})
   const [isCreatingContractor, setIsCreatingContractor] = useState(false)
   const [isCreatingContract, setIsCreatingContract] = useState(false)
+  const [isContractorSelectionLocked, setIsContractorSelectionLocked] = useState(false)
   const [selectedRegionFilter, setSelectedRegionFilter] = useState('')
   const [selectedCustomerFilter, setSelectedCustomerFilter] = useState('')
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
@@ -235,6 +235,7 @@ const ContractorsPage = () => {
   const resetContractForm = (contractorId = '') => {
     setContractFormData({ ...EMPTY_CONTRACT_FORM, contractorId })
     setContractFormErrors({})
+    setIsContractorSelectionLocked(Boolean(contractorId))
   }
 
   const handleContractorInputChange = (event) => {
@@ -637,7 +638,24 @@ const ContractorsPage = () => {
               </div>
             </Card>
           ) : (
-            filteredContractorRows.map((contractor, index) => {
+            <>
+              <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
+                <div className="p-4 sm:p-5">
+                  <div className="overflow-x-auto">
+                    <div className="mb-1 grid min-w-[1120px] grid-cols-8 gap-3 text-xs">
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Contractor</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Customer</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Start Date</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">End Date / Due</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Pay Rate</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Bill Rate</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Total Contracts</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Actions</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            {filteredContractorRows.map((contractor, index) => {
               const latestContract = contractor.contracts[0]
               return (
                 <motion.div
@@ -648,77 +666,63 @@ const ContractorsPage = () => {
                 >
                   <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
                     <div className="p-4 sm:p-5">
-                      <div className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-4">
-                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2.5">
-                                <h2 className="text-2xl font-semibold tracking-tight text-gray-900">{contractor.name}</h2>
-                                <Badge variant="indigo">{contractor.contractorId || 'No ID'}</Badge>
-                                <Badge variant={contractor.activeContractCount > 0 ? 'approved' : 'default'}>
-                                  {contractor.activeContractCount} active
-                                </Badge>
-                              </div>
-                            </div>
+                      <div className="overflow-x-auto">
+                        <div className="grid min-w-[1120px] grid-cols-8 gap-3 text-xs">
+                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                            <p className="truncate text-base font-semibold tracking-tight text-gray-900">{contractor.name}</p>
+                          </div>
 
-                            <div className="flex flex-wrap gap-2 lg:flex-shrink-0 lg:justify-end">
+                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                            <p className="mt-1 truncate text-sm text-gray-900">
+                              {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                            <p className="mt-1 truncate text-sm text-gray-900">{latestContract ? formatters.formatDate(latestContract.startDate) : '-'}</p>
+                          </div>
+                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                            <p className="mt-1 truncate text-sm text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
+                            <p className="mt-0.5 truncate text-xs text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
+                          </div>
+                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                            <p className="mt-1 truncate text-sm text-gray-900">
+                              {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                            <p className="mt-1 truncate text-sm text-gray-900">
+                              {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                            <p className="mt-1 truncate text-sm font-semibold text-gray-900">{contractor.contracts.length}</p>
+                          </div>
+
+                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                            <div className="mt-2 flex flex-col gap-2">
                               {canCreateContracts && (
-                                <Button
-                                  variant="secondary"
-                                  className="min-w-[160px]"
+                                <button
+                                  type="button"
+                                  className="w-fit text-xs font-semibold whitespace-nowrap text-indigo-600 hover:text-indigo-700"
                                   onClick={() => {
                                     resetContractForm(String(contractor.id))
                                     setIsContractModalOpen(true)
                                   }}
                                 >
                                   Add Contract
-                                </Button>
+                                </button>
                               )}
                               <button
                                 type="button"
+                                className="inline-flex w-fit items-center gap-1 text-xs font-semibold whitespace-nowrap text-emerald-600 hover:text-emerald-700"
                                 onClick={() => setViewingContractor(contractor)}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-gray-800"
                                 title={`View contracts for ${contractor.name}`}
                                 aria-label={`View contracts for ${contractor.name}`}
                               >
-                                <Eye className="h-4 w-4" />
+                                View Contracts
                               </button>
                             </div>
                           </div>
-
-                          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Customer</p>
-                              <p className="mt-1 truncate text-gray-900">
-                                {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
-                              </p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Start Date</p>
-                              <p className="mt-1 text-gray-900">{latestContract ? formatters.formatDate(latestContract.startDate) : '-'}</p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">End Date / Due</p>
-                              <p className="mt-1 text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
-                              <p className="mt-0.5 text-xs text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Pay Rate</p>
-                              <p className="mt-1 text-gray-900">
-                                {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
-                              </p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Bill Rate</p>
-                              <p className="mt-1 text-gray-900">
-                                {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Total Contracts</p>
-                          <p className="mt-1 text-2xl font-semibold text-gray-900">{contractor.contracts.length}</p>
                         </div>
                       </div>
                     </div>
@@ -726,7 +730,8 @@ const ContractorsPage = () => {
                   </Card>
                 </motion.div>
               )
-            })
+            })}
+            </>
           )}
         </div>
 
@@ -994,7 +999,10 @@ const ContractorsPage = () => {
 
         <Modal
           isOpen={isContractModalOpen}
-          onClose={() => setIsContractModalOpen(false)}
+          onClose={() => {
+            setIsContractModalOpen(false)
+            resetContractForm()
+          }}
           title="Create Contract"
           size="xxl"
           footer={
@@ -1022,6 +1030,7 @@ const ContractorsPage = () => {
               onChange={handleContractInputChange}
               error={contractFormErrors.contractorId}
               required
+              disabled={isContractorSelectionLocked}
               options={[
                 { value: '', label: 'Select a contractor...' },
                 ...contractors.map((contractor) => ({
