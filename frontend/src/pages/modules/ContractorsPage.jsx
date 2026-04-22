@@ -1025,15 +1025,14 @@ const ContractorsPage = () => {
         </Modal>
 
         <Modal
-          isOpen={isContractModalOpen}
-          onClose={() => {
-            setIsContractModalOpen(false)
-            resetContractForm()
-          }}
-          onClose={closeContractModal}
-          title="Create Contract"
-          size="xxl"
-          footer={
+  isOpen={isContractModalOpen}
+  onClose={() => {
+    closeContractModal()
+    resetContractForm()
+  }}
+  title="Create Contract"
+  size="xxl"
+  footer={
             <>
               <Button variant="secondary" onClick={closeContractModal}>
                 Cancel
