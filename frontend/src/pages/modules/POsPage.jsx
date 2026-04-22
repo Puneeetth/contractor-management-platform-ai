@@ -263,7 +263,7 @@ const POsPage = () => {
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
             
             <div className="grid grid-cols-2 gap-4">
-              <Input label="PO Number" name="poNumber" value={formData.poNumber} onChange={handleInputChange} error={formErrors.poNumber} placeholder="PO-2024-001" required />
+                  <Input label="PO Number" name="poNumber" value={formData.poNumber} onChange={handleInputChange} error={formErrors.poNumber} placeholder="Enter PO number" required />
               <Input label="PO Date" name="poDate" type="date" value={formData.poDate} onChange={handleInputChange} error={formErrors.poDate} required />
             </div>
 

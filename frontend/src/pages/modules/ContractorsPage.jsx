@@ -3,15 +3,16 @@ import { motion } from 'framer-motion'
 import {
   AlertCircle,
   Briefcase,
-  CalendarDays,
-  DollarSign,
-  Filter,
+  Eye,
+  FileText,
+  Plus,
   UserPlus,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Badge, Button, Card, Input, Loader, Modal, Select, Table, Textarea } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
+import { poService } from '../../services/poService'
 import { useAuthStore } from '../../hooks/useAuth'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
@@ -74,6 +75,7 @@ const ContractorsPage = () => {
   const [contracts, setContracts] = useState([])
   const [customers, setCustomers] = useState([])
   const [contractors, setContractors] = useState([])
+  const [purchaseOrders, setPurchaseOrders] = useState([])
   const [viewingContractor, setViewingContractor] = useState(null)
 
   const [isContractorModalOpen, setIsContractorModalOpen] = useState(false)
@@ -90,7 +92,6 @@ const ContractorsPage = () => {
   const [contractorSearchTerm, setContractorSearchTerm] = useState('')
   const [selectedRegionFilter, setSelectedRegionFilter] = useState('')
   const [selectedCustomerFilter, setSelectedCustomerFilter] = useState('')
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
   const isFreelancer = contractorFormData.employmentType === 'FREELANCER'
   const isFullTimeEmployee = contractorFormData.employmentType === 'FULL_TIME'
 
@@ -128,19 +129,10 @@ const ContractorsPage = () => {
           const contractorContracts = [
             ...(contractsByContractorId[contractor.userId] || contractsByContractorId[contractor.id] || []),
           ].sort((left, right) => (right.startDate || '').localeCompare(left.startDate || ''))
-          const activeContractCount = contractorContracts.filter((contract) => contract.status === 'ACTIVE').length
-          const totalBudget = contractorContracts.reduce((sum, contract) => sum + (Number(contract.estimatedBudget) || 0), 0)
-          const totalPayout = contractorContracts.reduce(
-            (sum, contract) => sum + ((Number(contract.payRate) || 0) * (Number(contract.estimatedHours) || 0)),
-            0
-          )
 
           return {
             ...contractor,
             contracts: contractorContracts,
-            activeContractCount,
-            totalBudget,
-            totalPayout,
           }
         }),
     [contractors, contractsByContractorId]
@@ -165,12 +157,51 @@ const ContractorsPage = () => {
     })
   }, [contractorRows, contractorSearchTerm, isAdmin, selectedRegionFilter, selectedCustomerFilter])
 
-  const contractorCountWithContracts = filteredContractorRows.filter((contractor) => contractor.contracts.length > 0).length
-  const totalContractBudget = filteredContractorRows.reduce((sum, contractor) => sum + contractor.totalBudget, 0)
   const selectedContractor = useMemo(
     () => contractors.find((contractor) => String(contractor.id) === String(contractFormData.contractorId)) || null,
     [contractors, contractFormData.contractorId]
   )
+
+  const purchaseOrderByNumber = useMemo(
+    () =>
+      purchaseOrders.reduce((lookup, purchaseOrder) => {
+        const normalizedPoNumber = String(purchaseOrder?.poNumber || '').trim()
+        if (normalizedPoNumber) {
+          lookup[normalizedPoNumber] = purchaseOrder
+        }
+        return lookup
+      }, {}),
+    [purchaseOrders]
+  )
+
+  const activePoUsageByNumber = useMemo(
+    () =>
+      contracts.reduce((lookup, contract) => {
+        if (contract.status !== 'ACTIVE') return lookup
+        const normalizedPoNumber = String(contract.poAllocation || '').trim()
+        if (!normalizedPoNumber) return lookup
+        if (!lookup[normalizedPoNumber]) {
+          lookup[normalizedPoNumber] = new Set()
+        }
+        if (contract.contractorId != null) {
+          lookup[normalizedPoNumber].add(String(contract.contractorId))
+        }
+        return lookup
+      }, {}),
+    [contracts]
+  )
+
+  const selectedPurchaseOrder = useMemo(() => {
+    const normalizedPoNumber = String(contractFormData.poAllocation || '').trim()
+    if (!normalizedPoNumber) return null
+    return purchaseOrderByNumber[normalizedPoNumber] || null
+  }, [contractFormData.poAllocation, purchaseOrderByNumber])
+
+  const selectedPurchaseOrderUsage = useMemo(() => {
+    const normalizedPoNumber = String(selectedPurchaseOrder?.poNumber || '').trim()
+    if (!normalizedPoNumber) return 0
+    return activePoUsageByNumber[normalizedPoNumber]?.size || 0
+  }, [selectedPurchaseOrder, activePoUsageByNumber])
 
   const calculateEstimatedBudget = (billRate, estimatedHours) => {
     const normalizedBillRate = Number(billRate)
@@ -201,10 +232,11 @@ const ContractorsPage = () => {
     setIsLoading(true)
     setError(null)
 
-    const [contractsResult, customersResult, contractorsResult] = await Promise.allSettled([
+    const [contractsResult, customersResult, contractorsResult, purchaseOrdersResult] = await Promise.allSettled([
       contractService.getAllContracts(),
       customerService.getAllCustomers(),
       contractorService.getAllContractors(),
+      poService.getAllPurchaseOrders(),
     ])
 
     if (contractsResult.status === 'fulfilled') {
@@ -225,10 +257,17 @@ const ContractorsPage = () => {
       setContractors([])
     }
 
+    if (purchaseOrdersResult.status === 'fulfilled') {
+      setPurchaseOrders(Array.isArray(purchaseOrdersResult.value) ? purchaseOrdersResult.value : [])
+    } else {
+      setPurchaseOrders([])
+    }
+
     if (
       contractsResult.status === 'rejected' ||
       customersResult.status === 'rejected' ||
-      contractorsResult.status === 'rejected'
+      contractorsResult.status === 'rejected' ||
+      purchaseOrdersResult.status === 'rejected'
     ) {
       setError('Failed to load contractor management data')
     }
@@ -296,6 +335,12 @@ const ContractorsPage = () => {
         [name]: parsedValue,
       }
 
+      if (name === 'poAllocation') {
+        const normalizedPoNumber = String(parsedValue || '').trim()
+        const linkedPurchaseOrder = purchaseOrderByNumber[normalizedPoNumber]
+        nextData.customerId = linkedPurchaseOrder?.customerId ? String(linkedPurchaseOrder.customerId) : ''
+      }
+
       if (name === 'payRate' && parsedValue !== '' && previousData.billRate !== '' && Number(parsedValue) > Number(previousData.billRate)) {
         blockedRateEntry = true
         return previousData
@@ -334,6 +379,14 @@ const ContractorsPage = () => {
 
     if ((name === 'billRate' || name === 'payRate') && (contractFormErrors.billRate || contractFormErrors.payRate || contractFormErrors.rateValidation)) {
       setContractFormErrors((previousErrors) => ({ ...previousErrors, billRate: '', payRate: '', rateValidation: '' }))
+    }
+
+    if (name === 'poAllocation' && (contractFormErrors.poAllocation || contractFormErrors.customerId)) {
+      setContractFormErrors((previousErrors) => ({ ...previousErrors, poAllocation: '', customerId: '' }))
+    }
+
+    if ((name === 'poAllocation' || name === 'startDate' || name === 'endDate') && (contractFormErrors.startDate || contractFormErrors.endDate)) {
+      setContractFormErrors((previousErrors) => ({ ...previousErrors, startDate: '', endDate: '' }))
     }
   }
 
@@ -389,8 +442,16 @@ const ContractorsPage = () => {
 
   const validateContractForm = () => {
     const nextErrors = {}
+    const normalizedPoNumber = String(contractFormData.poAllocation || '').trim()
+    const linkedPurchaseOrder = purchaseOrderByNumber[normalizedPoNumber]
 
     if (!validators.isRequired(contractFormData.contractorId)) nextErrors.contractorId = 'Contractor is required'
+    if (!normalizedPoNumber) {
+      nextErrors.poAllocation = 'Purchase order is required'
+    } else if (!linkedPurchaseOrder) {
+      nextErrors.poAllocation = 'Select a valid purchase order'
+    }
+    if (normalizedPoNumber && !validators.isRequired(contractFormData.customerId)) nextErrors.customerId = 'Customer is required'
     if (!validators.isRequired(contractFormData.billRate)) nextErrors.billRate = 'Bill rate is required'
     if (!validators.isRequired(contractFormData.payRate)) nextErrors.payRate = 'Pay rate is required'
     if (!validators.isRequired(contractFormData.estimatedHours)) nextErrors.estimatedHours = 'Estimated hours is required'
@@ -411,6 +472,24 @@ const ContractorsPage = () => {
     ) {
       nextErrors.endDate = 'End date must be after the start date'
     }
+
+    if (linkedPurchaseOrder && validators.isRequired(contractFormData.startDate) && validators.isRequired(contractFormData.endDate)) {
+      if (linkedPurchaseOrder.startDate && contractFormData.startDate < linkedPurchaseOrder.startDate) {
+        nextErrors.startDate = `Start date must be on or after PO start (${formatters.formatDate(linkedPurchaseOrder.startDate)})`
+      }
+      if (linkedPurchaseOrder.endDate && contractFormData.endDate > linkedPurchaseOrder.endDate) {
+        nextErrors.endDate = `End date must be on or before PO end (${formatters.formatDate(linkedPurchaseOrder.endDate)})`
+      }
+    }
+
+    if (linkedPurchaseOrder && Number(linkedPurchaseOrder.numberOfResources) > 0 && validators.isRequired(contractFormData.contractorId)) {
+      const poUsage = activePoUsageByNumber[normalizedPoNumber] || new Set()
+      const isAlreadyAssignedInPo = poUsage.has(String(contractFormData.contractorId))
+      if (!isAlreadyAssignedInPo && poUsage.size >= Number(linkedPurchaseOrder.numberOfResources)) {
+        nextErrors.poAllocation = `PO resource limit reached (${poUsage.size}/${linkedPurchaseOrder.numberOfResources})`
+      }
+    }
+
     if (Number(contractFormData.noticePeriodDays) < 0) nextErrors.noticePeriodDays = 'Notice period cannot be negative'
 
     setContractFormErrors(nextErrors)
@@ -465,6 +544,7 @@ const ContractorsPage = () => {
     try {
       await contractService.createContract({
         ...contractFormData,
+        poAllocation: String(contractFormData.poAllocation || '').trim(),
         contractorId: Number(contractFormData.contractorId),
         customerId: contractFormData.customerId ? Number(contractFormData.customerId) : null,
       })
@@ -478,30 +558,6 @@ const ContractorsPage = () => {
       setIsCreatingContract(false)
     }
   }
-
-  const summaryStats = [
-    {
-      icon: UserPlus,
-      label: 'Total Contractors',
-      value: contractorRows.length,
-      color: 'text-blue-400',
-      bg: 'bg-blue-100',
-    },
-    {
-      icon: CalendarDays,
-      label: 'With Contracts',
-      value: contractorCountWithContracts,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-100',
-    },
-    {
-      icon: DollarSign,
-      label: 'Total Contract Budget',
-      value: formatters.formatCurrency(totalContractBudget),
-      color: 'text-indigo-400',
-      bg: 'bg-indigo-100',
-    },
-  ]
 
   const contractorTableColumns = useMemo(
     () => [
@@ -519,6 +575,20 @@ const ContractorsPage = () => {
         },
       },
       {
+        key: 'contractReference',
+        label: 'PO / Contract Ref',
+        render: (row) => {
+          const latestContract = row.contracts[0]
+          if (!latestContract) return '-'
+          return (
+            <div className="flex flex-col">
+              <span className="font-medium text-gray-900">{latestContract.poAllocation || `Contract #${latestContract.id}`}</span>
+              <span className="text-xs text-gray-500">Linked via customer PO</span>
+            </div>
+          )
+        },
+      },
+      {
         key: 'startDate',
         label: 'Start Date',
         render: (row) => {
@@ -528,11 +598,16 @@ const ContractorsPage = () => {
       },
       {
         key: 'endDate',
-        label: 'End Date / Due',
+        label: 'End Date',
         render: (row) => {
           const latestContract = row.contracts[0]
           if (!latestContract) return '-'
-          return `${formatters.formatDate(latestContract.endDate)} (${calculateDueDays(latestContract.endDate)})`
+          return (
+            <div className="flex flex-col">
+              <span>{formatters.formatDate(latestContract.endDate)}</span>
+              <span className="text-xs text-gray-500">{calculateDueDays(latestContract.endDate)}</span>
+            </div>
+          )
         },
       },
       {
@@ -552,32 +627,29 @@ const ContractorsPage = () => {
         },
       },
       {
-        key: 'totalContracts',
-        label: 'Total Contracts',
-        render: (row) => <span className="font-medium text-gray-900">{row.contracts.length}</span>,
-      },
-      {
         key: 'actions',
         label: 'Actions',
         render: (row) => (
-          <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
             {canCreateContracts && (
               <button
                 type="button"
-                className="w-fit text-xs font-semibold whitespace-nowrap text-indigo-600 hover:text-indigo-700"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-indigo-600 hover:bg-indigo-50"
                 onClick={() => openContractModalForContractor(row)}
+                title={`Add contract for ${row.name}`}
+                aria-label={`Add contract for ${row.name}`}
               >
-                Add Contract
+                <Plus className="h-4 w-4" />
               </button>
             )}
             <button
               type="button"
-              className="inline-flex w-fit items-center gap-1 text-xs font-semibold whitespace-nowrap text-emerald-600 hover:text-emerald-700"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-emerald-600 hover:bg-emerald-50"
               onClick={() => setViewingContractor(row)}
               title={`View contracts for ${row.name}`}
               aria-label={`View contracts for ${row.name}`}
             >
-              View Contracts
+              <Eye className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -589,121 +661,32 @@ const ContractorsPage = () => {
   return (
     <DashboardLayout>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Contractors</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Create contractor profiles, attach contracts, and expand each contractor to review commercial details.
-            </p>
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-2">
+            <FileText className="mt-1 h-5 w-5 text-indigo-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Contractors</h1>
+              <p className="mt-1 text-sm text-gray-600">
+                Customer to PO to contractor mapping with bill rate, pay rate, and assignment dates.
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={() => setIsFilterPanelOpen((previousState) => !previousState)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-gray-800"
-                title="Filter contractors"
-                aria-label="Filter contractors"
-              >
-                <Filter className="h-4 w-4" />
-              </button>
-            )}
-            {isAdmin && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  resetContractorForm()
-                  setIsContractorModalOpen(true)
-                }}
-                className="flex items-center gap-2"
-              >
-                <UserPlus className="h-4 w-4" /> Add Contractor
-              </Button>
-            )}
-          </div>
+          {isAdmin && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                resetContractorForm()
+                setIsContractorModalOpen(true)
+              }}
+              className="inline-flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Add Contractor
+            </Button>
+          )}
         </div>
-
-        <Card className="mb-6">
-          <Input
-            label="Search Contractor"
-            name="contractorSearch"
-            value={contractorSearchTerm}
-            onChange={(event) => setContractorSearchTerm(event.target.value)}
-            placeholder="Search by contractor name"
-          />
-        </Card>
-
-        {isAdmin && isFilterPanelOpen && (
-          <Card className="mb-6">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">Filter Contractors</h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setContractorSearchTerm('')
-                  setSelectedRegionFilter('')
-                  setSelectedCustomerFilter('')
-                }}
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-              >
-                Clear filters
-              </button>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Select
-                label="Filter by Region"
-                name="regionFilter"
-                value={selectedRegionFilter}
-                onChange={(event) => setSelectedRegionFilter(event.target.value)}
-                options={[
-                  { value: '', label: 'All regions' },
-                  ...REGION_FILTER_OPTIONS.map((region) => ({ value: region.value, label: region.label })),
-                ]}
-              />
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Select
-                label="Filter by Customer"
-                name="customerFilter"
-                value={selectedCustomerFilter}
-                onChange={(event) => setSelectedCustomerFilter(event.target.value)}
-                options={[
-                  { value: '', label: 'All customers' },
-                  ...customers.map((customer) => ({
-                    value: String(customer.id),
-                    label: customer.name,
-                  })),
-                ]}
-              />
-            </div>
-          </Card>
-        )}
-
-        {!isLoading && (
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-            {summaryStats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`${stat.bg} rounded-xl p-2.5`}>
-                      <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{stat.label}</p>
-                      <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
 
         {error && (
           <motion.div
@@ -726,7 +709,64 @@ const ContractorsPage = () => {
           </motion.div>
         )}
 
-        <div className="space-y-4">
+        <Card isPadded={false} className="mb-4">
+          <div className="flex flex-col gap-3 p-3 md:flex-row md:items-center">
+            <input
+              type="text"
+              name="contractorSearch"
+              value={contractorSearchTerm}
+              onChange={(event) => setContractorSearchTerm(event.target.value)}
+              placeholder="Search contractor..."
+              className="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 md:flex-1"
+            />
+
+            {isAdmin && (
+              <>
+                <select
+                  name="regionFilter"
+                  value={selectedRegionFilter}
+                  onChange={(event) => setSelectedRegionFilter(event.target.value)}
+                  className="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  <option value="">All regions</option>
+                  {REGION_FILTER_OPTIONS.map((region) => (
+                    <option key={region.value} value={region.value}>
+                      {region.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  name="customerFilter"
+                  value={selectedCustomerFilter}
+                  onChange={(event) => setSelectedCustomerFilter(event.target.value)}
+                  className="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  <option value="">All customers</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={String(customer.id)}>
+                      {customer.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setContractorSearchTerm('')
+                setSelectedRegionFilter('')
+                setSelectedCustomerFilter('')
+              }}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Clear
+            </button>
+          </div>
+        </Card>
+
+        <div className="mb-4">
           {isLoading ? (
             <Card>
               <div className="flex justify-center py-12">
@@ -1103,18 +1143,48 @@ const ContractorsPage = () => {
 )}
 
             <Select
-              label="Customer"
-              name="customerId"
-              value={contractFormData.customerId}
+              label="Purchase Order"
+              name="poAllocation"
+              value={contractFormData.poAllocation}
               onChange={handleContractInputChange}
+              error={contractFormErrors.poAllocation}
+              required
               options={[
-                { value: '', label: 'Select a customer...' },
-                ...customers.map((customer) => ({
-                  value: String(customer.id),
-                  label: customer.name,
-                })),
+                { value: '', label: 'Select a purchase order...' },
+                ...purchaseOrders
+                  .filter((purchaseOrder) => Boolean(purchaseOrder?.poNumber))
+                  .map((purchaseOrder) => {
+                    const normalizedPoNumber = String(purchaseOrder.poNumber).trim()
+                    const allocatedCount = activePoUsageByNumber[normalizedPoNumber]?.size || 0
+                    const capacity = Number(purchaseOrder.numberOfResources) || 0
+                    const customerName = customerNameById[purchaseOrder.customerId] || `Customer #${purchaseOrder.customerId}`
+                    return {
+                      value: normalizedPoNumber,
+                      label: `${normalizedPoNumber} | ${customerName} | ${allocatedCount}/${capacity || 'NA'} resources`,
+                    }
+                  }),
               ]}
             />
+
+            <Input
+              label="Customer"
+              value={contractFormData.customerId ? (customerNameById[contractFormData.customerId] || `Customer #${contractFormData.customerId}`) : ''}
+              error={contractFormErrors.customerId}
+              readOnly
+              className="cursor-not-allowed bg-gray-50"
+              placeholder="Auto-linked from selected PO"
+            />
+
+            {selectedPurchaseOrder && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
+                <p className="text-sm font-medium text-indigo-900">
+                  PO Window: {formatters.formatDate(selectedPurchaseOrder.startDate)} to {formatters.formatDate(selectedPurchaseOrder.endDate)}
+                </p>
+                <p className="mt-1 text-sm text-indigo-800">
+                  Resource Allocation: {selectedPurchaseOrderUsage}/{selectedPurchaseOrder.numberOfResources || 'NA'} active contractors
+                </p>
+              </div>
+            )}
 
             {contractFormErrors.rateValidation && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
@@ -1176,6 +1246,8 @@ const ContractorsPage = () => {
                 value={contractFormData.startDate}
                 onChange={handleContractInputChange}
                 error={contractFormErrors.startDate}
+                min={selectedPurchaseOrder?.startDate || undefined}
+                max={selectedPurchaseOrder?.endDate || undefined}
                 required
               />
               <Input
@@ -1185,6 +1257,8 @@ const ContractorsPage = () => {
                 value={contractFormData.endDate}
                 onChange={handleContractInputChange}
                 error={contractFormErrors.endDate}
+                min={selectedPurchaseOrder?.startDate || undefined}
+                max={selectedPurchaseOrder?.endDate || undefined}
                 required
               />
             </div>
@@ -1198,13 +1272,6 @@ const ContractorsPage = () => {
                 onChange={handleContractInputChange}
                 error={contractFormErrors.noticePeriodDays}
                 min="0"
-              />
-              <Input
-                label="PO Allocation"
-                name="poAllocation"
-                value={contractFormData.poAllocation}
-                onChange={handleContractInputChange}
-                placeholder="PO-2026-001"
               />
             </div>
 
