@@ -19,6 +19,15 @@ const InvoicesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [isEditingInvoiceDetails, setIsEditingInvoiceDetails] = useState(false)
+  const [invoiceDetailsForm, setInvoiceDetailsForm] = useState({
+    billRate: '',
+    payRate: '',
+    hoursRate: '',
+    totalHoursForCalc: '',
+    totalAmount: '',
+    tax: '',
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formErrors, setFormErrors] = useState({})
   const [rateError, setRateError] = useState('')
@@ -195,7 +204,34 @@ const InvoicesPage = () => {
 
   const openInvoiceDetails = (invoice) => {
     setSelectedInvoice(invoice)
+    setInvoiceDetailsForm({
+      billRate: Number(invoice.billRate ?? 0),
+      payRate: Number(invoice.payRate ?? 0),
+      hoursRate: Number(invoice.hoursRate ?? 0),
+      totalHoursForCalc: Number(invoice.totalHoursForCalc ?? 0),
+      totalAmount: Number(invoice.totalAmount ?? 0),
+      tax: Number(invoice.tax ?? 0),
+    })
+    setIsEditingInvoiceDetails(false)
     setIsDetailsModalOpen(true)
+  }
+
+  const handleInvoiceDetailChange = (event) => {
+    const { name, value } = event.target
+    setInvoiceDetailsForm((prev) => ({ ...prev, [name]: value === '' ? '' : Number(value) }))
+  }
+
+  const handleSaveInvoiceDetails = () => {
+    if (!selectedInvoice) return
+
+    const updatedInvoice = {
+      ...selectedInvoice,
+      ...invoiceDetailsForm,
+    }
+
+    setSelectedInvoice(updatedInvoice)
+    setInvoices((prev) => prev.map((invoice) => (invoice.id === updatedInvoice.id ? { ...invoice, ...invoiceDetailsForm } : invoice)))
+    setIsEditingInvoiceDetails(false)
   }
 
   const columns = [
@@ -419,9 +455,11 @@ const InvoicesPage = () => {
             />
           </div>
 
-          <Button type="submit" isLoading={isSubmitting}>
-            Submit
-          </Button>
+          <div className="flex justify-end">
+            <Button type="submit" isLoading={isSubmitting}>
+              Submit
+            </Button>
+          </div>
         </form>
       </Modal>
 
@@ -430,6 +468,7 @@ const InvoicesPage = () => {
         onClose={() => {
           setIsDetailsModalOpen(false)
           setSelectedInvoice(null)
+          setIsEditingInvoiceDetails(false)
         }}
         title="Invoice Details"
         size="xxl"
@@ -443,34 +482,100 @@ const InvoicesPage = () => {
             <h2 className="text-[26px] leading-tight font-semibold text-gray-900">Billing Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">billRate</p>
-                <p className="text-[16px] font-semibold text-gray-900">{formatters.formatCurrency(selectedInvoice.billRate)}</p>
+                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">Bill Rate</p>
+                {isEditingInvoiceDetails ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="billRate"
+                    value={invoiceDetailsForm.billRate}
+                    onChange={handleInvoiceDetailChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[15px] text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[16px] font-semibold text-gray-900">{formatters.formatCurrency(selectedInvoice.billRate)}</p>
+                )}
               </div>
               <div className="space-y-1">
-                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">payRate</p>
-                <p className="text-[16px] font-semibold text-gray-900">{formatters.formatCurrency(selectedInvoice.payRate)}</p>
+                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">Pay Rate</p>
+                {isEditingInvoiceDetails ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="payRate"
+                    value={invoiceDetailsForm.payRate}
+                    onChange={handleInvoiceDetailChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[15px] text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[16px] font-semibold text-gray-900">{formatters.formatCurrency(selectedInvoice.payRate)}</p>
+                )}
               </div>
               <div className="space-y-1">
-                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">hoursRate</p>
-                <p className="text-[16px] font-semibold text-gray-900">{Number(selectedInvoice.hoursRate || 0).toFixed(2)}</p>
+                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">Hours Rate</p>
+                {isEditingInvoiceDetails ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="hoursRate"
+                    value={invoiceDetailsForm.hoursRate}
+                    onChange={handleInvoiceDetailChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[15px] text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[16px] font-semibold text-gray-900">{Number(selectedInvoice.hoursRate || 0).toFixed(2)}</p>
+                )}
               </div>
               <div className="space-y-1">
-                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">totalHoursForCalc</p>
-                <p className="text-[16px] font-semibold text-gray-900">{Number(selectedInvoice.totalHoursForCalc || 0).toFixed(2)}</p>
+                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">Total Hours For Calc</p>
+                {isEditingInvoiceDetails ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="totalHoursForCalc"
+                    value={invoiceDetailsForm.totalHoursForCalc}
+                    onChange={handleInvoiceDetailChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[15px] text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[16px] font-semibold text-gray-900">{Number(selectedInvoice.totalHoursForCalc || 0).toFixed(2)}</p>
+                )}
               </div>
               <div className="space-y-1">
-                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">totalAmount</p>
-                <p className="text-[16px] font-semibold text-gray-900">{formatters.formatCurrency(selectedInvoice.totalAmount)}</p>
+                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">Total Amount</p>
+                {isEditingInvoiceDetails ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="totalAmount"
+                    value={invoiceDetailsForm.totalAmount}
+                    onChange={handleInvoiceDetailChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[15px] text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[16px] font-semibold text-gray-900">{formatters.formatCurrency(selectedInvoice.totalAmount)}</p>
+                )}
               </div>
               <div className="space-y-1">
-                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">tax</p>
-                <p className="text-[16px] font-semibold text-gray-900">{formatters.formatCurrency(selectedInvoice.tax)}</p>
+                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">Tax</p>
+                {isEditingInvoiceDetails ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="tax"
+                    value={invoiceDetailsForm.tax}
+                    onChange={handleInvoiceDetailChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[15px] text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  />
+                ) : (
+                  <p className="text-[16px] font-semibold text-gray-900">{formatters.formatCurrency(selectedInvoice.tax)}</p>
+                )}
               </div>
             </div>
             <h3 className="text-[21px] leading-tight font-semibold text-gray-900">Attachments</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1 md:col-span-2">
-                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">view invoice</p>
+                <p className="text-[14px] font-semibold text-gray-500 uppercase tracking-wider">View Invoice</p>
                 {selectedInvoice.invoiceFileUrl ? (
                   <a
                     href={getFileViewUrl(selectedInvoice.invoiceFileUrl)}
@@ -485,6 +590,26 @@ const InvoicesPage = () => {
                 )}
               </div>
             </div>
+            {user?.role === 'CONTRACTOR' && (
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsEditingInvoiceDetails(true)}
+                  disabled={isEditingInvoiceDetails}
+                >
+                  Edit
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleSaveInvoiceDetails}
+                  disabled={!isEditingInvoiceDetails}
+                >
+                  Save
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>
