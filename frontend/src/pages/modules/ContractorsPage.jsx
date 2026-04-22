@@ -1026,6 +1026,10 @@ const ContractorsPage = () => {
 
         <Modal
           isOpen={isContractModalOpen}
+          onClose={() => {
+            setIsContractModalOpen(false)
+            resetContractForm()
+          }}
           onClose={closeContractModal}
           title="Create Contract"
           size="xxl"
