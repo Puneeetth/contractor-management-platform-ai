@@ -9,7 +9,7 @@ import {
   UserPlus,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Badge, Button, Card, Input, Loader, Modal, Select, Textarea } from '../../components/ui'
+import { Badge, Button, Card, Input, Loader, Modal, Select, Table, Textarea } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { useAuthStore } from '../../hooks/useAuth'
@@ -501,6 +501,89 @@ const ContractorsPage = () => {
     },
   ]
 
+  const contractorTableColumns = useMemo(
+    () => [
+      {
+        key: 'name',
+        label: 'Contractor',
+        render: (row) => <span className="font-medium text-gray-900">{row.name}</span>,
+      },
+      {
+        key: 'customer',
+        label: 'Customer',
+        render: (row) => {
+          const latestContract = row.contracts[0]
+          return latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'
+        },
+      },
+      {
+        key: 'startDate',
+        label: 'Start Date',
+        render: (row) => {
+          const latestContract = row.contracts[0]
+          return latestContract ? formatters.formatDate(latestContract.startDate) : '-'
+        },
+      },
+      {
+        key: 'endDate',
+        label: 'End Date / Due',
+        render: (row) => {
+          const latestContract = row.contracts[0]
+          if (!latestContract) return '-'
+          return `${formatters.formatDate(latestContract.endDate)} (${calculateDueDays(latestContract.endDate)})`
+        },
+      },
+      {
+        key: 'payRate',
+        label: 'Pay Rate',
+        render: (row) => {
+          const latestContract = row.contracts[0]
+          return latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'
+        },
+      },
+      {
+        key: 'billRate',
+        label: 'Bill Rate',
+        render: (row) => {
+          const latestContract = row.contracts[0]
+          return latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'
+        },
+      },
+      {
+        key: 'totalContracts',
+        label: 'Total Contracts',
+        render: (row) => <span className="font-medium text-gray-900">{row.contracts.length}</span>,
+      },
+      {
+        key: 'actions',
+        label: 'Actions',
+        render: (row) => (
+          <div className="flex flex-col gap-1">
+            {canCreateContracts && (
+              <button
+                type="button"
+                className="w-fit text-xs font-semibold whitespace-nowrap text-indigo-600 hover:text-indigo-700"
+                onClick={() => openContractModalForContractor(row)}
+              >
+                Add Contract
+              </button>
+            )}
+            <button
+              type="button"
+              className="inline-flex w-fit items-center gap-1 text-xs font-semibold whitespace-nowrap text-emerald-600 hover:text-emerald-700"
+              onClick={() => setViewingContractor(row)}
+              title={`View contracts for ${row.name}`}
+              aria-label={`View contracts for ${row.name}`}
+            >
+              View Contracts
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [canCreateContracts, customerNameById]
+  )
+
   return (
     <DashboardLayout>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -673,127 +756,9 @@ const ContractorsPage = () => {
               </div>
             </Card>
           ) : (
-            <>
-              <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
-                <div className="p-4 sm:p-5">
-                  <div className="overflow-x-auto">
-                    <div className="mb-1 grid min-w-[1120px] grid-cols-8 gap-3 text-xs">
-                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Contractor</p>
-                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Customer</p>
-                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Start Date</p>
-                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">End Date / Due</p>
-                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Pay Rate</p>
-                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Bill Rate</p>
-                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Total Contracts</p>
-                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Actions</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            {filteredContractorRows.map((contractor, index) => {
-              const latestContract = contractor.contracts[0]
-              return (
-                <motion.div
-                  key={contractor.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                >
-                  <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
-                    <div className="p-4 sm:p-5">
-<div className="flex flex-col gap-4">
-  <div className="flex flex-col gap-4">
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
-            {contractor.name}
-          </h2>
-          <Badge variant="indigo">
-            {contractor.contractorId || 'No ID'}
-          </Badge>
-          <Badge variant={contractor.activeContractCount > 0 ? 'approved' : 'default'}>
-            {contractor.activeContractCount} active
-          </Badge>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        {canCreateContracts && (
-          <button
-            type="button"
-            onClick={() => {
-              openContractModalForContractor(contractor)
-              resetContractForm(String(contractor.id))
-            }}
-            className="text-sm font-medium text-indigo-600 transition hover:text-indigo-700"
-          >
-            Add Contract
-          </button>
-        )}
-      </div>
-    </div>
-  </div>
-</div>
-                                >
-                                  Add Contract
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className="inline-flex w-fit items-center gap-1 text-xs font-semibold whitespace-nowrap text-emerald-600 hover:text-emerald-700"
-                                onClick={() => setViewingContractor(contractor)}
-                                title={`View contracts for ${contractor.name}`}
-                                aria-label={`View contracts for ${contractor.name}`}
-                              >
-                                View Contracts
-                              </button>
-                            </div>
-                          </div>
-
-
-                          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Customer</p>
-                              <p className="mt-1 truncate text-gray-900">
-                                {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
-                              </p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Start Date</p>
-                              <p className="mt-1 text-gray-900">{latestContract ? formatters.formatDate(latestContract.startDate) : '-'}</p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">End Date / Due</p>
-                              <p className="mt-1 text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
-                              <p className="mt-0.5 text-xs text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Pay Rate</p>
-                              <p className="mt-1 text-gray-900">
-                                {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
-                              </p>
-                            </div>
-                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Bill Rate</p>
-                              <p className="mt-1 text-gray-900">
-                                {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Total Contracts</p>
-                          <p className="mt-1 text-2xl font-semibold text-gray-900">{contractor.contracts.length}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                  </Card>
-                </motion.div>
-              )
-            })}
-            </>
+            <Card isPadded={false}>
+              <Table columns={contractorTableColumns} data={filteredContractorRows} />
+            </Card>
           )}
         </div>
 
@@ -1061,10 +1026,6 @@ const ContractorsPage = () => {
 
         <Modal
           isOpen={isContractModalOpen}
-          onClose={() => {
-            setIsContractModalOpen(false)
-            resetContractForm()
-          }}
           onClose={closeContractModal}
           title="Create Contract"
           size="xxl"
