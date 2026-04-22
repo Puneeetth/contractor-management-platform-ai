@@ -93,7 +93,7 @@ const DashboardPage = () => {
   const statCards = [
     {
       icon: Users,
-      label: 'Total Contracts',
+      label: 'Contractors',
       value: stats.totalContracts,
       colorClass: 'stat-card-blue',
       iconColor: 'text-blue-400',
@@ -109,7 +109,7 @@ const DashboardPage = () => {
     },
     {
       icon: Briefcase,
-      label: 'Pending Expenses',
+      label: 'Pending Approvals',
       value: stats.pendingExpenses,
       colorClass: 'stat-card-amber',
       iconColor: 'text-amber-400',

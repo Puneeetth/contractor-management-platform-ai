@@ -9,8 +9,28 @@ import { contractService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
+import { useLocation } from 'react-router-dom'
+
+const createInitialFormData = (customerId = '') => ({
+  poNumber: '',
+  poDate: '',
+  startDate: '',
+  endDate: '',
+  poValue: '',
+  currency: 'USD',
+  paymentTermsDays: 30,
+  customerId,
+  remark: '',
+  numberOfResources: '',
+  sharedWith: '',
+  fileUrl: '',
+  file: null,
+})
 
 const POsPage = () => {
+  const location = useLocation()
+  const preselectedCustomerId = location.state?.customerId ? Number(location.state.customerId) : ''
+  const preselectedCustomerName = location.state?.customerName || ''
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [pos, setPos] = useState([])
@@ -18,13 +38,7 @@ const POsPage = () => {
   const [customers, setCustomers] = useState([])
   const [isReferenceLoading, setIsReferenceLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [formData, setFormData] = useState({
-    poNumber: '', poDate: '', startDate: '', endDate: '', 
-    poValue: '', currency: 'USD', paymentTermsDays: 30, 
-    customerId: '', remark: '', numberOfResources: '', 
-    sharedWith: '', fileUrl: '',
-    file: null,
-  })
+  const [formData, setFormData] = useState(createInitialFormData(preselectedCustomerId))
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
@@ -34,6 +48,12 @@ const POsPage = () => {
  useEffect(() => {
   loadInitialData()
 }, [])
+  useEffect(() => {
+    if (location.state?.openCreate) {
+      setFormData(createInitialFormData(preselectedCustomerId))
+      setIsModalOpen(true)
+    }
+  }, [location.state, preselectedCustomerId])
   useEffect(() => {
     if (isModalOpen) {
       loadReferenceData()
@@ -61,6 +81,9 @@ const POsPage = () => {
       ])
       setContracts(Array.isArray(contractsData) ? contractsData : [])
       setCustomers(Array.isArray(customersData) ? customersData : [])
+      if (preselectedCustomerId) {
+        setFormData(prev => ({ ...prev, customerId: preselectedCustomerId }))
+      }
     } catch (err) {
       setFormErrors({ submit: err?.message || 'Failed to load contracts/customers' })
     } finally {
@@ -135,12 +158,7 @@ const POsPage = () => {
     try {
       await poService.createPurchaseOrder(formData)
       setIsModalOpen(false)
-      setFormData({ 
-        poNumber: '', poDate: '', startDate: '', endDate: '', 
-        poValue: '', currency: 'USD', paymentTermsDays: 30, 
-        customerId: '', remark: '', numberOfResources: '', 
-        sharedWith: '', fileUrl: ''
-      })
+      setFormData(createInitialFormData(preselectedCustomerId))
       await loadPOs()
     } catch (err) {
       setFormErrors({ submit: err?.message || 'Failed to create PO' })
@@ -151,6 +169,9 @@ const POsPage = () => {
 
   const totalValue = pos.reduce((acc, po) => acc + (po.poValue || 0), 0)
   const customerNameById = (id) => customers.find(c => c.id === id)?.name || `Customer #${id}`
+  const lockedCustomerName = preselectedCustomerId
+    ? (customers.find(c => c.id === preselectedCustomerId)?.name || preselectedCustomerName || customerNameById(preselectedCustomerId))
+    : ''
   const getFileViewUrl = (fileUrl) => {
     if (!fileUrl) return ''
     if (/^https?:\/\//i.test(fileUrl)) return fileUrl
@@ -192,7 +213,10 @@ const POsPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
             <p className="text-gray-600 mt-1 text-sm">Manage purchase orders for contracts</p>
           </div>
-          <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+          <Button variant="primary" onClick={() => {
+            setFormData(createInitialFormData(preselectedCustomerId))
+            setIsModalOpen(true)
+          }} className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> Add PO
           </Button>
         </div>
@@ -250,7 +274,10 @@ const POsPage = () => {
               <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><FileText className="w-8 h-8 text-gray-500" /></div>
               <p className="text-gray-600 text-lg font-medium">No purchase orders found</p>
               <p className="text-gray-500 text-sm mt-1">Create your first PO</p>
-              <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">Create First PO</Button>
+              <Button variant="secondary" onClick={() => {
+                setFormData(createInitialFormData(preselectedCustomerId))
+                setIsModalOpen(true)
+              }} className="mt-4">Create First PO</Button>
             </div>
           ) : (
             <Table columns={columns} data={pos} isLoading={false} />
@@ -279,16 +306,26 @@ const POsPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <Input label="Payment Terms (no. of days)" name="paymentTermsDays" type="number" value={formData.paymentTermsDays} onChange={handleInputChange} />
-              <Select
-                label="Select Customer"
-                value={formData.customerId}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerId: e.target.value === '' ? '' : Number(e.target.value) }))}
-                options={customers.map(c => ({ value: c.id, label: c.name }))}
-                error={formErrors.customerId}
-                required
-                disabled={isReferenceLoading}
-                placeholder={isReferenceLoading ? 'Loading customers...' : 'Select a customer'}
-              />
+              {preselectedCustomerId ? (
+                <Input
+                  label="Customer"
+                  value={lockedCustomerName}
+                  readOnly
+                  disabled
+                  required
+                />
+              ) : (
+                <Select
+                  label="Select Customer"
+                  value={formData.customerId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customerId: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  options={customers.map(c => ({ value: c.id, label: c.name }))}
+                  error={formErrors.customerId}
+                  required
+                  disabled={isReferenceLoading}
+                  placeholder={isReferenceLoading ? 'Loading customers...' : 'Select a customer'}
+                />
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

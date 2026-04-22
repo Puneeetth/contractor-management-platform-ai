@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Briefcase,
   Eye,
+  EyeOff,
   FileText,
   Plus,
   UserPlus,
@@ -89,6 +90,8 @@ const ContractorsPage = () => {
   const [isCreatingContractor, setIsCreatingContractor] = useState(false)
   const [isCreatingContract, setIsCreatingContract] = useState(false)
   const [isContractorSelectionLocked, setIsContractorSelectionLocked] = useState(false)
+  const [showContractorPassword, setShowContractorPassword] = useState(false)
+  const [showContractorConfirmPassword, setShowContractorConfirmPassword] = useState(false)
   const [contractorSearchTerm, setContractorSearchTerm] = useState('')
   const [selectedRegionFilter, setSelectedRegionFilter] = useState('')
   const [selectedCustomerFilter, setSelectedCustomerFilter] = useState('')
@@ -936,26 +939,65 @@ const ContractorsPage = () => {
                 required
               />
             )}
-            <Input
-              label="Password"
-              type="password"
-              name="password"
-              value={contractorFormData.password}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.password}
-              placeholder="Strong password"
-              required
-            />
-            <Input
-              label="Confirm Password"
-              type="password"
-              name="confirmPassword"
-              value={contractorFormData.confirmPassword}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.confirmPassword}
-              placeholder="Re-enter password"
-              required
-            />
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showContractorPassword ? 'text' : 'password'}
+                  name="password"
+                  value={contractorFormData.password}
+                  onChange={handleContractorInputChange}
+                  placeholder="Strong password"
+                  className={`w-full rounded-lg border bg-white px-3 py-2.5 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none ${
+                    contractorFormErrors.password
+                      ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                      : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                  }`}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowContractorPassword((previous) => !previous)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showContractorPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showContractorPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {contractorFormErrors.password && <p className="mt-1.5 text-xs text-red-500">{contractorFormErrors.password}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Confirm Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showContractorConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={contractorFormData.confirmPassword}
+                  onChange={handleContractorInputChange}
+                  placeholder="Re-enter password"
+                  className={`w-full rounded-lg border bg-white px-3 py-2.5 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none ${
+                    contractorFormErrors.confirmPassword
+                      ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                      : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                  }`}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowContractorConfirmPassword((previous) => !previous)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showContractorConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                >
+                  {showContractorConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {contractorFormErrors.confirmPassword && <p className="mt-1.5 text-xs text-red-500">{contractorFormErrors.confirmPassword}</p>}
+            </div>
 
             {!isFullTimeEmployee && (
               <div className="md:col-span-2">
@@ -1005,79 +1047,75 @@ const ContractorsPage = () => {
                     <div className="space-y-4">
                       {section.contracts.map((contract) => {
                         const estimatedPayout = (Number(contract.payRate) || 0) * (Number(contract.estimatedHours) || 0)
+                        const dueDays = calculateDueDays(contract.endDate)
+                        const statusVariant =
+                          contract.status === 'ACTIVE'
+                            ? 'approved'
+                            : contract.status === 'TERMINATED'
+                              ? 'rejected'
+                              : 'default'
 
                         return (
-                          <div key={contract.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                              <div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                  <h3 className="text-lg font-semibold text-gray-900">Contract #{String(contract.id).padStart(3, '0')}</h3>
-                                  <Badge
-                                    variant={
-                                      contract.status === 'ACTIVE'
-                                        ? 'approved'
-                                        : contract.status === 'TERMINATED'
-                                          ? 'rejected'
-                                          : 'default'
-                                    }
-                                  >
-                                    {contract.status}
-                                  </Badge>
-                                </div>
-                                <p className="mt-1 text-sm text-gray-600">Customer: {customerNameById[contract.customerId] || 'Not assigned'}</p>
-                                <p className="mt-1 text-sm text-gray-600">
+                          <div key={contract.id} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+                            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                              <h3 className="text-sm font-semibold text-gray-900">
+                                Contract #{String(contract.id).padStart(3, '0')}
+                              </h3>
+                              <Badge variant={statusVariant}>{contract.status}</Badge>
+                              <Badge variant={contract.throughEor ? 'info' : 'default'}>
+                                {contract.throughEor ? 'Through EOR' : 'Direct'}
+                              </Badge>
+                              <Badge variant="indigo">{contract.noticePeriodDays ?? 0} day notice</Badge>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Customer</p>
+                                <p className="mt-0.5 text-xs font-medium text-gray-900">{customerNameById[contract.customerId] || 'Not assigned'}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">PO Allocation</p>
+                                <p className="mt-0.5 text-xs font-medium text-gray-900">{contract.poAllocation || '-'}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Timeline</p>
+                                <p className="mt-0.5 text-xs font-medium text-gray-900">
                                   {formatters.formatDate(contract.startDate)} to {formatters.formatDate(contract.endDate)}
                                 </p>
                               </div>
-
-                              <div className="flex flex-wrap gap-2">
-                                <Badge variant={contract.throughEor ? 'info' : 'default'}>
-                                  {contract.throughEor ? 'Through EOR' : 'Direct'}
-                                </Badge>
-                                <Badge variant="indigo">{contract.noticePeriodDays ?? 0} day notice</Badge>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Due</p>
+                                <p className="mt-0.5 text-xs font-medium text-gray-900">{dueDays}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Pay Rate</p>
+                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatCurrency(contract.payRate)}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Bill Rate</p>
+                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatCurrency(contract.billRate)}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Hours</p>
+                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatHours(contract.estimatedHours)}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Total Payout</p>
+                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatCurrency(estimatedPayout)}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Estimated Budget</p>
+                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatCurrency(contract.estimatedBudget)}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Remarks</p>
+                                <p className="mt-0.5 text-xs font-medium text-gray-900">{contract.remarks || '-'}</p>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2 md:col-span-2 xl:col-span-1">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Termination Remarks</p>
+                                <p className="mt-0.5 text-xs font-medium text-gray-900">{contract.terminationRemarks || '-'}</p>
                               </div>
                             </div>
-
-                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                              <div className="rounded-xl bg-gray-50 p-3">
-                                <p className="text-xs uppercase tracking-wide text-gray-500">Pay Rate</p>
-                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.payRate)}</p>
-                              </div>
-                              <div className="rounded-xl bg-gray-50 p-3">
-                                <p className="text-xs uppercase tracking-wide text-gray-500">Bill Rate</p>
-                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.billRate)}</p>
-                              </div>
-                              <div className="rounded-xl bg-gray-50 p-3">
-                                <p className="text-xs uppercase tracking-wide text-gray-500">Hours</p>
-                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatHours(contract.estimatedHours)}</p>
-                              </div>
-                              <div className="rounded-xl bg-gray-50 p-3">
-                                <p className="text-xs uppercase tracking-wide text-gray-500">Total Payout</p>
-                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(estimatedPayout)}</p>
-                              </div>
-                              <div className="rounded-xl bg-gray-50 p-3">
-                                <p className="text-xs uppercase tracking-wide text-gray-500">Budget</p>
-                                <p className="mt-1 text-base font-semibold text-gray-900">{formatters.formatCurrency(contract.estimatedBudget)}</p>
-                              </div>
-                            </div>
-
-                            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                              <div className="rounded-xl border border-gray-200 p-4">
-                                <p className="text-xs uppercase tracking-wide text-gray-500">Remarks</p>
-                                <p className="mt-2 text-sm text-gray-800">{contract.remarks || '-'}</p>
-                              </div>
-                              <div className="rounded-xl border border-gray-200 p-4">
-                                <p className="text-xs uppercase tracking-wide text-gray-500">Termination Remarks</p>
-                                <p className="mt-2 text-sm text-gray-800">{contract.terminationRemarks || '-'}</p>
-                              </div>
-                            </div>
-
-                            {contract.poAllocation && (
-                              <div className="mt-4 rounded-xl border border-gray-200 p-4">
-                                <p className="text-xs uppercase tracking-wide text-gray-500">PO Allocation</p>
-                                <p className="mt-2 text-sm text-gray-800">{contract.poAllocation}</p>
-                              </div>
-                            )}
                           </div>
                         )
                       })}
