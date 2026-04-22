@@ -4,6 +4,7 @@ import { Plus, AlertCircle, Users, Building2, Globe, Eye } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Modal, Input, Badge, Loader } from '../../components/ui'
 import { customerService } from '../../services/customerService'
+import { poService } from '../../services/poService'
 import { useAuth } from '../../hooks/useAuth'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
@@ -14,6 +15,7 @@ const CustomersPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [customers, setCustomers] = useState([])
+  const [pos, setPos] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -38,15 +40,43 @@ const CustomersPage = () => {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await customerService.getAllCustomers()
-      setCustomers(Array.isArray(data) ? data : [])
+      const [customersData, poData] = await Promise.all([
+        customerService.getAllCustomers(),
+        poService.getAllPurchaseOrders(),
+      ])
+      setCustomers(Array.isArray(customersData) ? customersData : [])
+      setPos(Array.isArray(poData) ? poData : [])
     } catch (err) {
       setError(err?.message || 'Failed to load customers')
       setCustomers([])
+      setPos([])
     } finally {
       setIsLoading(false)
     }
   }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const poCountsByCustomer = pos.reduce((acc, po) => {
+    if (!po?.customerId) return acc
+
+    const endDate = po.endDate ? new Date(po.endDate) : null
+    const isInactive = endDate instanceof Date && !Number.isNaN(endDate.getTime()) && endDate < today
+
+    if (!acc[po.customerId]) {
+      acc[po.customerId] = { total: 0, active: 0, inactive: 0 }
+    }
+
+    acc[po.customerId].total += 1
+    if (isInactive) {
+      acc[po.customerId].inactive += 1
+    } else {
+      acc[po.customerId].active += 1
+    }
+
+    return acc
+  }, {})
 
   const validateForm = () => {
     const newErrors = {}
@@ -117,6 +147,21 @@ const CustomersPage = () => {
       )
     },
     { key: 'msaContactPerson', label: 'Contact Person' },
+    {
+      key: 'totalPos',
+      label: 'Total POs',
+      render: (row) => <span className="font-medium text-gray-900">{poCountsByCustomer[row.id]?.total || 0}</span>,
+    },
+    {
+      key: 'activePos',
+      label: 'Active POs',
+      render: (row) => <span className="font-medium text-emerald-500">{poCountsByCustomer[row.id]?.active || 0}</span>,
+    },
+    {
+      key: 'inactivePos',
+      label: 'Inactive POs',
+      render: (row) => <span className="font-medium text-amber-500">{poCountsByCustomer[row.id]?.inactive || 0}</span>,
+    },
     {
       key: 'msaContactEmail',
       label: 'Contact Email',

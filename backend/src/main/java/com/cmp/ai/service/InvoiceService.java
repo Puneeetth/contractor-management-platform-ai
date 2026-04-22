@@ -98,6 +98,18 @@ public class InvoiceService {
                 .orElseThrow(() -> new BadRequestException("No active contract with valid rate found for this contractor"));
     }
 
+    public Double getActiveContractRate(@NonNull Long contractorId) {
+        userRepository.findById(contractorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
+
+        return contractRepository.findByContractorId(contractorId).stream()
+                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
+                .findFirst()
+                .map(c -> c.getBillRate())
+                .filter(rate -> rate != null && rate > 0)
+                .orElseThrow(() -> new BadRequestException("No active contract with valid rate found for this contractor"));
+    }
+
     public List<InvoiceResponse> getAllInvoices() {
         return invoiceRepository.findAll().stream()
                 .map(this::toInvoiceResponseWithRates)

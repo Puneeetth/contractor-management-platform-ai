@@ -16,6 +16,25 @@ const GEO_REGION_OPTIONS = [
   { value: 'US', label: 'US' },
   { value: 'EU', label: 'EU' },
   { value: 'APAC', label: 'APAC' },
+  { value: 'UK', label: 'UK' },
+  { value: 'MIDDLE_EAST', label: 'Middle-East' },
+]
+
+const DEFAULT_BDM_COUNTRIES = [
+  { code: 'IN', name: 'India' },
+  { code: 'US', name: 'USA' },
+  { code: 'UK', name: 'UK' },
+  { code: 'AE', name: 'UAE' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
 ]
 
 const DEFAULT_BDM_COUNTRIES = [
@@ -84,7 +103,7 @@ const AdministrationPage = () => {
   }, [])
 
   const handleChange = (e) => {
-    const { name, value, options } = e.target
+    const { name, value } = e.target
 
     if (name === 'role') {
       setShowCountryPopup(false)
@@ -99,21 +118,24 @@ const AdministrationPage = () => {
       return
     }
 
-    if (name === 'regions') {
-      const selectedRegions = Array.from(options)
-        .filter((option) => option.selected)
-        .map((option) => option.value)
-
-      setFormData((prev) => ({ ...prev, regions: selectedRegions }))
-      if (errors.regions) {
-        setErrors((prev) => ({ ...prev, regions: '' }))
-      }
-      return
-    }
-
     setFormData((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  const handleRegionToggle = (regionValue) => {
+    setFormData((prev) => {
+      const isSelected = prev.regions.includes(regionValue)
+      const nextRegions = isSelected
+        ? prev.regions.filter((value) => value !== regionValue)
+        : [...prev.regions, regionValue]
+
+      return { ...prev, regions: nextRegions }
+    })
+
+    if (errors.regions) {
+      setErrors((prev) => ({ ...prev, regions: '' }))
     }
   }
 
@@ -410,24 +432,29 @@ const AdministrationPage = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Regions <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-4 w-4 h-4 text-gray-400" />
-                  <select
-                    multiple
-                    name="regions"
-                    value={formData.regions}
-                    onChange={handleChange}
-                    className={`w-full min-h-32 pl-10 pr-4 py-2.5 rounded-lg border bg-white text-gray-900 text-sm transition-all focus:outline-none ${errors.regions
-                      ? 'border-red-400 focus:ring-2 focus:ring-red-50'
-                      : 'border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'
-                      }`}
-                  >
+                <div
+                  className={`rounded-lg border bg-white p-3 ${errors.regions
+                    ? 'border-red-400'
+                    : 'border-gray-200'
+                    }`}
+                >
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {GEO_REGION_OPTIONS.map((region) => (
-                      <option key={region.value} value={region.value}>{region.label}</option>
+                      <label
+                        key={region.value}
+                        className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.regions.includes(region.value)}
+                          onChange={() => handleRegionToggle(region.value)}
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-200"
+                        />
+                        {region.label}
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple regions.</p>
                 {errors.regions && <p className="text-red-500 text-xs mt-1">{errors.regions}</p>}
               </div>
             )}
