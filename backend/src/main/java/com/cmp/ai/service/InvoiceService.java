@@ -1,6 +1,7 @@
 package com.cmp.ai.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -37,11 +38,10 @@ public class InvoiceService {
         User contractor = userRepository.findById(request.getContractorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
 
-        // ✅ Prevent duplicate invoice for same month
-        invoiceRepository.findByContractorIdAndInvoiceMonth(contractor.getId(), request.getInvoiceMonth())
-                .ifPresent(i -> {
-                    throw new BadRequestException("Invoice already exists for this contractor and month");
-                });
+        // ✅ Enforce one invoice per contractor/month.
+        // If existing invoice is REJECTED, we allow resubmission by updating the same record.
+        Optional<Invoice> existingInvoiceOptional =
+                invoiceRepository.findByContractorIdAndInvoiceMonth(contractor.getId(), request.getInvoiceMonth());
 
         // ✅ Get active contract rate
         Double activeContractRate = contractRepository.findByContractorId(contractor.getId()).stream()
@@ -67,6 +67,30 @@ public class InvoiceService {
         String timesheetFileUrl = (timesheetFile != null && !timesheetFile.isEmpty())
                 ? fileService.uploadFile(timesheetFile)
                 : null;
+
+        if (existingInvoiceOptional.isPresent()) {
+            Invoice existingInvoice = existingInvoiceOptional.get();
+            if (existingInvoice.getStatus() != Status.REJECTED) {
+                throw new BadRequestException("Invoice already exists for this contractor and month");
+            }
+
+            existingInvoice.setTotalHours(request.getTotalHours());
+            existingInvoice.setBaseAmount(baseAmount);
+            existingInvoice.setTaxAmount(taxAmount);
+            existingInvoice.setTotalAmount(totalAmount);
+            if (invoiceFileUrl != null) {
+                existingInvoice.setInvoiceFileUrl(invoiceFileUrl);
+            }
+            if (timesheetFileUrl != null) {
+                existingInvoice.setTimesheetFileUrl(timesheetFileUrl);
+            }
+            existingInvoice.setStatus(Status.PENDING);
+            existingInvoice.setAdminApprovalStatus(Status.PENDING);
+            existingInvoice.setFinanceApprovalStatus(Status.PENDING);
+            existingInvoice.setAdminRejectionReason(null);
+            existingInvoice.setFinanceRejectionReason(null);
+            return toInvoiceResponseWithRates(invoiceRepository.save(existingInvoice));
+        }
 
         // ✅ Create invoice
         Invoice invoice = Invoice.builder()
@@ -129,6 +153,7 @@ public class InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
 
         invoice.setAdminApprovalStatus(Status.APPROVED);
+        invoice.setAdminRejectionReason(null);
         if (Status.APPROVED.equals(invoice.getFinanceApprovalStatus())) {
             invoice.setStatus(Status.APPROVED);
         }
@@ -140,9 +165,38 @@ public class InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
 
         invoice.setFinanceApprovalStatus(Status.APPROVED);
+        invoice.setFinanceRejectionReason(null);
         if (Status.APPROVED.equals(invoice.getAdminApprovalStatus())) {
             invoice.setStatus(Status.APPROVED);
         }
+        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+    }
+
+    public InvoiceResponse rejectInvoiceByAdmin(@NonNull Long invoiceId, String rejectionReason) {
+        if (rejectionReason == null || rejectionReason.trim().isEmpty()) {
+            throw new BadRequestException("Rejection reason is required");
+        }
+
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
+
+        invoice.setAdminApprovalStatus(Status.REJECTED);
+        invoice.setAdminRejectionReason(rejectionReason.trim());
+        invoice.setStatus(Status.REJECTED);
+        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+    }
+
+    public InvoiceResponse rejectInvoiceByFinance(@NonNull Long invoiceId, String rejectionReason) {
+        if (rejectionReason == null || rejectionReason.trim().isEmpty()) {
+            throw new BadRequestException("Rejection reason is required");
+        }
+
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
+
+        invoice.setFinanceApprovalStatus(Status.REJECTED);
+        invoice.setFinanceRejectionReason(rejectionReason.trim());
+        invoice.setStatus(Status.REJECTED);
         return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
     }
 

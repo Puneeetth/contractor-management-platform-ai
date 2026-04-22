@@ -4,7 +4,7 @@ import { Users, Briefcase, CreditCard } from 'lucide-react'
 import { DashboardLayout } from '../components/layout'
 import { Card, Loader } from '../components/ui'
 import { contractService } from '../services/contractorService'
-import { expenseService } from '../services/expenseService'
+import { invoiceService } from '../services/invoiceService'
 import { poService } from '../services/poService'
 import { formatters } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
@@ -12,7 +12,7 @@ import { useAuth } from '../hooks/useAuth'
 const DEFAULT_STATS = {
   totalContracts: 0,
   totalRevenue: 0,
-  pendingExpenses: 0,
+  pendingApprovals: 0,
 }
 
 const DashboardPage = () => {
@@ -37,25 +37,26 @@ const DashboardPage = () => {
           setIsLoading(true)
         }
 
-        const [contracts, purchaseOrders, expenses] = await Promise.all([
+        const [contracts, purchaseOrders, invoices] = await Promise.all([
           contractService.getAllContracts(),
           poService.getAllPurchaseOrders(),
-          expenseService.getAllExpenses(),
+          invoiceService.getAllInvoices(),
         ])
 
         const contractList = Array.isArray(contracts) ? contracts : []
         const poList = Array.isArray(purchaseOrders) ? purchaseOrders : []
-        const expenseList = Array.isArray(expenses) ? expenses : []
+        const invoiceList = Array.isArray(invoices) ? invoices : []
 
-        const pendingExpenseCount = expenseList.filter(
-          (expense) => expense.status !== 'APPROVED' && expense.status !== 'REJECTED'
+        // Admin dashboard pending approvals = invoices waiting for admin action.
+        const pendingApprovalCount = invoiceList.filter(
+          (invoice) => invoice.adminApprovalStatus === 'PENDING' && invoice.status !== 'REJECTED'
         ).length
 
         if (isMounted) {
           setStats({
             totalContracts: contractList.length,
             totalRevenue: poList.reduce((sum, po) => sum + (Number(po.poValue) || 0), 0),
-            pendingExpenses: pendingExpenseCount,
+            pendingApprovals: pendingApprovalCount,
           })
         }
       } catch (error) {
@@ -75,10 +76,12 @@ const DashboardPage = () => {
       loadDashboardStats()
     }
 
+    const refreshInterval = window.setInterval(loadDashboardStats, 30000)
     window.addEventListener('focus', handleWindowFocus)
 
     return () => {
       isMounted = false
+      window.clearInterval(refreshInterval)
       window.removeEventListener('focus', handleWindowFocus)
     }
   }, [user?.role])
@@ -110,7 +113,7 @@ const DashboardPage = () => {
     {
       icon: Briefcase,
       label: 'Pending Approvals',
-      value: stats.pendingExpenses,
+      value: stats.pendingApprovals,
       colorClass: 'stat-card-amber',
       iconColor: 'text-amber-400',
       iconBg: 'bg-amber-100',

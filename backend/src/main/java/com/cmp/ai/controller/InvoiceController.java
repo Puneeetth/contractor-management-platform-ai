@@ -79,4 +79,22 @@ public class InvoiceController {
     public InvoiceResponse approveInvoiceByFinance(@PathVariable Long id) {
         return invoiceService.approveInvoiceByFinance(id);
     }
+
+    @PutMapping("/{id}/reject/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public InvoiceResponse rejectInvoiceByAdmin(
+            @PathVariable Long id,
+            @RequestBody RejectInvoiceRequest request) {
+        return invoiceService.rejectInvoiceByAdmin(id, request.rejectionReason());
+    }
+
+    @PutMapping("/{id}/reject/finance")
+    @PreAuthorize("hasRole('FINANCE')")
+    public InvoiceResponse rejectInvoiceByFinance(
+            @PathVariable Long id,
+            @RequestBody RejectInvoiceRequest request) {
+        return invoiceService.rejectInvoiceByFinance(id, request.rejectionReason());
+    }
+
+    private record RejectInvoiceRequest(String rejectionReason) {}
 }

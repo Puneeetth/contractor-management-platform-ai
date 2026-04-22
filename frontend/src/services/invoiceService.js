@@ -42,6 +42,14 @@ export const invoiceService = {
     return apiClient.put(`/invoices/${id}/approve/finance`)
   },
 
+  rejectInvoiceByAdmin: async (id, rejectionReason) => {
+    return apiClient.put(`/invoices/${id}/reject/admin`, { rejectionReason })
+  },
+
+  rejectInvoiceByFinance: async (id, rejectionReason) => {
+    return apiClient.put(`/invoices/${id}/reject/finance`, { rejectionReason })
+  },
+
   getInvoicesByContractor: async (contractorId) => {
     return apiClient.get(`/invoices/contractor/${contractorId}`)
   },
