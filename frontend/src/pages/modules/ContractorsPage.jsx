@@ -84,6 +84,7 @@ const ContractorsPage = () => {
   const [isCreatingContractor, setIsCreatingContractor] = useState(false)
   const [isCreatingContract, setIsCreatingContract] = useState(false)
   const [isContractorSelectionLocked, setIsContractorSelectionLocked] = useState(false)
+  const [contractorSearchTerm, setContractorSearchTerm] = useState('')
   const [selectedRegionFilter, setSelectedRegionFilter] = useState('')
   const [selectedCustomerFilter, setSelectedCustomerFilter] = useState('')
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
@@ -143,11 +144,12 @@ const ContractorsPage = () => {
   )
 
   const filteredContractorRows = useMemo(() => {
-    if (!isAdmin) {
-      return contractorRows
-    }
-
     return contractorRows.filter((contractor) => {
+      const matchesName = !contractorSearchTerm || String(contractor.name || '').toLowerCase().includes(contractorSearchTerm.toLowerCase())
+      if (!isAdmin) {
+        return matchesName
+      }
+
       const matchesRegion =
         !selectedRegionFilter ||
         String(contractor.currentLocation || '').trim().toUpperCase() === selectedRegionFilter
@@ -156,9 +158,9 @@ const ContractorsPage = () => {
         !selectedCustomerFilter ||
         contractor.contracts.some((contract) => String(contract.customerId || '') === selectedCustomerFilter)
 
-      return matchesRegion && matchesCustomer
+      return matchesName && matchesRegion && matchesCustomer
     })
-  }, [contractorRows, isAdmin, selectedRegionFilter, selectedCustomerFilter])
+  }, [contractorRows, contractorSearchTerm, isAdmin, selectedRegionFilter, selectedCustomerFilter])
 
   const contractorCountWithContracts = filteredContractorRows.filter((contractor) => contractor.contracts.length > 0).length
   const totalContractBudget = filteredContractorRows.reduce((sum, contractor) => sum + contractor.totalBudget, 0)
@@ -517,6 +519,16 @@ const ContractorsPage = () => {
           </div>
         </div>
 
+        <Card className="mb-6">
+          <Input
+            label="Search Contractor"
+            name="contractorSearch"
+            value={contractorSearchTerm}
+            onChange={(event) => setContractorSearchTerm(event.target.value)}
+            placeholder="Search by contractor name"
+          />
+        </Card>
+
         {isAdmin && isFilterPanelOpen && (
           <Card className="mb-6">
             <div className="mb-3 flex items-center justify-between">
@@ -524,6 +536,7 @@ const ContractorsPage = () => {
               <button
                 type="button"
                 onClick={() => {
+                  setContractorSearchTerm('')
                   setSelectedRegionFilter('')
                   setSelectedCustomerFilter('')
                 }}
@@ -543,6 +556,8 @@ const ContractorsPage = () => {
                   ...REGION_FILTER_OPTIONS.map((region) => ({ value: region.value, label: region.label })),
                 ]}
               />
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <Select
                 label="Filter by Customer"
                 name="customerFilter"
