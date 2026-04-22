@@ -34,6 +34,14 @@ export const invoiceService = {
     return apiClient.put(`/invoices/${id}/approve`)
   },
 
+  approveInvoiceByAdmin: async (id) => {
+    return apiClient.put(`/invoices/${id}/approve/admin`)
+  },
+
+  approveInvoiceByFinance: async (id) => {
+    return apiClient.put(`/invoices/${id}/approve/finance`)
+  },
+
   getInvoicesByContractor: async (contractorId) => {
     return apiClient.get(`/invoices/contractor/${contractorId}`)
   },

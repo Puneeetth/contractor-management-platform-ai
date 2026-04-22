@@ -67,5 +67,9 @@ public class Invoice {
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    
+    @Enumerated(EnumType.STRING)
+    private Status adminApprovalStatus;
+
+    @Enumerated(EnumType.STRING)
+    private Status financeApprovalStatus;
 }

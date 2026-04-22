@@ -61,10 +61,22 @@ public class InvoiceController {
         return invoiceService.getInvoicesByContractor(contractorId);
     }
 
-    // ✅ Approve invoice
+    // ✅ Approve invoice (legacy route keeps finance approval behavior)
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('FINANCE','ADMIN')")
     public InvoiceResponse approveInvoice(@PathVariable Long id) {
         return invoiceService.approveInvoice(id);
+    }
+
+    @PutMapping("/{id}/approve/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public InvoiceResponse approveInvoiceByAdmin(@PathVariable Long id) {
+        return invoiceService.approveInvoiceByAdmin(id);
+    }
+
+    @PutMapping("/{id}/approve/finance")
+    @PreAuthorize("hasRole('FINANCE')")
+    public InvoiceResponse approveInvoiceByFinance(@PathVariable Long id) {
+        return invoiceService.approveInvoiceByFinance(id);
     }
 }
