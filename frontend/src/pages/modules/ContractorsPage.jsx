@@ -76,6 +76,7 @@ const ContractorsPage = () => {
 
   const [isContractorModalOpen, setIsContractorModalOpen] = useState(false)
   const [isContractModalOpen, setIsContractModalOpen] = useState(false)
+  const [lockedContractorId, setLockedContractorId] = useState('')
 
   const [contractorFormData, setContractorFormData] = useState(EMPTY_CONTRACTOR_FORM)
   const [contractFormData, setContractFormData] = useState(EMPTY_CONTRACT_FORM)
@@ -120,7 +121,7 @@ const ContractorsPage = () => {
   const contractorRows = useMemo(
     () =>
       [...contractors]
-        .sort((left, right) => left.name.localeCompare(right.name))
+        .sort((left, right) => (left?.name || '').localeCompare(right?.name || ''))
         .map((contractor) => {
           const contractorContracts = [
             ...(contractsByContractorId[contractor.userId] || contractsByContractorId[contractor.id] || []),
@@ -164,6 +165,10 @@ const ContractorsPage = () => {
 
   const contractorCountWithContracts = filteredContractorRows.filter((contractor) => contractor.contracts.length > 0).length
   const totalContractBudget = filteredContractorRows.reduce((sum, contractor) => sum + contractor.totalBudget, 0)
+  const selectedContractor = useMemo(
+    () => contractors.find((contractor) => String(contractor.id) === String(contractFormData.contractorId)) || null,
+    [contractors, contractFormData.contractorId]
+  )
 
   const calculateEstimatedBudget = (billRate, estimatedHours) => {
     const normalizedBillRate = Number(billRate)
@@ -240,6 +245,23 @@ const ContractorsPage = () => {
     setIsContractorSelectionLocked(Boolean(contractorId))
   }
 
+  const getContractorDisplayName = (contractor) => {
+    if (!contractor) return ''
+    return contractor.contractorId ? `${contractor.name} (${contractor.contractorId})` : contractor.name
+  }
+
+  const openContractModalForContractor = (contractor) => {
+    setLockedContractorId(String(contractor.id))
+    resetContractForm(String(contractor.id))
+    setIsContractModalOpen(true)
+  }
+
+  const closeContractModal = () => {
+    setLockedContractorId('')
+    resetContractForm()
+    setIsContractModalOpen(false)
+  }
+
   const handleContractorInputChange = (event) => {
     const { name, value } = event.target
 
@@ -263,8 +285,6 @@ const ContractorsPage = () => {
           ? checked
           : ['billRate', 'payRate'].includes(name)
             ? parseFloat(value) || ''
-            : ['contractorId', 'customerId'].includes(name)
-              ? parseInt(value, 10) || ''
             : ['estimatedHours', 'noticePeriodDays'].includes(name)
               ? parseInt(value, 10) || ''
               : value
@@ -681,48 +701,40 @@ const ContractorsPage = () => {
                 >
                   <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
                     <div className="p-4 sm:p-5">
-                      <div className="overflow-x-auto">
-                        <div className="grid min-w-[1120px] grid-cols-8 gap-3 text-xs">
-                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                            <p className="truncate text-base font-semibold tracking-tight text-gray-900">{contractor.name}</p>
-                          </div>
+<div className="flex flex-col gap-4">
+  <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+            {contractor.name}
+          </h2>
+          <Badge variant="indigo">
+            {contractor.contractorId || 'No ID'}
+          </Badge>
+          <Badge variant={contractor.activeContractCount > 0 ? 'approved' : 'default'}>
+            {contractor.activeContractCount} active
+          </Badge>
+        </div>
+      </div>
 
-                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                            <p className="mt-1 truncate text-sm text-gray-900">
-                              {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
-                            </p>
-                          </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                            <p className="mt-1 truncate text-sm text-gray-900">{latestContract ? formatters.formatDate(latestContract.startDate) : '-'}</p>
-                          </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                            <p className="mt-1 truncate text-sm text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
-                            <p className="mt-0.5 truncate text-xs text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
-                          </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                            <p className="mt-1 truncate text-sm text-gray-900">
-                              {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
-                            </p>
-                          </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                            <p className="mt-1 truncate text-sm text-gray-900">
-                              {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
-                            </p>
-                          </div>
-                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                            <p className="mt-1 truncate text-sm font-semibold text-gray-900">{contractor.contracts.length}</p>
-                          </div>
-
-                          <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-                            <div className="mt-2 flex flex-col gap-2">
-                              {canCreateContracts && (
-                                <button
-                                  type="button"
-                                  className="w-fit text-xs font-semibold whitespace-nowrap text-indigo-600 hover:text-indigo-700"
-                                  onClick={() => {
-                                    resetContractForm(String(contractor.id))
-                                    setIsContractModalOpen(true)
-                                  }}
+      <div className="flex items-center gap-3">
+        {canCreateContracts && (
+          <button
+            type="button"
+            onClick={() => {
+              openContractModalForContractor(contractor)
+              resetContractForm(String(contractor.id))
+            }}
+            className="text-sm font-medium text-indigo-600 transition hover:text-indigo-700"
+          >
+            Add Contract
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
                                 >
                                   Add Contract
                                 </button>
@@ -738,6 +750,41 @@ const ContractorsPage = () => {
                               </button>
                             </div>
                           </div>
+
+
+                          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
+                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Customer</p>
+                              <p className="mt-1 truncate text-gray-900">
+                                {latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'}
+                              </p>
+                            </div>
+                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Start Date</p>
+                              <p className="mt-1 text-gray-900">{latestContract ? formatters.formatDate(latestContract.startDate) : '-'}</p>
+                            </div>
+                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">End Date / Due</p>
+                              <p className="mt-1 text-gray-900">{latestContract ? formatters.formatDate(latestContract.endDate) : '-'}</p>
+                              <p className="mt-0.5 text-xs text-gray-600">{latestContract ? calculateDueDays(latestContract.endDate) : '-'}</p>
+                            </div>
+                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Pay Rate</p>
+                              <p className="mt-1 text-gray-900">
+                                {latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'}
+                              </p>
+                            </div>
+                            <div className="rounded-xl bg-gray-50 px-3 py-2.5">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Bill Rate</p>
+                              <p className="mt-1 text-gray-900">
+                                {latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">Total Contracts</p>
+                          <p className="mt-1 text-2xl font-semibold text-gray-900">{contractor.contracts.length}</p>
                         </div>
                       </div>
                     </div>
@@ -1018,11 +1065,12 @@ const ContractorsPage = () => {
             setIsContractModalOpen(false)
             resetContractForm()
           }}
+          onClose={closeContractModal}
           title="Create Contract"
           size="xxl"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setIsContractModalOpen(false)}>
+              <Button variant="secondary" onClick={closeContractModal}>
                 Cancel
               </Button>
               <Button variant="primary" isLoading={isCreatingContract} onClick={submitContract}>
@@ -1038,22 +1086,32 @@ const ContractorsPage = () => {
               </div>
             )}
 
-            <Select
-              label="Contractor"
-              name="contractorId"
-              value={contractFormData.contractorId}
-              onChange={handleContractInputChange}
-              error={contractFormErrors.contractorId}
-              required
-              disabled={isContractorSelectionLocked}
-              options={[
-                { value: '', label: 'Select a contractor...' },
-                ...contractors.map((contractor) => ({
-                  value: contractor.id,
-                  label: `${contractor.name} (${contractor.contractorId || `ID-${contractor.id}`})`,
-                })),
-              ]}
-            />
+
+           {lockedContractorId || isContractorSelectionLocked ? (
+  <Input
+    label="Contractor"
+    value={getContractorDisplayName(selectedContractor)}
+    required
+    readOnly
+    className="cursor-not-allowed bg-gray-50"
+  />
+) : (
+  <Select
+    label="Contractor"
+    name="contractorId"
+    value={contractFormData.contractorId}
+    onChange={handleContractInputChange}
+    error={contractFormErrors.contractorId}
+    required
+    options={[
+      { value: '', label: 'Select a contractor...' },
+      ...contractors.map((contractor) => ({
+        value: String(contractor.id),
+        label: getContractorDisplayName(contractor),
+      })),
+    ]}
+  />
+)}
 
             <Select
               label="Customer"
@@ -1063,7 +1121,7 @@ const ContractorsPage = () => {
               options={[
                 { value: '', label: 'Select a customer...' },
                 ...customers.map((customer) => ({
-                  value: customer.id,
+                  value: String(customer.id),
                   label: customer.name,
                 })),
               ]}

@@ -13,7 +13,9 @@ export const Select = ({
   className = '',
   ...props
 }) => {
-  const hasEmptyOption = options.some((option) => String(option.value) === '')
+  const normalizeOptionValue = (optionValue) =>
+    optionValue === null || optionValue === undefined ? '' : String(optionValue)
+  const hasExplicitPlaceholderOption = options.some((option) => normalizeOptionValue(option.value) === '')
 
   return (
     <div className="w-full">
@@ -25,7 +27,7 @@ export const Select = ({
       )}
       <div className="relative">
         <select
-          value={value}
+          value={normalizeOptionValue(value)}
           onChange={onChange}
           disabled={disabled}
           className={`
@@ -41,11 +43,11 @@ export const Select = ({
           `}
           {...props}
         >
-          {!hasEmptyOption && (
+          {!hasExplicitPlaceholderOption && (
             <option value="" className="bg-white">{placeholder}</option>
           )}
           {options.map((option) => (
-            <option key={option.value} value={option.value} className="bg-white">
+            <option key={normalizeOptionValue(option.value)} value={normalizeOptionValue(option.value)} className="bg-white">
               {option.label}
             </option>
           ))}
