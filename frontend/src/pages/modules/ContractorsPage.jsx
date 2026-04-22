@@ -5,7 +5,6 @@ import {
   Briefcase,
   CalendarDays,
   DollarSign,
-  Eye,
   Filter,
   UserPlus,
 } from 'lucide-react'
@@ -85,6 +84,8 @@ const ContractorsPage = () => {
   const [contractFormErrors, setContractFormErrors] = useState({})
   const [isCreatingContractor, setIsCreatingContractor] = useState(false)
   const [isCreatingContract, setIsCreatingContract] = useState(false)
+  const [isContractorSelectionLocked, setIsContractorSelectionLocked] = useState(false)
+  const [contractorSearchTerm, setContractorSearchTerm] = useState('')
   const [selectedRegionFilter, setSelectedRegionFilter] = useState('')
   const [selectedCustomerFilter, setSelectedCustomerFilter] = useState('')
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
@@ -144,11 +145,12 @@ const ContractorsPage = () => {
   )
 
   const filteredContractorRows = useMemo(() => {
-    if (!isAdmin) {
-      return contractorRows
-    }
-
     return contractorRows.filter((contractor) => {
+      const matchesName = !contractorSearchTerm || String(contractor.name || '').toLowerCase().includes(contractorSearchTerm.toLowerCase())
+      if (!isAdmin) {
+        return matchesName
+      }
+
       const matchesRegion =
         !selectedRegionFilter ||
         String(contractor.currentLocation || '').trim().toUpperCase() === selectedRegionFilter
@@ -157,9 +159,9 @@ const ContractorsPage = () => {
         !selectedCustomerFilter ||
         contractor.contracts.some((contract) => String(contract.customerId || '') === selectedCustomerFilter)
 
-      return matchesRegion && matchesCustomer
+      return matchesName && matchesRegion && matchesCustomer
     })
-  }, [contractorRows, isAdmin, selectedRegionFilter, selectedCustomerFilter])
+  }, [contractorRows, contractorSearchTerm, isAdmin, selectedRegionFilter, selectedCustomerFilter])
 
   const contractorCountWithContracts = filteredContractorRows.filter((contractor) => contractor.contracts.length > 0).length
   const totalContractBudget = filteredContractorRows.reduce((sum, contractor) => sum + contractor.totalBudget, 0)
@@ -240,6 +242,7 @@ const ContractorsPage = () => {
   const resetContractForm = (contractorId = '') => {
     setContractFormData({ ...EMPTY_CONTRACT_FORM, contractorId })
     setContractFormErrors({})
+    setIsContractorSelectionLocked(Boolean(contractorId))
   }
 
   const getContractorDisplayName = (contractor) => {
@@ -536,6 +539,16 @@ const ContractorsPage = () => {
           </div>
         </div>
 
+        <Card className="mb-6">
+          <Input
+            label="Search Contractor"
+            name="contractorSearch"
+            value={contractorSearchTerm}
+            onChange={(event) => setContractorSearchTerm(event.target.value)}
+            placeholder="Search by contractor name"
+          />
+        </Card>
+
         {isAdmin && isFilterPanelOpen && (
           <Card className="mb-6">
             <div className="mb-3 flex items-center justify-between">
@@ -543,6 +556,7 @@ const ContractorsPage = () => {
               <button
                 type="button"
                 onClick={() => {
+                  setContractorSearchTerm('')
                   setSelectedRegionFilter('')
                   setSelectedCustomerFilter('')
                 }}
@@ -562,6 +576,8 @@ const ContractorsPage = () => {
                   ...REGION_FILTER_OPTIONS.map((region) => ({ value: region.value, label: region.label })),
                 ]}
               />
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <Select
                 label="Filter by Customer"
                 name="customerFilter"
@@ -657,7 +673,24 @@ const ContractorsPage = () => {
               </div>
             </Card>
           ) : (
-            filteredContractorRows.map((contractor, index) => {
+            <>
+              <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
+                <div className="p-4 sm:p-5">
+                  <div className="overflow-x-auto">
+                    <div className="mb-1 grid min-w-[1120px] grid-cols-8 gap-3 text-xs">
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Contractor</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Customer</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Start Date</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">End Date / Due</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Pay Rate</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Bill Rate</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Total Contracts</p>
+                      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Actions</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            {filteredContractorRows.map((contractor, index) => {
               const latestContract = contractor.contracts[0]
               return (
                 <motion.div
@@ -668,36 +701,52 @@ const ContractorsPage = () => {
                 >
                   <Card isPadded={false} className="overflow-hidden border-gray-200/80 shadow-sm">
                     <div className="p-4 sm:p-5">
-                      <div className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-4">
-                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2.5">
-                                <h2 className="text-2xl font-semibold tracking-tight text-gray-900">{contractor.name}</h2>
-                                <Badge variant="indigo">{contractor.contractorId || 'No ID'}</Badge>
-                                <Badge variant={contractor.activeContractCount > 0 ? 'approved' : 'default'}>
-                                  {contractor.activeContractCount} active
-                                </Badge>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {canCreateContracts && (
-                                <button
-                                  type="button"
-                                  onClick={() => openContractModalForContractor(contractor)}
-                                  className="text-sm font-medium text-indigo-600 transition hover:text-indigo-700"
+<div className="flex flex-col gap-4">
+  <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+            {contractor.name}
+          </h2>
+          <Badge variant="indigo">
+            {contractor.contractorId || 'No ID'}
+          </Badge>
+          <Badge variant={contractor.activeContractCount > 0 ? 'approved' : 'default'}>
+            {contractor.activeContractCount} active
+          </Badge>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        {canCreateContracts && (
+          <button
+            type="button"
+            onClick={() => {
+              openContractModalForContractor(contractor)
+              resetContractForm(String(contractor.id))
+            }}
+            className="text-sm font-medium text-indigo-600 transition hover:text-indigo-700"
+          >
+            Add Contract
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
                                 >
                                   Add Contract
                                 </button>
                               )}
                               <button
                                 type="button"
+                                className="inline-flex w-fit items-center gap-1 text-xs font-semibold whitespace-nowrap text-emerald-600 hover:text-emerald-700"
                                 onClick={() => setViewingContractor(contractor)}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-gray-800"
                                 title={`View contracts for ${contractor.name}`}
                                 aria-label={`View contracts for ${contractor.name}`}
                               >
-                                <Eye className="h-4 w-4" />
+                                View Contracts
                               </button>
                             </div>
                           </div>
@@ -743,7 +792,8 @@ const ContractorsPage = () => {
                   </Card>
                 </motion.div>
               )
-            })
+            })}
+            </>
           )}
         </div>
 
@@ -1011,6 +1061,10 @@ const ContractorsPage = () => {
 
         <Modal
           isOpen={isContractModalOpen}
+          onClose={() => {
+            setIsContractModalOpen(false)
+            resetContractForm()
+          }}
           onClose={closeContractModal}
           title="Create Contract"
           size="xxl"
@@ -1032,31 +1086,32 @@ const ContractorsPage = () => {
               </div>
             )}
 
-            {lockedContractorId ? (
-              <Input
-                label="Contractor"
-                value={getContractorDisplayName(selectedContractor)}
-                required
-                readOnly
-                className="cursor-not-allowed bg-gray-50"
-              />
-            ) : (
-              <Select
-                label="Contractor"
-                name="contractorId"
-                value={contractFormData.contractorId}
-                onChange={handleContractInputChange}
-                error={contractFormErrors.contractorId}
-                required
-                options={[
-                  { value: '', label: 'Select a contractor...' },
-                  ...contractors.map((contractor) => ({
-                    value: String(contractor.id),
-                    label: getContractorDisplayName(contractor),
-                  })),
-                ]}
-              />
-            )}
+
+           {lockedContractorId || isContractorSelectionLocked ? (
+  <Input
+    label="Contractor"
+    value={getContractorDisplayName(selectedContractor)}
+    required
+    readOnly
+    className="cursor-not-allowed bg-gray-50"
+  />
+) : (
+  <Select
+    label="Contractor"
+    name="contractorId"
+    value={contractFormData.contractorId}
+    onChange={handleContractInputChange}
+    error={contractFormErrors.contractorId}
+    required
+    options={[
+      { value: '', label: 'Select a contractor...' },
+      ...contractors.map((contractor) => ({
+        value: String(contractor.id),
+        label: getContractorDisplayName(contractor),
+      })),
+    ]}
+  />
+)}
 
             <Select
               label="Customer"
