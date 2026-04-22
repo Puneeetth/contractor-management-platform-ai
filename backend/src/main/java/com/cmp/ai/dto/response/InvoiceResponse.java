@@ -27,4 +27,6 @@ public class InvoiceResponse {
     private String status;
     private String adminApprovalStatus;
     private String financeApprovalStatus;
+    private String adminRejectionReason;
+    private String financeRejectionReason;
 }

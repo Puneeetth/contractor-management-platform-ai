@@ -72,4 +72,10 @@ public class Invoice {
 
     @Enumerated(EnumType.STRING)
     private Status financeApprovalStatus;
+
+    @Column(length = 1000)
+    private String adminRejectionReason;
+
+    @Column(length = 1000)
+    private String financeRejectionReason;
 }

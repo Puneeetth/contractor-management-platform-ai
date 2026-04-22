@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Plus } from 'lucide-react'
+import { Check, Plus, X } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Card, Button, Table, Loader, Modal, Input, Badge } from '../../components/ui'
+import { Card, Button, Table, Loader, Modal, Input, Badge, Textarea } from '../../components/ui'
 import { invoiceService } from '../../services/invoiceService'
 import { API_ORIGIN } from '../../services/apiClient'
 import { formatters } from '../../utils/formatters'
@@ -15,6 +15,15 @@ const InvoicesPage = () => {
   const [error, setError] = useState(null)
   const [invoices, setInvoices] = useState([])
   const [approving, setApproving] = useState(null)
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false)
+  const [approveTarget, setApproveTarget] = useState({ id: null, role: '' })
+  const [rejecting, setRejecting] = useState(null)
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
+  const [rejectTarget, setRejectTarget] = useState({ id: null, role: '' })
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectError, setRejectError] = useState('')
+  const [isReasonModalOpen, setIsReasonModalOpen] = useState(false)
+  const [reasonModalLines, setReasonModalLines] = useState([])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
@@ -93,23 +102,59 @@ const InvoicesPage = () => {
     }
   }
 
-  const handleAdminApprove = async (id) => {
+  const openApproveModal = (id, role) => {
+    setApproveTarget({ id, role })
+    setIsApproveModalOpen(true)
+  }
+
+  const handleConfirmApprove = async () => {
+    if (!approveTarget.id || !approveTarget.role) return
+
     try {
-      setApproving(`admin-${id}`)
-      await invoiceService.approveInvoiceByAdmin(id)
+      setApproving(`${approveTarget.role}-${approveTarget.id}`)
+      if (approveTarget.role === 'admin') {
+        await invoiceService.approveInvoiceByAdmin(approveTarget.id)
+      } else {
+        await invoiceService.approveInvoiceByFinance(approveTarget.id)
+      }
+      setIsApproveModalOpen(false)
+      setApproveTarget({ id: null, role: '' })
       await loadInvoices()
     } finally {
       setApproving(null)
     }
   }
 
-  const handleFinanceApprove = async (id) => {
+  const openRejectModal = (id, role) => {
+    setRejectTarget({ id, role })
+    setRejectReason('')
+    setRejectError('')
+    setIsRejectModalOpen(true)
+  }
+
+  const handleReject = async () => {
+    if (!rejectTarget.id || !rejectTarget.role) return
+
+    if (!rejectReason.trim()) {
+      setRejectError('Rejection reason is required')
+      return
+    }
+
     try {
-      setApproving(`finance-${id}`)
-      await invoiceService.approveInvoiceByFinance(id)
+      setRejecting(`${rejectTarget.role}-${rejectTarget.id}`)
+      if (rejectTarget.role === 'admin') {
+        await invoiceService.rejectInvoiceByAdmin(rejectTarget.id, rejectReason.trim())
+      } else {
+        await invoiceService.rejectInvoiceByFinance(rejectTarget.id, rejectReason.trim())
+      }
+
+      setIsRejectModalOpen(false)
+      setRejectTarget({ id: null, role: '' })
+      setRejectReason('')
+      setRejectError('')
       await loadInvoices()
     } finally {
-      setApproving(null)
+      setRejecting(null)
     }
   }
 
@@ -126,6 +171,11 @@ const InvoicesPage = () => {
 
     const newErrors = {}
 
+    const existingMonthInvoice = invoices.find(
+      (invoice) => String(invoice.invoiceMonth || '') === String(formData.invoiceMonth || '')
+    )
+    const existingMonthStatus = String(existingMonthInvoice?.status || '').toUpperCase()
+
     if (!formData.totalHours || Number(formData.totalHours) <= 0)
       newErrors.totalHours = 'Total hours must be > 0'
 
@@ -134,6 +184,10 @@ const InvoicesPage = () => {
 
     if (!formData.invoiceFile) newErrors.invoiceFile = 'Invoice required'
     if (!formData.timesheetFile) newErrors.timesheetFile = 'Timesheet required'
+
+    if (existingMonthInvoice && existingMonthStatus !== 'REJECTED') {
+      newErrors.invoiceMonth = `Invoice for ${formData.invoiceMonth} already exists (${existingMonthStatus || 'PENDING'}).`
+    }
 
     setFormErrors(newErrors)
     if (Object.keys(newErrors).length) return
@@ -193,6 +247,46 @@ const InvoicesPage = () => {
   const filteredInvoices = monthFilter
     ? preparedInvoices.filter((invoice) => invoice.invoiceMonth === monthFilter)
     : preparedInvoices
+
+  const getRejectionReasons = (invoice) => {
+    const adminReason =
+      invoice.adminRejectionReason ||
+      invoice.adminRejectReason ||
+      invoice.adminRejectionRemark ||
+      invoice.adminRejectionRemarks ||
+      ''
+    const financeReason =
+      invoice.financeRejectionReason ||
+      invoice.financeRejectReason ||
+      invoice.financeRejectionRemark ||
+      invoice.financeRejectionRemarks ||
+      ''
+
+    const reasons = []
+    if (adminReason) reasons.push(`Admin: ${adminReason}`)
+    if (financeReason) reasons.push(`Finance: ${financeReason}`)
+    return reasons
+  }
+
+  const getRejectionSummary = (invoice) => {
+    const reasons = getRejectionReasons(invoice)
+    if (reasons.length === 0) return null
+
+    const fullText = reasons.join(' | ')
+    const previewText = fullText.length > 90 ? `${fullText.slice(0, 90)}...` : fullText
+
+    return {
+      fullText,
+      previewText,
+    }
+  }
+
+  const openReasonModal = (invoice) => {
+    const reasons = getRejectionReasons(invoice)
+    if (reasons.length === 0) return
+    setReasonModalLines(reasons)
+    setIsReasonModalOpen(true)
+  }
 
   const getFileViewUrl = (fileUrl) => {
     if (!fileUrl) return ''
@@ -274,36 +368,76 @@ const InvoicesPage = () => {
       render: (row) => {
         const isAdmin = user?.role === 'ADMIN'
         const isFinance = user?.role === 'FINANCE'
-        const canAdminApprove = isAdmin && row.adminApprovalStatus !== 'APPROVED'
-        const canFinanceApprove = isFinance && row.financeApprovalStatus !== 'APPROVED'
+        const canAdminAction = isAdmin && !['APPROVED', 'REJECTED'].includes(row.adminApprovalStatus)
+        const canFinanceAction = isFinance && !['APPROVED', 'REJECTED'].includes(row.financeApprovalStatus)
 
-        if (!canAdminApprove && !canFinanceApprove) return null
+        if (!canAdminAction && !canFinanceAction) return null
 
         return (
           <div className="flex items-center gap-2">
-            {canAdminApprove && (
-              <Button
-                variant="success"
-                size="sm"
-                isLoading={approving === `admin-${row.id}`}
-                onClick={() => handleAdminApprove(row.id)}
-                className="flex items-center gap-1"
-              >
-                <Check className="w-3.5 h-3.5" /> Approve (Admin)
-              </Button>
+            {canAdminAction && (
+              <>
+                <Button
+                  variant="success"
+                  size="sm"
+                  isLoading={approving === `admin-${row.id}`}
+                  onClick={() => openApproveModal(row.id, 'admin')}
+                  className="flex items-center gap-1"
+                >
+                  <Check className="w-3.5 h-3.5" /> Approve
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  isLoading={rejecting === `admin-${row.id}`}
+                  onClick={() => openRejectModal(row.id, 'admin')}
+                  className="flex items-center gap-1"
+                >
+                  <X className="w-3.5 h-3.5" /> Reject
+                </Button>
+              </>
             )}
-            {canFinanceApprove && (
-              <Button
-                variant="success"
-                size="sm"
-                isLoading={approving === `finance-${row.id}`}
-                onClick={() => handleFinanceApprove(row.id)}
-                className="flex items-center gap-1"
-              >
-                <Check className="w-3.5 h-3.5" /> Approve (Finance)
-              </Button>
+            {canFinanceAction && (
+              <>
+                <Button
+                  variant="success"
+                  size="sm"
+                  isLoading={approving === `finance-${row.id}`}
+                  onClick={() => openApproveModal(row.id, 'finance')}
+                  className="flex items-center gap-1"
+                >
+                  <Check className="w-3.5 h-3.5" /> Approve
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  isLoading={rejecting === `finance-${row.id}`}
+                  onClick={() => openRejectModal(row.id, 'finance')}
+                  className="flex items-center gap-1"
+                >
+                  <X className="w-3.5 h-3.5" /> Reject
+                </Button>
+              </>
             )}
           </div>
+        )
+      },
+    },
+    {
+      key: 'rejectionReason',
+      label: 'Rejection Reason',
+      render: (row) => {
+        const summary = getRejectionSummary(row)
+        if (!summary) return <span className="text-gray-500 text-sm">-</span>
+
+        return (
+          <button
+            type="button"
+            onClick={() => openReasonModal(row)}
+            className="text-sm font-medium text-red-700 hover:text-red-800 hover:underline"
+          >
+            View Reason
+          </button>
         )
       },
     },
@@ -398,6 +532,7 @@ const InvoicesPage = () => {
               name="invoiceMonth"
               value={formData.invoiceMonth}
               onChange={handleInputChange}
+              error={formErrors.invoiceMonth}
             />
             <Input
               label="Total Hours"
@@ -479,6 +614,16 @@ const InvoicesPage = () => {
             className="space-y-6 p-2 text-[16px] text-gray-700"
             style={{ fontFamily: 'Inter, Roboto, "Open Sans", "Segoe UI", sans-serif' }}
           >
+            {getRejectionReasons(selectedInvoice).length > 0 && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <p className="text-[14px] font-semibold text-red-800 uppercase tracking-wider">Rejection Reason</p>
+                <div className="mt-2 space-y-1">
+                  {getRejectionReasons(selectedInvoice).map((reason) => (
+                    <p key={reason} className="text-[14px] text-red-700">{reason}</p>
+                  ))}
+                </div>
+              </div>
+            )}
             <h2 className="text-[26px] leading-tight font-semibold text-gray-900">Billing Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
@@ -612,6 +757,119 @@ const InvoicesPage = () => {
             )}
           </div>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={isApproveModalOpen}
+        onClose={() => {
+          setIsApproveModalOpen(false)
+          setApproveTarget({ id: null, role: '' })
+        }}
+        title="Approve Invoice"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Are you sure you want to approve this invoice?
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsApproveModalOpen(false)
+                setApproveTarget({ id: null, role: '' })
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="success"
+              isLoading={approving === `${approveTarget.role}-${approveTarget.id}`}
+              onClick={handleConfirmApprove}
+            >
+              Approve
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isRejectModalOpen}
+        onClose={() => {
+          setIsRejectModalOpen(false)
+          setRejectTarget({ id: null, role: '' })
+          setRejectReason('')
+          setRejectError('')
+        }}
+        title="Reject Invoice"
+        size="xl"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Please provide a rejection reason. This will be visible to the contractor.
+          </p>
+          <Textarea
+            label="Rejection Reason"
+            rows={6}
+            value={rejectReason}
+            onChange={(event) => {
+              setRejectReason(event.target.value)
+              if (rejectError) setRejectError('')
+            }}
+            placeholder="Enter reason for rejection"
+          />
+          {rejectError && <p className="text-sm text-red-500">{rejectError}</p>}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsRejectModalOpen(false)
+                setRejectTarget({ id: null, role: '' })
+                setRejectReason('')
+                setRejectError('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              isLoading={rejecting === `${rejectTarget.role}-${rejectTarget.id}`}
+              onClick={handleReject}
+            >
+              Reject Invoice
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isReasonModalOpen}
+        onClose={() => {
+          setIsReasonModalOpen(false)
+          setReasonModalLines([])
+        }}
+        title="Invoice Rejection Reason"
+        size="md"
+      >
+        <div className="space-y-3">
+          {reasonModalLines.map((line) => (
+            <p key={line} className="text-sm text-gray-800">{line}</p>
+          ))}
+          {reasonModalLines.length === 0 && (
+            <p className="text-sm text-gray-500">No rejection reason available.</p>
+          )}
+          <div className="flex justify-end pt-1">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsReasonModalOpen(false)
+                setReasonModalLines([])
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
       </Modal>
     </DashboardLayout>
   )

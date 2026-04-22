@@ -24,6 +24,8 @@ public class InvoiceTransformer {
                 .status(i.getStatus().name())
                 .adminApprovalStatus(i.getAdminApprovalStatus() != null ? i.getAdminApprovalStatus().name() : null)
                 .financeApprovalStatus(i.getFinanceApprovalStatus() != null ? i.getFinanceApprovalStatus().name() : null)
+                .adminRejectionReason(i.getAdminRejectionReason())
+                .financeRejectionReason(i.getFinanceRejectionReason())
                 .build();
     }
 }
