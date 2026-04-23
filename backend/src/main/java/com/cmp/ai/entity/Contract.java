@@ -21,6 +21,7 @@ import lombok.Setter;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.Index;
+import jakarta.persistence.Column;
 
 @Entity
 @Getter
@@ -63,6 +64,7 @@ public class Contract {
     private Integer noticePeriodDays;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
     private ContractStatus status;
 
     @OneToMany(mappedBy = "contract", fetch = FetchType.LAZY)
