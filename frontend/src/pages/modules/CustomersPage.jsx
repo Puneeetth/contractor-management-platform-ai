@@ -41,6 +41,7 @@ const CustomersPage = () => {
     countriesApplicable: '',
     msaRemark: '',
     noticePeriodDays: 30,
+    msaFile: null,
   })
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -124,6 +125,11 @@ const CustomersPage = () => {
     }
   }
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null
+    setFormData(prev => ({ ...prev, msaFile: file }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!isAdmin) {
@@ -145,6 +151,7 @@ const CustomersPage = () => {
         countriesApplicable: '',
         msaRemark: '',
         noticePeriodDays: 30,
+        msaFile: null,
       })
       await loadCustomers()
     } catch (err) {
@@ -349,6 +356,7 @@ const CustomersPage = () => {
               <Input label="Customer Name" name="name" value={formData.name} onChange={handleInputChange} error={formErrors.name} placeholder="Acme Corporation" required />
               <Input label="Address" name="address" value={formData.address} onChange={handleInputChange} error={formErrors.address} placeholder="123 Business St, City, State 12345" required />
               <Input label="MSA (Master Service Agreement)" name="msa" value={formData.msa} onChange={handleInputChange} error={formErrors.msa} placeholder="MSA agreement details or reference" required />
+              <Input label="Upload MSA PDF" type="file" name="msaFile" onChange={handleFileChange} accept=".pdf" />
               <Input label="MSA Contact Person" name="msaContactPerson" value={formData.msaContactPerson} onChange={handleInputChange} error={formErrors.msaContactPerson} placeholder="John Doe" required />
               <Input label="MSA Contact Email" type="email" name="msaContactEmail" value={formData.msaContactEmail} onChange={handleInputChange} error={formErrors.msaContactEmail} placeholder="contact@acme.com" required />
               <Input label="Countries Applicable" name="countriesApplicable" value={formData.countriesApplicable} onChange={handleInputChange} placeholder="US, Canada, Mexico" />
@@ -491,4 +499,3 @@ const CustomersPage = () => {
 }
 
 export default CustomersPage
-
