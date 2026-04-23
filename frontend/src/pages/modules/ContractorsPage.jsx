@@ -447,14 +447,13 @@ const ContractorsPage = () => {
     const nextErrors = {}
     const normalizedPoNumber = String(contractFormData.poAllocation || '').trim()
     const linkedPurchaseOrder = purchaseOrderByNumber[normalizedPoNumber]
+    const hasPo = Boolean(normalizedPoNumber)
 
     if (!validators.isRequired(contractFormData.contractorId)) nextErrors.contractorId = 'Contractor is required'
-    if (!normalizedPoNumber) {
-      nextErrors.poAllocation = 'Purchase order is required'
-    } else if (!linkedPurchaseOrder) {
+    if (hasPo && !linkedPurchaseOrder) {
       nextErrors.poAllocation = 'Select a valid purchase order'
     }
-    if (normalizedPoNumber && !validators.isRequired(contractFormData.customerId)) nextErrors.customerId = 'Customer is required'
+    if (!hasPo && !validators.isRequired(contractFormData.customerId)) nextErrors.customerId = 'Customer is required'
     if (!validators.isRequired(contractFormData.billRate)) nextErrors.billRate = 'Bill rate is required'
     if (!validators.isRequired(contractFormData.payRate)) nextErrors.payRate = 'Pay rate is required'
     if (!validators.isRequired(contractFormData.estimatedHours)) nextErrors.estimatedHours = 'Estimated hours is required'
@@ -477,12 +476,7 @@ const ContractorsPage = () => {
     }
 
     if (linkedPurchaseOrder && validators.isRequired(contractFormData.startDate) && validators.isRequired(contractFormData.endDate)) {
-      if (linkedPurchaseOrder.startDate && contractFormData.startDate < linkedPurchaseOrder.startDate) {
-        nextErrors.startDate = `Start date must be on or after PO start (${formatters.formatDate(linkedPurchaseOrder.startDate)})`
-      }
-      if (linkedPurchaseOrder.endDate && contractFormData.endDate > linkedPurchaseOrder.endDate) {
-        nextErrors.endDate = `End date must be on or before PO end (${formatters.formatDate(linkedPurchaseOrder.endDate)})`
-      }
+      // Removed PO date validations to allow contracts outside PO date range
     }
 
     if (linkedPurchaseOrder && Number(linkedPurchaseOrder.numberOfResources) > 0 && validators.isRequired(contractFormData.contractorId)) {
@@ -1128,14 +1122,14 @@ const ContractorsPage = () => {
         </Modal>
 
         <Modal
-  isOpen={isContractModalOpen}
-  onClose={() => {
-    closeContractModal()
-    resetContractForm()
-  }}
-  title="Create Contract"
-  size="xxl"
-  footer={
+          isOpen={isContractModalOpen}
+          onClose={() => {
+            closeContractModal()
+            resetContractForm()
+          }}
+          title="Create Contract"
+          size="xxl"
+          footer={
             <>
               <Button variant="secondary" onClick={closeContractModal}>
                 Cancel
@@ -1152,7 +1146,6 @@ const ContractorsPage = () => {
                 <p className="text-sm text-red-700">{contractFormErrors.submit}</p>
               </div>
             )}
-
 
            {lockedContractorId || isContractorSelectionLocked ? (
   <Input
@@ -1181,14 +1174,13 @@ const ContractorsPage = () => {
 )}
 
             <Select
-              label="Purchase Order"
+              label="Purchase Order (Optional)"
               name="poAllocation"
               value={contractFormData.poAllocation}
               onChange={handleContractInputChange}
               error={contractFormErrors.poAllocation}
-              required
               options={[
-                { value: '', label: 'Select a purchase order...' },
+                { value: '', label: 'No PO - Select customer manually...' },
                 ...purchaseOrders
                   .filter((purchaseOrder) => Boolean(purchaseOrder?.poNumber))
                   .map((purchaseOrder) => {
@@ -1204,14 +1196,32 @@ const ContractorsPage = () => {
               ]}
             />
 
-            <Input
-              label="Customer"
-              value={contractFormData.customerId ? (customerNameById[contractFormData.customerId] || `Customer #${contractFormData.customerId}`) : ''}
-              error={contractFormErrors.customerId}
-              readOnly
-              className="cursor-not-allowed bg-gray-50"
-              placeholder="Auto-linked from selected PO"
-            />
+            {contractFormData.poAllocation ? (
+              <Input
+                label="Customer"
+                value={contractFormData.customerId ? (customerNameById[contractFormData.customerId] || `Customer #${contractFormData.customerId}`) : ''}
+                error={contractFormErrors.customerId}
+                readOnly
+                className="cursor-not-allowed bg-gray-50"
+                placeholder="Auto-linked from selected PO"
+              />
+            ) : (
+              <Select
+                label="Customer"
+                name="customerId"
+                value={contractFormData.customerId || ''}
+                onChange={handleContractInputChange}
+                error={contractFormErrors.customerId}
+                required
+                options={[
+                  { value: '', label: 'Select a customer...' },
+                  ...customers.map((customer) => ({
+                    value: String(customer.id),
+                    label: customer.name,
+                  })),
+                ]}
+              />
+            )}
 
             {selectedPurchaseOrder && (
               <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
@@ -1284,8 +1294,6 @@ const ContractorsPage = () => {
                 value={contractFormData.startDate}
                 onChange={handleContractInputChange}
                 error={contractFormErrors.startDate}
-                min={selectedPurchaseOrder?.startDate || undefined}
-                max={selectedPurchaseOrder?.endDate || undefined}
                 required
               />
               <Input
@@ -1295,8 +1303,6 @@ const ContractorsPage = () => {
                 value={contractFormData.endDate}
                 onChange={handleContractInputChange}
                 error={contractFormErrors.endDate}
-                min={selectedPurchaseOrder?.startDate || undefined}
-                max={selectedPurchaseOrder?.endDate || undefined}
                 required
               />
             </div>
