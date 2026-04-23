@@ -345,22 +345,52 @@ const InvoicesPage = () => {
       render: (row) => <span className="font-semibold text-emerald-400">{formatters.formatCurrency(row.totalAmount)}</span>,
     },
     {
-      key: 'adminApprovalStatus',
-      label: 'Admin Approval',
+      key: 'billAttachment',
+      label: 'Invoice',
       render: (row) => {
-        const status = row.adminApprovalStatus || 'PENDING'
-        const variant = status === 'APPROVED' ? 'approved' : status === 'REJECTED' ? 'rejected' : 'pending'
-        return <Badge variant={variant}>{status}</Badge>
+        if (canViewInvoiceDetails) {
+          return (
+            <button
+              type="button"
+              onClick={() => openInvoiceDetails(row)}
+              className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
+            >
+              View Invoice
+            </button>
+          )
+        }
+
+        return row.invoiceFileUrl ? (
+            <a
+              href={getFileViewUrl(row.invoiceFileUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
+            >
+              View Invoice
+            </a>
+        ) : (
+          <span className="text-gray-500 text-sm">N/A</span>
+        )
       },
     },
     {
-      key: 'financeApprovalStatus',
-      label: 'Finance Approval',
-      render: (row) => {
-        const status = row.financeApprovalStatus || 'PENDING'
-        const variant = status === 'APPROVED' ? 'approved' : status === 'REJECTED' ? 'rejected' : 'pending'
-        return <Badge variant={variant}>{status}</Badge>
-      },
+      key: 'payAttachment',
+      label: 'Timesheet',
+      render: (row) => (
+        row.timesheetFileUrl ? (
+          <a
+            href={getFileViewUrl(row.timesheetFileUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
+          >
+            View Timesheet
+          </a>
+        ) : (
+          <span className="text-gray-500 text-sm">N/A</span>
+        )
+      ),
     },
     {
       key: 'approvalActions',
@@ -424,6 +454,24 @@ const InvoicesPage = () => {
       },
     },
     {
+      key: 'adminApprovalStatus',
+      label: 'Admin Approval',
+      render: (row) => {
+        const status = row.adminApprovalStatus || 'PENDING'
+        const variant = status === 'APPROVED' ? 'approved' : status === 'REJECTED' ? 'rejected' : 'pending'
+        return <Badge variant={variant}>{status}</Badge>
+      },
+    },
+    {
+      key: 'financeApprovalStatus',
+      label: 'Finance Approval',
+      render: (row) => {
+        const status = row.financeApprovalStatus || 'PENDING'
+        const variant = status === 'APPROVED' ? 'approved' : status === 'REJECTED' ? 'rejected' : 'pending'
+        return <Badge variant={variant}>{status}</Badge>
+      },
+    },
+    {
       key: 'rejectionReason',
       label: 'Rejection Reason',
       render: (row) => {
@@ -440,54 +488,6 @@ const InvoicesPage = () => {
           </button>
         )
       },
-    },
-    {
-      key: 'billAttachment',
-      label: 'invoice',
-      render: (row) => {
-        if (canViewInvoiceDetails) {
-          return (
-            <button
-              type="button"
-              onClick={() => openInvoiceDetails(row)}
-              className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
-            >
-              View Invoice
-            </button>
-          )
-        }
-
-        return row.invoiceFileUrl ? (
-            <a
-              href={getFileViewUrl(row.invoiceFileUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
-            >
-              View Invoice
-            </a>
-        ) : (
-          <span className="text-gray-500 text-sm">N/A</span>
-        )
-      },
-    },
-    {
-      key: 'payAttachment',
-      label: 'timesheet',
-      render: (row) => (
-        row.timesheetFileUrl ? (
-          <a
-            href={getFileViewUrl(row.timesheetFileUrl)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
-          >
-            View Timesheet
-          </a>
-        ) : (
-          <span className="text-gray-500 text-sm">N/A</span>
-        )
-      ),
     },
   ].filter((column) => {
     if (user?.role !== 'CONTRACTOR') return true
