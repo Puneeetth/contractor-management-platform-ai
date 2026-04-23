@@ -24,6 +24,11 @@ export const STATUS_BADGES = {
     variant: 'approved',
     icon: 'CheckCircle',
   },
+  UPCOMING: {
+    label: 'Upcoming',
+    variant: 'pending',
+    icon: 'Clock',
+  },
   INACTIVE: {
     label: 'Inactive',
     variant: 'rejected',

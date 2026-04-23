@@ -47,7 +47,7 @@ public class ContractTransformer {
                 .throughEor(req.getThroughEor())
                 .remarks(req.getRemarks())
                 .terminationRemarks(req.getTerminationRemarks())
-                .status(ContractStatus.ACTIVE)
+                .status(ContractStatus.UPCOMING)
                 .build();
     }
 

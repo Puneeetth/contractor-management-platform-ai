@@ -55,6 +55,7 @@ export const formatters = {
       PENDING: 'pending',
       SUBMITTED: 'pending',
       ACTIVE: 'approved',
+      UPCOMING: 'pending',
       INACTIVE: 'rejected',
     }
     return colors[status] || 'default'

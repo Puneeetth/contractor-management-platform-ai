@@ -30,6 +30,9 @@ const ContractsPage = () => {
   })
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const today = new Date()
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+  const minStartDate = tomorrow.toISOString().slice(0, 10)
 
   useEffect(() => {
     loadContracts()
@@ -95,6 +98,12 @@ const ContractsPage = () => {
     }
     if (!validators.isRequired(formData.startDate)) newErrors.startDate = 'Start date is required'
     if (!validators.isRequired(formData.endDate)) newErrors.endDate = 'End date is required'
+    if (formData.startDate && formData.startDate <= new Date().toISOString().slice(0, 10)) {
+      newErrors.startDate = 'Start date must be in the future (upcoming contract only)'
+    }
+    if (formData.startDate && formData.endDate && formData.endDate < formData.startDate) {
+      newErrors.endDate = 'End date cannot be before start date'
+    }
     setFormErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -157,6 +166,10 @@ const ContractsPage = () => {
     if ((name === 'billRate' || name === 'payRate') && (formErrors.billRate || formErrors.payRate || formErrors.rateValidation)) {
       setFormErrors((prev) => ({ ...prev, billRate: '', payRate: '', rateValidation: '' }))
     }
+
+    if ((name === 'startDate' || name === 'endDate') && (formErrors.startDate || formErrors.endDate)) {
+      setFormErrors((prev) => ({ ...prev, startDate: '', endDate: '' }))
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -209,7 +222,7 @@ const ContractsPage = () => {
       key: 'status',
       label: 'Status',
       render: (row) => (
-        <Badge variant={row.status === 'ACTIVE' ? 'approved' : row.status === 'TERMINATED' ? 'rejected' : 'default'}>
+        <Badge variant={formatters.getStatusColor(row.status)}>
           {row.status}
         </Badge>
       ),
@@ -217,6 +230,7 @@ const ContractsPage = () => {
   ]
 
   const activeContracts = contracts.filter((contract) => contract.status === 'ACTIVE').length
+  const upcomingContracts = contracts.filter((contract) => contract.status === 'UPCOMING').length
   const totalBudget = contracts.reduce((acc, contract) => acc + (contract.estimatedBudget || 0), 0)
 
   return (
@@ -233,10 +247,11 @@ const ContractsPage = () => {
         </div>
 
         {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             {[
               { icon: Briefcase, label: 'Total Contracts', value: contracts.length, color: 'text-blue-400', bg: 'bg-blue-100' },
               { icon: CalendarDays, label: 'Active', value: activeContracts, color: 'text-emerald-400', bg: 'bg-emerald-100' },
+              { icon: CalendarDays, label: 'Upcoming', value: upcomingContracts, color: 'text-amber-500', bg: 'bg-amber-100' },
               { icon: DollarSign, label: 'Total Budget', value: formatters.formatCurrency(totalBudget), color: 'text-purple-400', bg: 'bg-purple-100' },
             ].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
@@ -339,8 +354,8 @@ const ContractsPage = () => {
               <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" step="0.01" value={formData.estimatedBudget} error={formErrors.estimatedBudget} readOnly className="bg-gray-50 cursor-not-allowed" required />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} required />
-              <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} required />
+              <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} min={minStartDate} required />
+              <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} min={formData.startDate || minStartDate} required />
             </div>
             <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={formData.noticePeriodDays} onChange={handleInputChange} />
             <div className="flex items-center gap-3 py-2">

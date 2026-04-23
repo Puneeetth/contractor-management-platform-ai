@@ -47,11 +47,11 @@ public class InvoiceService {
         Double activeContractRate = contractRepository.findByContractorId(contractor.getId()).stream()
                 .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
                 .findFirst()
-                .map(c -> c.getBillRate())
+                .map(c -> c.getPayRate())
                 .orElseThrow(() -> new BadRequestException("No active contract found for this contractor"));
 
         if (activeContractRate == null || activeContractRate <= 0) {
-            throw new BadRequestException("Active contract does not have a valid rate");
+            throw new BadRequestException("Active contract does not have a valid pay rate");
         }
 
         // ✅ Calculate amounts
@@ -117,9 +117,9 @@ public class InvoiceService {
         return contractRepository.findByContractorId(contractorId).stream()
                 .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
                 .findFirst()
-                .map(c -> c.getBillRate())
+                .map(c -> c.getPayRate())
                 .filter(rate -> rate != null && rate > 0)
-                .orElseThrow(() -> new BadRequestException("No active contract with valid rate found for this contractor"));
+                .orElseThrow(() -> new BadRequestException("No active contract with valid pay rate found for this contractor"));
     }
 
 
