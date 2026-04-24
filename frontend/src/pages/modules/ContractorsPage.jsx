@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
 import {
   AlertCircle,
-  Briefcase,
+  CheckCircle2,
+  Download,
   Eye,
   EyeOff,
-  FileText,
   Plus,
-  UserPlus,
+  PlusCircle,
+  Search,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Badge, Button, Card, Input, Loader, Modal, Select, Table, Textarea } from '../../components/ui'
+import { Badge, Button, Card, Input, Loader, Modal, Textarea } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
@@ -19,18 +19,17 @@ import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 
 const EMPTY_CONTRACTOR_FORM = {
-  employmentType: 'CONTRACTOR',
   contractorId: '',
   name: '',
   address: '',
   currentLocation: '',
   email: '',
   secondaryEmail: '',
-  customerManager: '',
-  customerManagerEmail: '',
   phoneNumber: '',
   noticePeriodDays: 30,
   remarks: '',
+  customerManager: '',
+  customerManagerEmail: '',
   password: '',
   confirmPassword: '',
 }
@@ -38,9 +37,9 @@ const EMPTY_CONTRACTOR_FORM = {
 const EMPTY_CONTRACT_FORM = {
   contractorId: '',
   customerId: '',
+  poAllocation: '',
   billRate: '',
   payRate: '',
-  poAllocation: '',
   estimatedHours: '',
   estimatedBudget: '',
   startDate: '',
@@ -51,446 +50,185 @@ const EMPTY_CONTRACT_FORM = {
   terminationRemarks: '',
 }
 
-const REGION_FILTER_OPTIONS = [
-  { value: 'US', label: 'US' },
-  { value: 'EU', label: 'EU' },
-  { value: 'APAC', label: 'APAC' },
-  { value: 'UK', label: 'UK' },
-  { value: 'MIDDLE-EAST', label: 'Middle-East' },
-]
-
-const EMPLOYMENT_TYPE_OPTIONS = [
-  { value: 'FULL_TIME', label: 'Full-time Employee' },
-  { value: 'FREELANCER', label: 'Freelancer' },
-  { value: 'CONTRACTOR', label: 'Contractor' },
-]
-
 const ContractorsPage = () => {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'ADMIN'
   const canCreateContracts = ['ADMIN', 'MANAGER'].includes(user?.role)
 
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const [contractors, setContractors] = useState([])
   const [contracts, setContracts] = useState([])
   const [customers, setCustomers] = useState([])
-  const [contractors, setContractors] = useState([])
   const [purchaseOrders, setPurchaseOrders] = useState([])
-  const [viewingContractor, setViewingContractor] = useState(null)
+
+  const [searchTerm, setSearchTerm] = useState('')
+  const [regionFilter, setRegionFilter] = useState('ALL')
+  const [customerFilter, setCustomerFilter] = useState('ALL')
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [page, setPage] = useState(1)
 
   const [isContractorModalOpen, setIsContractorModalOpen] = useState(false)
-  const [isContractModalOpen, setIsContractModalOpen] = useState(false)
-  const [lockedContractorId, setLockedContractorId] = useState('')
-
   const [contractorFormData, setContractorFormData] = useState(EMPTY_CONTRACTOR_FORM)
-  const [contractFormData, setContractFormData] = useState(EMPTY_CONTRACT_FORM)
   const [contractorFormErrors, setContractorFormErrors] = useState({})
-  const [contractFormErrors, setContractFormErrors] = useState({})
   const [isCreatingContractor, setIsCreatingContractor] = useState(false)
-  const [isCreatingContract, setIsCreatingContract] = useState(false)
-  const [isContractorSelectionLocked, setIsContractorSelectionLocked] = useState(false)
   const [showContractorPassword, setShowContractorPassword] = useState(false)
   const [showContractorConfirmPassword, setShowContractorConfirmPassword] = useState(false)
-  const [contractorSearchTerm, setContractorSearchTerm] = useState('')
-  const [selectedRegionFilter, setSelectedRegionFilter] = useState('')
-  const [selectedCustomerFilter, setSelectedCustomerFilter] = useState('')
-  const isFreelancer = contractorFormData.employmentType === 'FREELANCER'
-  const isFullTimeEmployee = contractorFormData.employmentType === 'FULL_TIME'
+
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false)
+  const [contractFormData, setContractFormData] = useState(EMPTY_CONTRACT_FORM)
+  const [contractFormErrors, setContractFormErrors] = useState({})
+  const [isCreatingContract, setIsCreatingContract] = useState(false)
+
+  const [viewingContractor, setViewingContractor] = useState(null)
+
+  const PAGE_SIZE = 10
 
   useEffect(() => {
     loadPageData()
   }, [])
 
+  const loadPageData = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+
+      const [contractorsResult, contractsResult, customersResult, poResult] = await Promise.allSettled([
+        contractorService.getAllContractors(),
+        contractService.getAllContracts(),
+        customerService.getAllCustomers(),
+        poService.getAllPurchaseOrders(),
+      ])
+
+      setContractors(contractorsResult.status === 'fulfilled' && Array.isArray(contractorsResult.value) ? contractorsResult.value : [])
+      setContracts(contractsResult.status === 'fulfilled' && Array.isArray(contractsResult.value) ? contractsResult.value : [])
+      setCustomers(customersResult.status === 'fulfilled' && Array.isArray(customersResult.value) ? customersResult.value : [])
+      setPurchaseOrders(poResult.status === 'fulfilled' && Array.isArray(poResult.value) ? poResult.value : [])
+
+      if (
+        contractorsResult.status === 'rejected' ||
+        contractsResult.status === 'rejected' ||
+        customersResult.status === 'rejected' ||
+        poResult.status === 'rejected'
+      ) {
+        setError('Failed to load contractor data')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const customerNameById = useMemo(
     () =>
       customers.reduce((lookup, customer) => {
-        lookup[customer.id] = customer.name
+        lookup[String(customer.id)] = customer.name
         return lookup
       }, {}),
     [customers]
   )
 
-  const contractsByContractorId = useMemo(
+  const poByNumber = useMemo(
     () =>
-      contracts.reduce((lookup, contract) => {
-        const key = contract.contractorId
-        if (!lookup[key]) {
-          lookup[key] = []
-        }
-        lookup[key].push(contract)
-        return lookup
-      }, {}),
-    [contracts]
-  )
-
-  const contractorRows = useMemo(
-    () =>
-      [...contractors]
-        .sort((left, right) => (left?.name || '').localeCompare(right?.name || ''))
-        .map((contractor) => {
-          const contractorContracts = [
-            ...(contractsByContractorId[contractor.userId] || contractsByContractorId[contractor.id] || []),
-          ].sort((left, right) => (right.startDate || '').localeCompare(left.startDate || ''))
-
-          return {
-            ...contractor,
-            contracts: contractorContracts,
-          }
-        }),
-    [contractors, contractsByContractorId]
-  )
-
-  const filteredContractorRows = useMemo(() => {
-    return contractorRows.filter((contractor) => {
-      const matchesName = !contractorSearchTerm || String(contractor.name || '').toLowerCase().includes(contractorSearchTerm.toLowerCase())
-      if (!isAdmin) {
-        return matchesName
-      }
-
-      const matchesRegion =
-        !selectedRegionFilter ||
-        String(contractor.currentLocation || '').trim().toUpperCase() === selectedRegionFilter
-
-      const matchesCustomer =
-        !selectedCustomerFilter ||
-        contractor.contracts.some((contract) => String(contract.customerId || '') === selectedCustomerFilter)
-
-      return matchesName && matchesRegion && matchesCustomer
-    })
-  }, [contractorRows, contractorSearchTerm, isAdmin, selectedRegionFilter, selectedCustomerFilter])
-
-  const selectedContractor = useMemo(
-    () => contractors.find((contractor) => String(contractor.id) === String(contractFormData.contractorId)) || null,
-    [contractors, contractFormData.contractorId]
-  )
-
-  const purchaseOrderByNumber = useMemo(
-    () =>
-      purchaseOrders.reduce((lookup, purchaseOrder) => {
-        const normalizedPoNumber = String(purchaseOrder?.poNumber || '').trim()
-        if (normalizedPoNumber) {
-          lookup[normalizedPoNumber] = purchaseOrder
-        }
+      purchaseOrders.reduce((lookup, po) => {
+        const key = String(po.poNumber || '').trim()
+        if (key) lookup[key] = po
         return lookup
       }, {}),
     [purchaseOrders]
   )
 
-  const activePoUsageByNumber = useMemo(
+  const contractsByContractor = useMemo(
     () =>
       contracts.reduce((lookup, contract) => {
-        if (contract.status !== 'ACTIVE') return lookup
-        const normalizedPoNumber = String(contract.poAllocation || '').trim()
-        if (!normalizedPoNumber) return lookup
-        if (!lookup[normalizedPoNumber]) {
-          lookup[normalizedPoNumber] = new Set()
-        }
-        if (contract.contractorId != null) {
-          lookup[normalizedPoNumber].add(String(contract.contractorId))
-        }
+        const contractorKey = String(contract.contractorId || '')
+        if (!lookup[contractorKey]) lookup[contractorKey] = []
+        lookup[contractorKey].push(contract)
         return lookup
       }, {}),
     [contracts]
   )
 
-  const selectedPurchaseOrder = useMemo(() => {
-    const normalizedPoNumber = String(contractFormData.poAllocation || '').trim()
-    if (!normalizedPoNumber) return null
-    return purchaseOrderByNumber[normalizedPoNumber] || null
-  }, [contractFormData.poAllocation, purchaseOrderByNumber])
+  const rows = useMemo(() => {
+    return contractors.map((contractor) => {
+      const byUserId = contractsByContractor[String(contractor.userId)] || []
+      const byContractorId = contractsByContractor[String(contractor.id)] || []
+      const contractorContracts = [...byUserId, ...byContractorId].sort((a, b) => String(b.startDate || '').localeCompare(String(a.startDate || '')))
+      const latestContract = contractorContracts[0] || null
+      return {
+        ...contractor,
+        contracts: contractorContracts,
+        latestContract,
+      }
+    })
+  }, [contractors, contractsByContractor])
 
-  const selectedPurchaseOrderUsage = useMemo(() => {
-    const normalizedPoNumber = String(selectedPurchaseOrder?.poNumber || '').trim()
-    if (!normalizedPoNumber) return 0
-    return activePoUsageByNumber[normalizedPoNumber]?.size || 0
-  }, [selectedPurchaseOrder, activePoUsageByNumber])
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      const matchesSearch =
+        !searchTerm ||
+        String(row.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(row.contractorId || '').toLowerCase().includes(searchTerm.toLowerCase())
+      if (!matchesSearch) return false
 
-  const calculateEstimatedBudget = (billRate, estimatedHours) => {
-    const normalizedBillRate = Number(billRate)
-    const normalizedHours = Number(estimatedHours)
+      const matchesRegion = regionFilter === 'ALL' || String(row.currentLocation || '').toUpperCase() === regionFilter
+      if (!matchesRegion) return false
 
-    if (!normalizedBillRate || !normalizedHours) {
-      return ''
-    }
+      const matchesCustomer =
+        customerFilter === 'ALL' ||
+        row.contracts.some((contract) => String(contract.customerId || '') === customerFilter)
+      if (!matchesCustomer) return false
 
-    return Number((normalizedBillRate * normalizedHours).toFixed(2))
-  }
+      if (statusFilter === 'ALL') return true
+      const status = String(row.latestContract?.status || 'INACTIVE').toUpperCase()
+      return status === statusFilter
+    })
+  }, [rows, searchTerm, regionFilter, customerFilter, statusFilter])
 
-  const calculateDueDays = (endDate) => {
-    if (!endDate) return '-'
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pagedRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const targetDate = new Date(endDate)
-    targetDate.setHours(0, 0, 0, 0)
-
-    const dayDifference = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-    if (Number.isNaN(dayDifference)) return '-'
-    if (dayDifference < 0) return `${Math.abs(dayDifference)} day(s) overdue`
-    return `${dayDifference} day(s) left`
-  }
-
-  const loadPageData = async () => {
-    setIsLoading(true)
-    setError(null)
-
-    const [contractsResult, customersResult, contractorsResult, purchaseOrdersResult] = await Promise.allSettled([
-      contractService.getAllContracts(),
-      customerService.getAllCustomers(),
-      contractorService.getAllContractors(),
-      poService.getAllPurchaseOrders(),
-    ])
-
-    if (contractsResult.status === 'fulfilled') {
-      setContracts(Array.isArray(contractsResult.value) ? contractsResult.value : [])
-    } else {
-      setContracts([])
-    }
-
-    if (customersResult.status === 'fulfilled') {
-      setCustomers(Array.isArray(customersResult.value) ? customersResult.value : [])
-    } else {
-      setCustomers([])
-    }
-
-    if (contractorsResult.status === 'fulfilled') {
-      setContractors(Array.isArray(contractorsResult.value) ? contractorsResult.value : [])
-    } else {
-      setContractors([])
-    }
-
-    if (purchaseOrdersResult.status === 'fulfilled') {
-      setPurchaseOrders(Array.isArray(purchaseOrdersResult.value) ? purchaseOrdersResult.value : [])
-    } else {
-      setPurchaseOrders([])
-    }
-
-    if (
-      contractsResult.status === 'rejected' ||
-      customersResult.status === 'rejected' ||
-      contractorsResult.status === 'rejected' ||
-      purchaseOrdersResult.status === 'rejected'
-    ) {
-      setError('Failed to load contractor management data')
-    }
-
-    setIsLoading(false)
-  }
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm, regionFilter, customerFilter, statusFilter, contractors.length, contracts.length])
 
   const resetContractorForm = () => {
     setContractorFormData(EMPTY_CONTRACTOR_FORM)
     setContractorFormErrors({})
+    setShowContractorPassword(false)
+    setShowContractorConfirmPassword(false)
   }
 
-  const resetContractForm = (contractorId = '') => {
-    setContractFormData({ ...EMPTY_CONTRACT_FORM, contractorId })
+  const openContractModal = (contractorId = '') => {
+    setContractFormData({ ...EMPTY_CONTRACT_FORM, contractorId: contractorId ? String(contractorId) : '' })
     setContractFormErrors({})
-    setIsContractorSelectionLocked(Boolean(contractorId))
-  }
-
-  const getContractorDisplayName = (contractor) => {
-    if (!contractor) return ''
-    return contractor.contractorId ? `${contractor.name} (${contractor.contractorId})` : contractor.name
-  }
-
-  const openContractModalForContractor = (contractor) => {
-    setLockedContractorId(String(contractor.id))
-    resetContractForm(String(contractor.id))
     setIsContractModalOpen(true)
   }
 
-  const closeContractModal = () => {
-    setLockedContractorId('')
-    resetContractForm()
-    setIsContractModalOpen(false)
-  }
-
-  const handleContractorInputChange = (event) => {
-    const { name, value } = event.target
-
-    setContractorFormData((previousData) => ({
-      ...previousData,
-      [name]: name === 'noticePeriodDays' ? parseInt(value, 10) || '' : value,
-    }))
-
-    if (contractorFormErrors[name]) {
-      setContractorFormErrors((previousErrors) => ({ ...previousErrors, [name]: '' }))
-    }
-  }
-
-  const handleContractInputChange = (event) => {
-    const { name, value, type, checked } = event.target
-    let blockedRateEntry = false
-
-    setContractFormData((previousData) => {
-      const parsedValue =
-        type === 'checkbox'
-          ? checked
-          : ['billRate', 'payRate'].includes(name)
-            ? parseFloat(value) || ''
-            : ['estimatedHours', 'noticePeriodDays'].includes(name)
-              ? parseInt(value, 10) || ''
-              : value
-
-      const nextData = {
-        ...previousData,
-        [name]: parsedValue,
-      }
-
-      if (name === 'poAllocation') {
-        const normalizedPoNumber = String(parsedValue || '').trim()
-        const linkedPurchaseOrder = purchaseOrderByNumber[normalizedPoNumber]
-        nextData.customerId = linkedPurchaseOrder?.customerId ? String(linkedPurchaseOrder.customerId) : ''
-      }
-
-      if (name === 'payRate' && parsedValue !== '' && previousData.billRate !== '' && Number(parsedValue) > Number(previousData.billRate)) {
-        blockedRateEntry = true
-        return previousData
-      }
-
-      if (name === 'billRate' && parsedValue !== '' && previousData.payRate !== '' && Number(previousData.payRate) >= Number(parsedValue)) {
-        blockedRateEntry = true
-        return previousData
-      }
-
-      if (name === 'billRate' || name === 'estimatedHours') {
-        nextData.estimatedBudget = calculateEstimatedBudget(
-          name === 'billRate' ? parsedValue : previousData.billRate,
-          name === 'estimatedHours' ? parsedValue : previousData.estimatedHours
-        )
-      }
-
-      return nextData
-    })
-
-    if (blockedRateEntry) {
-      setContractFormErrors((previousErrors) => ({
-        ...previousErrors,
-        rateValidation: 'Pay rate must be less than bill rate',
-      }))
-      return
-    }
-
-    if (contractFormErrors[name]) {
-      setContractFormErrors((previousErrors) => ({ ...previousErrors, [name]: '' }))
-    }
-
-    if ((name === 'billRate' || name === 'estimatedHours') && contractFormErrors.estimatedBudget) {
-      setContractFormErrors((previousErrors) => ({ ...previousErrors, estimatedBudget: '' }))
-    }
-
-    if ((name === 'billRate' || name === 'payRate') && (contractFormErrors.billRate || contractFormErrors.payRate || contractFormErrors.rateValidation)) {
-      setContractFormErrors((previousErrors) => ({ ...previousErrors, billRate: '', payRate: '', rateValidation: '' }))
-    }
-
-    if (name === 'poAllocation' && (contractFormErrors.poAllocation || contractFormErrors.customerId)) {
-      setContractFormErrors((previousErrors) => ({ ...previousErrors, poAllocation: '', customerId: '' }))
-    }
-
-    if ((name === 'poAllocation' || name === 'startDate' || name === 'endDate') && (contractFormErrors.startDate || contractFormErrors.endDate)) {
-      setContractFormErrors((previousErrors) => ({ ...previousErrors, startDate: '', endDate: '' }))
-    }
-  }
-
   const validateContractorForm = () => {
-    const nextErrors = {}
+    const errors = {}
+    if (!validators.isRequired(contractorFormData.contractorId)) errors.contractorId = 'Contractor ID is required'
+    if (!validators.isRequired(contractorFormData.name)) errors.name = 'Name is required'
+    if (!validators.isRequired(contractorFormData.address)) errors.address = 'Address is required'
+    if (!validators.isRequired(contractorFormData.currentLocation)) errors.currentLocation = 'Current location is required'
+    if (!validators.isRequired(contractorFormData.email)) errors.email = 'Email is required'
+    else if (!validators.isEmail(contractorFormData.email)) errors.email = 'Invalid email'
+    if (!validators.isRequired(contractorFormData.secondaryEmail)) errors.secondaryEmail = 'Secondary email is required'
+    else if (!validators.isEmail(contractorFormData.secondaryEmail)) errors.secondaryEmail = 'Invalid secondary email'
+    if (!validators.isRequired(contractorFormData.customerManager)) errors.customerManager = 'Customer manager is required'
+    if (!validators.isRequired(contractorFormData.customerManagerEmail)) errors.customerManagerEmail = 'Customer manager email is required'
+    else if (!validators.isEmail(contractorFormData.customerManagerEmail)) errors.customerManagerEmail = 'Invalid customer manager email'
+    if (!validators.isRequired(contractorFormData.phoneNumber)) errors.phoneNumber = 'Phone number is required'
+    if (Number(contractorFormData.noticePeriodDays) < 0) errors.noticePeriodDays = 'Notice period cannot be negative'
+    if (!validators.isRequired(contractorFormData.remarks)) errors.remarks = 'Remarks are required'
+    if (!validators.isRequired(contractorFormData.password)) errors.password = 'Password is required'
+    else if (!validators.isStrongPassword(contractorFormData.password)) errors.password = 'Weak password format'
+    if (contractorFormData.password !== contractorFormData.confirmPassword) errors.confirmPassword = 'Passwords do not match'
 
-    if (!validators.isRequired(contractorFormData.employmentType)) nextErrors.employmentType = 'Employment type is required'
-    if (!validators.isRequired(contractorFormData.contractorId)) nextErrors.contractorId = 'Contractor ID is required'
-    if (!validators.isRequired(contractorFormData.name)) nextErrors.name = 'Name is required'
-    if (!isFreelancer && !validators.isRequired(contractorFormData.address)) nextErrors.address = 'Address is required'
-    if (!validators.isRequired(contractorFormData.currentLocation)) nextErrors.currentLocation = 'Current location is required'
-    if (!validators.isRequired(contractorFormData.email)) {
-      nextErrors.email = 'Email is required'
-    } else if (!validators.isEmail(contractorFormData.email)) {
-      nextErrors.email = 'Invalid email address'
-    }
-    if (!isFullTimeEmployee && !validators.isRequired(contractorFormData.secondaryEmail)) {
-      nextErrors.secondaryEmail = 'Secondary email is required'
-    } else if (contractorFormData.secondaryEmail && !validators.isEmail(contractorFormData.secondaryEmail)) {
-      nextErrors.secondaryEmail = 'Invalid email address'
-    }
-    if (!validators.isRequired(contractorFormData.customerManager)) {
-      nextErrors.customerManager = 'Customer manager is required'
-    }
-    if (!validators.isRequired(contractorFormData.customerManagerEmail)) {
-      nextErrors.customerManagerEmail = 'Customer manager email is required'
-    } else if (!validators.isEmail(contractorFormData.customerManagerEmail)) {
-      nextErrors.customerManagerEmail = 'Invalid customer manager email address'
-    }
-    if (!validators.isRequired(contractorFormData.phoneNumber)) nextErrors.phoneNumber = 'Phone number is required'
-    if (
-      !isFullTimeEmployee &&
-      !validators.isRequired(contractorFormData.noticePeriodDays) &&
-      contractorFormData.noticePeriodDays !== 0
-    ) {
-      nextErrors.noticePeriodDays = 'Notice period is required'
-    } else if (Number(contractorFormData.noticePeriodDays) < 0) {
-      nextErrors.noticePeriodDays = 'Notice period cannot be negative'
-    }
-    if (!isFullTimeEmployee && !validators.isRequired(contractorFormData.remarks)) nextErrors.remarks = 'Remarks are required'
-    if (!validators.isRequired(contractorFormData.password)) {
-      nextErrors.password = 'Password is required'
-    } else if (!validators.isStrongPassword(contractorFormData.password)) {
-      nextErrors.password = 'Password must contain uppercase, lowercase, number and special character'
-    }
-    if (contractorFormData.password !== contractorFormData.confirmPassword) {
-      nextErrors.confirmPassword = 'Passwords do not match'
-    }
-
-    setContractorFormErrors(nextErrors)
-    return Object.keys(nextErrors).length === 0
-  }
-
-  const validateContractForm = () => {
-    const nextErrors = {}
-    const normalizedPoNumber = String(contractFormData.poAllocation || '').trim()
-    const linkedPurchaseOrder = purchaseOrderByNumber[normalizedPoNumber]
-    const hasPo = Boolean(normalizedPoNumber)
-
-    if (!validators.isRequired(contractFormData.contractorId)) nextErrors.contractorId = 'Contractor is required'
-    if (hasPo && !linkedPurchaseOrder) {
-      nextErrors.poAllocation = 'Select a valid purchase order'
-    }
-    if (!hasPo && !validators.isRequired(contractFormData.customerId)) nextErrors.customerId = 'Customer is required'
-    if (!validators.isRequired(contractFormData.billRate)) nextErrors.billRate = 'Bill rate is required'
-    if (!validators.isRequired(contractFormData.payRate)) nextErrors.payRate = 'Pay rate is required'
-    if (!validators.isRequired(contractFormData.estimatedHours)) nextErrors.estimatedHours = 'Estimated hours is required'
-    if (!validators.isRequired(contractFormData.estimatedBudget)) nextErrors.estimatedBudget = 'Estimated budget is required'
-    if (
-      validators.isRequired(contractFormData.billRate) &&
-      validators.isRequired(contractFormData.payRate) &&
-      Number(contractFormData.payRate) >= Number(contractFormData.billRate)
-    ) {
-      nextErrors.rateValidation = 'Pay rate must be less than bill rate'
-    }
-    if (!validators.isRequired(contractFormData.startDate)) nextErrors.startDate = 'Start date is required'
-    if (!validators.isRequired(contractFormData.endDate)) nextErrors.endDate = 'End date is required'
-    if (
-      validators.isRequired(contractFormData.startDate) &&
-      validators.isRequired(contractFormData.endDate) &&
-      contractFormData.endDate < contractFormData.startDate
-    ) {
-      nextErrors.endDate = 'End date must be after the start date'
-    }
-
-    if (linkedPurchaseOrder && validators.isRequired(contractFormData.startDate) && validators.isRequired(contractFormData.endDate)) {
-      // Removed PO date validations to allow contracts outside PO date range
-    }
-
-    if (linkedPurchaseOrder && Number(linkedPurchaseOrder.numberOfResources) > 0 && validators.isRequired(contractFormData.contractorId)) {
-      const poUsage = activePoUsageByNumber[normalizedPoNumber] || new Set()
-      const isAlreadyAssignedInPo = poUsage.has(String(contractFormData.contractorId))
-      if (!isAlreadyAssignedInPo && poUsage.size >= Number(linkedPurchaseOrder.numberOfResources)) {
-        nextErrors.poAllocation = `PO resource limit reached (${poUsage.size}/${linkedPurchaseOrder.numberOfResources})`
-      }
-    }
-
-    if (Number(contractFormData.noticePeriodDays) < 0) nextErrors.noticePeriodDays = 'Notice period cannot be negative'
-
-    setContractFormErrors(nextErrors)
-    return Object.keys(nextErrors).length === 0
+    setContractorFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
   const submitContractor = async (event) => {
@@ -499,513 +237,451 @@ const ContractorsPage = () => {
 
     setIsCreatingContractor(true)
     setSuccess('')
-
     try {
       await contractorService.createContractor({
-        contractorId: contractorFormData.contractorId,
-        name: contractorFormData.name,
-        address: isFreelancer ? '' : contractorFormData.address,
-        currentLocation: contractorFormData.currentLocation,
-        email: contractorFormData.email,
-        secondaryEmail: isFullTimeEmployee ? '' : contractorFormData.secondaryEmail,
-        customerManager: contractorFormData.customerManager,
-        customerManagerEmail: contractorFormData.customerManagerEmail,
-        phoneNumber: contractorFormData.phoneNumber,
-        noticePeriodDays: isFullTimeEmployee ? 0 : contractorFormData.noticePeriodDays,
-        remarks: isFullTimeEmployee ? '' : contractorFormData.remarks,
+        contractorId: contractorFormData.contractorId.trim(),
+        name: contractorFormData.name.trim(),
+        address: contractorFormData.address.trim(),
+        currentLocation: contractorFormData.currentLocation.trim().toUpperCase(),
+        email: contractorFormData.email.trim(),
+        secondaryEmail: contractorFormData.secondaryEmail.trim(),
+        phoneNumber: contractorFormData.phoneNumber.trim(),
+        noticePeriodDays: Number(contractorFormData.noticePeriodDays) || 0,
+        remarks: contractorFormData.remarks.trim(),
+        customerManager: contractorFormData.customerManager.trim(),
+        customerManagerEmail: contractorFormData.customerManagerEmail.trim(),
         password: contractorFormData.password,
       })
-
       setIsContractorModalOpen(false)
-      setSuccess(`Contractor ${contractorFormData.name} created successfully.`)
       resetContractorForm()
+      setSuccess('Contractor added successfully')
       await loadPageData()
-    } catch (submissionError) {
-      setContractorFormErrors({
-        submit: submissionError?.error?.message || submissionError?.message || 'Failed to create contractor',
-      })
+    } catch (err) {
+      setContractorFormErrors({ submit: err?.message || 'Failed to create contractor' })
     } finally {
       setIsCreatingContractor(false)
     }
   }
 
-  const submitContract = async (event) => {
-    if (event?.preventDefault) {
-      event.preventDefault()
+  const updateContractBudget = (nextData) => {
+    const billRate = Number(nextData.billRate) || 0
+    const estimatedHours = Number(nextData.estimatedHours) || 0
+    return {
+      ...nextData,
+      estimatedBudget: billRate > 0 && estimatedHours > 0 ? Number((billRate * estimatedHours).toFixed(2)) : '',
     }
+  }
+
+  const handleContractInputChange = (event) => {
+    const { name, value, type, checked } = event.target
+    setContractFormData((prev) => {
+      let next = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      }
+      if (name === 'poAllocation') {
+        const linkedPo = poByNumber[String(value || '').trim()]
+        next.customerId = linkedPo?.customerId ? String(linkedPo.customerId) : ''
+      }
+      if (name === 'billRate' || name === 'estimatedHours') {
+        next = updateContractBudget(next)
+      }
+      return next
+    })
+    if (contractFormErrors[name]) {
+      setContractFormErrors((prev) => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  const validateContractForm = () => {
+    const errors = {}
+    if (!validators.isRequired(contractFormData.contractorId)) errors.contractorId = 'Contractor is required'
+    if (!validators.isRequired(contractFormData.billRate)) errors.billRate = 'Bill rate is required'
+    if (!validators.isRequired(contractFormData.payRate)) errors.payRate = 'Pay rate is required'
+    if (Number(contractFormData.payRate) >= Number(contractFormData.billRate)) errors.payRate = 'Pay rate must be less than bill rate'
+    if (!validators.isRequired(contractFormData.estimatedHours)) errors.estimatedHours = 'Estimated hours is required'
+    if (!validators.isRequired(contractFormData.estimatedBudget)) errors.estimatedBudget = 'Estimated budget is required'
+    if (!validators.isRequired(contractFormData.startDate)) errors.startDate = 'Start date is required'
+    if (!validators.isRequired(contractFormData.endDate)) errors.endDate = 'End date is required'
+    if (contractFormData.endDate && contractFormData.startDate && contractFormData.endDate < contractFormData.startDate) {
+      errors.endDate = 'End date must be after start date'
+    }
+    if (!validators.isRequired(contractFormData.noticePeriodDays) && contractFormData.noticePeriodDays !== 0) errors.noticePeriodDays = 'Notice period is required'
+    if (Number(contractFormData.noticePeriodDays) < 0) errors.noticePeriodDays = 'Notice period cannot be negative'
+    if (!contractFormData.poAllocation && !validators.isRequired(contractFormData.customerId)) errors.customerId = 'Customer is required when no PO is selected'
+
+    setContractFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const submitContract = async (event) => {
+    event.preventDefault()
     if (!validateContractForm()) return
 
     setIsCreatingContract(true)
-    setSuccess('')
-
     try {
       await contractService.createContract({
-        ...contractFormData,
-        poAllocation: String(contractFormData.poAllocation || '').trim(),
         contractorId: Number(contractFormData.contractorId),
         customerId: contractFormData.customerId ? Number(contractFormData.customerId) : null,
+        poAllocation: String(contractFormData.poAllocation || '').trim() || null,
+        billRate: Number(contractFormData.billRate),
+        payRate: Number(contractFormData.payRate),
+        estimatedHours: Number(contractFormData.estimatedHours),
+        estimatedBudget: Number(contractFormData.estimatedBudget),
+        startDate: contractFormData.startDate,
+        endDate: contractFormData.endDate,
+        noticePeriodDays: Number(contractFormData.noticePeriodDays) || 0,
+        throughEor: Boolean(contractFormData.throughEor),
+        remarks: String(contractFormData.remarks || ''),
+        terminationRemarks: String(contractFormData.terminationRemarks || ''),
       })
       setIsContractModalOpen(false)
-      setSuccess('Contract created successfully.')
-      resetContractForm()
+      setContractFormData(EMPTY_CONTRACT_FORM)
+      setContractFormErrors({})
+      setSuccess('Contract created successfully')
       await loadPageData()
     } catch (err) {
-      setContractFormErrors({ submit: err?.error?.message || err?.message || 'Failed to create contract' })
+      setContractFormErrors({ submit: err?.message || 'Failed to create contract' })
     } finally {
       setIsCreatingContract(false)
     }
   }
 
-  const contractorTableColumns = useMemo(
-    () => [
-      {
-        key: 'name',
-        label: 'Contractor',
-        render: (row) => <span className="font-medium text-gray-900">{row.name}</span>,
-      },
-      {
-        key: 'customer',
-        label: 'Customer',
-        render: (row) => {
-          const latestContract = row.contracts[0]
-          return latestContract ? customerNameById[latestContract.customerId] || 'Not assigned' : '-'
-        },
-      },
-      {
-        key: 'contractReference',
-        label: 'PO / Contract Ref',
-        render: (row) => {
-          const latestContract = row.contracts[0]
-          if (!latestContract) return '-'
-          return (
-            <div className="flex flex-col">
-              <span className="font-medium text-gray-900">{latestContract.poAllocation || `Contract #${latestContract.id}`}</span>
-              <span className="text-xs text-gray-500">Linked via customer PO</span>
-            </div>
-          )
-        },
-      },
-      {
-        key: 'startDate',
-        label: 'Start Date',
-        render: (row) => {
-          const latestContract = row.contracts[0]
-          return latestContract ? formatters.formatDate(latestContract.startDate) : '-'
-        },
-      },
-      {
-        key: 'endDate',
-        label: 'End Date',
-        render: (row) => {
-          const latestContract = row.contracts[0]
-          if (!latestContract) return '-'
-          return (
-            <div className="flex flex-col">
-              <span>{formatters.formatDate(latestContract.endDate)}</span>
-              <span className="text-xs text-gray-500">{calculateDueDays(latestContract.endDate)}</span>
-            </div>
-          )
-        },
-      },
-      {
-        key: 'payRate',
-        label: 'Pay Rate',
-        render: (row) => {
-          const latestContract = row.contracts[0]
-          return latestContract ? formatters.formatCurrency(latestContract.payRate) : '-'
-        },
-      },
-      {
-        key: 'billRate',
-        label: 'Bill Rate',
-        render: (row) => {
-          const latestContract = row.contracts[0]
-          return latestContract ? formatters.formatCurrency(latestContract.billRate) : '-'
-        },
-      },
-      {
-        key: 'actions',
-        label: 'Actions',
-        render: (row) => (
-          <div className="flex items-center gap-2">
-            {canCreateContracts && (
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-indigo-600 hover:bg-indigo-50"
-                onClick={() => openContractModalForContractor(row)}
-                title={`Add contract for ${row.name}`}
-                aria-label={`Add contract for ${row.name}`}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            )}
-            <button
-              type="button"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-emerald-600 hover:bg-emerald-50"
-              onClick={() => setViewingContractor(row)}
-              title={`View contracts for ${row.name}`}
-              aria-label={`View contracts for ${row.name}`}
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-          </div>
-        ),
-      },
-    ],
-    [canCreateContracts, customerNameById]
-  )
+  const regionOptions = useMemo(() => {
+    const values = new Set(
+      contractors
+        .map((contractor) => String(contractor.currentLocation || '').trim().toUpperCase())
+        .filter(Boolean)
+    )
+    return ['ALL', ...Array.from(values)]
+  }, [contractors])
 
   return (
     <DashboardLayout>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-2">
-            <FileText className="mt-1 h-5 w-5 text-indigo-600" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Contractors</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Customer to PO to contractor mapping with bill rate, pay rate, and assignment dates.
-              </p>
-            </div>
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Contractors</h1>
+            <p className="mt-1 text-[13px] text-[#4a5c77]">Manage and track your extended workforce ecosystem.</p>
           </div>
-
-          {isAdmin && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                resetContractorForm()
-                setIsContractorModalOpen(true)
-              }}
-              className="inline-flex items-center gap-2"
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
             >
-              <UserPlus className="h-4 w-4" />
-              Add Contractor
-            </Button>
-          )}
+              <Download className="h-4 w-4" /> Export Data
+            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsContractorModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
+              >
+                <PlusCircle className="h-4 w-4" /> Add Contractor
+              </button>
+            )}
+          </div>
         </div>
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4"
-          >
-            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
-            <p className="text-sm text-red-700">{error}</p>
-          </motion.div>
-        )}
-
-        {success && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4"
-          >
-            <p className="text-sm font-medium text-emerald-700">{success}</p>
-          </motion.div>
-        )}
-
-        <Card isPadded={false} className="mb-4">
-          <div className="flex flex-col gap-3 p-3 md:flex-row md:items-center">
-            <input
-              type="text"
-              name="contractorSearch"
-              value={contractorSearchTerm}
-              onChange={(event) => setContractorSearchTerm(event.target.value)}
-              placeholder="Search contractor..."
-              className="h-9 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 md:flex-1"
-            />
-
-            {isAdmin && (
-              <>
-                <select
-                  name="regionFilter"
-                  value={selectedRegionFilter}
-                  onChange={(event) => setSelectedRegionFilter(event.target.value)}
-                  className="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                >
-                  <option value="">All regions</option>
-                  {REGION_FILTER_OPTIONS.map((region) => (
-                    <option key={region.value} value={region.value}>
-                      {region.label}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  name="customerFilter"
-                  value={selectedCustomerFilter}
-                  onChange={(event) => setSelectedCustomerFilter(event.target.value)}
-                  className="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                >
-                  <option value="">All customers</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={String(customer.id)}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-
+        <Card className="border-[#d8e2ef] shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
+          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_128px_148px_78px]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#95a2b7]" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search contractor..."
+                className="h-9 w-full rounded-xl border border-[#e6ebf3] bg-white pl-10 pr-3 text-[13px] text-[#263448] placeholder:text-[#9aa8bb] outline-none focus:border-[#a9b9d3]"
+              />
+            </div>
+            <select
+              value={regionFilter}
+              onChange={(event) => setRegionFilter(event.target.value)}
+              className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-white px-3 text-[13px] text-[#263448] outline-none focus:border-[#a9b9d3]"
+            >
+              {regionOptions.map((option) => (
+                <option key={option} value={option}>{option === 'ALL' ? 'All regions' : option}</option>
+              ))}
+            </select>
+            <select
+              value={customerFilter}
+              onChange={(event) => setCustomerFilter(event.target.value)}
+              className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-white px-3 text-[13px] text-[#263448] outline-none focus:border-[#a9b9d3]"
+            >
+              <option value="ALL">All customers</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
+              ))}
+            </select>
             <button
               type="button"
               onClick={() => {
-                setContractorSearchTerm('')
-                setSelectedRegionFilter('')
-                setSelectedCustomerFilter('')
+                setSearchTerm('')
+                setRegionFilter('ALL')
+                setCustomerFilter('ALL')
+                setStatusFilter('ALL')
               }}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-[#f8fbff] px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-white"
             >
               Clear
             </button>
           </div>
         </Card>
 
-        <div className="mb-4">
+        {error && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+            <p className="text-sm text-red-500">{error}</p>
+          </div>
+        )}
+        {success && (
+          <div className="flex items-start gap-3 rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
+            <p className="text-sm text-emerald-700">{success}</p>
+          </div>
+        )}
+
+        <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]" isPadded={false}>
           {isLoading ? (
-            <Card>
-              <div className="flex justify-center py-12">
-                <Loader message="Loading contractors..." />
-              </div>
-            </Card>
-          ) : filteredContractorRows.length === 0 ? (
-            <Card>
-              <div className="py-12 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
-                  <Briefcase className="h-8 w-8 text-gray-500" />
-                </div>
-                <p className="text-lg font-medium text-gray-700">No contractors found</p>
-                <p className="mt-1 text-sm text-gray-500">
-                  Add your first contractor to start tracking their contracts and rates.
-                </p>
-                {isAdmin && (
-                  <Button
-                    variant="primary"
-                    className="mt-4"
-                    onClick={() => {
-                      resetContractorForm()
-                      setIsContractorModalOpen(true)
-                    }}
-                  >
-                    Create First Contractor
-                  </Button>
-                )}
-              </div>
-            </Card>
+            <div className="py-12 flex justify-center"><Loader message="Loading contractors..." /></div>
           ) : (
-            <Card isPadded={false}>
-              <Table columns={contractorTableColumns} data={filteredContractorRows} />
-            </Card>
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-[#e0e8f3] bg-[#f7f9fc]">
+                      <th className="px-5 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">CONTRACTOR</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">CUSTOMER</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">PO / CONTRACT REF</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">START DATE</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">END DATE</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">PAY RATE</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">BILL RATE</th>
+                      <th className="px-5 py-3 text-right text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedRows.map((row) => {
+                      const contract = row.latestContract
+                      const initials = String(row.name || 'CT').split(' ').filter(Boolean).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('')
+                      const customerName = contract?.customerId ? customerNameById[String(contract.customerId)] || `Customer #${contract.customerId}` : 'Not assigned'
+                      const contractRef = contract?.poAllocation || (contract?.id ? `Contract #${contract.id}` : '-')
+                      return (
+                        <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#dee5fb] text-xs font-bold text-[#3e53dd]">{initials}</div>
+                              <div>
+                                <p className="text-[13px] font-semibold text-[#12203a]">{row.name}</p>
+                                <p className="text-[11px] text-[#8a98ad]">{row.remarks || 'Contractor'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3.5">
+                            <span className={`inline-flex rounded-lg px-2.5 py-1 text-[12px] ${contract?.customerId ? 'bg-[#e8edff] text-[#3b50d7]' : 'bg-[#eef2f7] text-[#5f6f88]'}`}>
+                              {customerName}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3.5 text-[13px] text-[#1f3048]">{contractRef}</td>
+                          <td className="px-3 py-3.5 text-[13px] text-[#1f3048]">{formatters.formatDate(contract?.startDate) || '-'}</td>
+                          <td className="px-3 py-3.5 text-[13px] text-[#1f3048]">{formatters.formatDate(contract?.endDate) || '-'}</td>
+                          <td className="px-3 py-3.5 text-[13px] font-medium text-[#111827]">{contract ? formatters.formatCurrency(contract.payRate) : '-'}</td>
+                          <td className="px-3 py-3.5 text-[13px] font-medium text-[#111827]">{contract ? formatters.formatCurrency(contract.billRate) : '-'}</td>
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center justify-end gap-3">
+                              {canCreateContracts && (
+                                <button
+                                  type="button"
+                                  onClick={() => openContractModal(row.id)}
+                                  className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
+                                  title="Add contract"
+                                >
+                                  <Plus className="h-4.5 w-4.5" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setViewingContractor(row)}
+                                className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
+                                title="View contracts"
+                              >
+                                <Eye className="h-4.5 w-4.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between px-6 py-5">
+                <p className="text-base text-[#5f6f88]">Showing <span className="font-semibold text-[#1e2d45]">{filteredRows.length}</span> of <span className="font-semibold text-[#1e2d45]">{rows.length}</span> results</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8e2ef] text-[#94a1b6] disabled:opacity-50"
+                  >
+                    ‹
+                  </button>
+                  <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl bg-[#4b4fe8] px-3 text-sm font-semibold text-white">{currentPage}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8e2ef] text-[#94a1b6] disabled:opacity-50"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+            </>
           )}
-        </div>
+        </Card>
 
         <Modal
           isOpen={isContractorModalOpen}
-          onClose={() => setIsContractorModalOpen(false)}
-          title="Create Contractor"
+          onClose={() => {
+            setIsContractorModalOpen(false)
+            resetContractorForm()
+          }}
+          title="Add New Contractor"
           size="xxl"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setIsContractorModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" isLoading={isCreatingContractor} onClick={submitContractor}>
-                Create Contractor
-              </Button>
+              <Button variant="secondary" onClick={() => { setIsContractorModalOpen(false); resetContractorForm() }}>Cancel</Button>
+              <Button variant="primary" isLoading={isCreatingContractor} onClick={submitContractor}>Create Contractor</Button>
             </>
           }
         >
           <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={submitContractor}>
             {contractorFormErrors.submit && (
-              <div className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 p-3">
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 md:col-span-2">
                 <p className="text-sm text-red-700">{contractorFormErrors.submit}</p>
               </div>
             )}
-
-            <Input
-              label="Contractor ID"
-              name="contractorId"
-              value={contractorFormData.contractorId}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.contractorId}
-              placeholder="CMP-CTR-001"
-              required
-            />
-            <Select
-              label="Employment Type"
-              name="employmentType"
-              value={contractorFormData.employmentType}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.employmentType}
-              options={EMPLOYMENT_TYPE_OPTIONS}
-              required
-            />
-            <Input
-              label="Full Name"
-              name="name"
-              value={contractorFormData.name}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.name}
-              placeholder="Contractor full name"
-              required
-            />
-            <Input
-              label="Email"
-              type="email"
-              name="email"
-              value={contractorFormData.email}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.email}
-              placeholder="contractor@example.com"
-              required
-            />
-            {!isFullTimeEmployee && (
-              <Input
-                label="Secondary Email"
-                type="email"
-                name="secondaryEmail"
-                value={contractorFormData.secondaryEmail}
-                onChange={handleContractorInputChange}
-                error={contractorFormErrors.secondaryEmail}
-                placeholder="alternate@example.com"
-                required
-              />
-            )}
-            <Input
-              label="Phone Number"
-              name="phoneNumber"
-              value={contractorFormData.phoneNumber}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.phoneNumber}
-              placeholder="+91 9876543210"
-              required
-            />
-            <Input
-              label="Customer Manager"
-              name="customerManager"
-              value={contractorFormData.customerManager}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.customerManager}
-              placeholder="Customer manager name"
-              required
-            />
-            <Input
-              label="Customer Manager Email ID"
-              type="email"
-              name="customerManagerEmail"
-              value={contractorFormData.customerManagerEmail}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.customerManagerEmail}
-              placeholder="manager@example.com"
-              required
-            />
-            <Input
-              label="Current Location"
-              name="currentLocation"
-              value={contractorFormData.currentLocation}
-              onChange={handleContractorInputChange}
-              error={contractorFormErrors.currentLocation}
-              placeholder="Bangalore"
-              required
-            />
-            {!isFullTimeEmployee && (
-              <Input
-                label="Notice Period (days)"
-                type="number"
-                name="noticePeriodDays"
-                value={contractorFormData.noticePeriodDays}
-                onChange={handleContractorInputChange}
-                error={contractorFormErrors.noticePeriodDays}
-                min="0"
-                required
-              />
-            )}
-            {!isFreelancer && (
-              <Input
-                label="Address"
-                name="address"
-                value={contractorFormData.address}
-                onChange={handleContractorInputChange}
-                error={contractorFormErrors.address}
-                placeholder="Full address"
-                required
-              />
-            )}
+            <Input label="Contractor ID" name="contractorId" value={contractorFormData.contractorId} onChange={(e) => setContractorFormData((p) => ({ ...p, contractorId: e.target.value }))} error={contractorFormErrors.contractorId} required />
+            <Input label="Name" name="name" value={contractorFormData.name} onChange={(e) => setContractorFormData((p) => ({ ...p, name: e.target.value }))} error={contractorFormErrors.name} required />
+            <Input label="Address" name="address" value={contractorFormData.address} onChange={(e) => setContractorFormData((p) => ({ ...p, address: e.target.value }))} error={contractorFormErrors.address} required />
+            <Input label="Current Location (e.g. US/APAC)" name="currentLocation" value={contractorFormData.currentLocation} onChange={(e) => setContractorFormData((p) => ({ ...p, currentLocation: e.target.value }))} error={contractorFormErrors.currentLocation} required />
+            <Input label="Email" name="email" type="email" value={contractorFormData.email} onChange={(e) => setContractorFormData((p) => ({ ...p, email: e.target.value }))} error={contractorFormErrors.email} required />
+            <Input label="Secondary Email" name="secondaryEmail" type="email" value={contractorFormData.secondaryEmail} onChange={(e) => setContractorFormData((p) => ({ ...p, secondaryEmail: e.target.value }))} error={contractorFormErrors.secondaryEmail} required />
+            <Input label="Phone Number" name="phoneNumber" value={contractorFormData.phoneNumber} onChange={(e) => setContractorFormData((p) => ({ ...p, phoneNumber: e.target.value }))} error={contractorFormErrors.phoneNumber} required />
+            <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={contractorFormData.noticePeriodDays} onChange={(e) => setContractorFormData((p) => ({ ...p, noticePeriodDays: parseInt(e.target.value, 10) || 0 }))} error={contractorFormErrors.noticePeriodDays} />
+            <Input label="Customer Manager" name="customerManager" value={contractorFormData.customerManager} onChange={(e) => setContractorFormData((p) => ({ ...p, customerManager: e.target.value }))} error={contractorFormErrors.customerManager} required />
+            <Input label="Customer Manager Email" name="customerManagerEmail" type="email" value={contractorFormData.customerManagerEmail} onChange={(e) => setContractorFormData((p) => ({ ...p, customerManagerEmail: e.target.value }))} error={contractorFormErrors.customerManagerEmail} required />
+            <div className="md:col-span-2">
+              <Textarea label="Remarks" name="remarks" value={contractorFormData.remarks} onChange={(e) => setContractorFormData((p) => ({ ...p, remarks: e.target.value }))} error={contractorFormErrors.remarks} required />
+            </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Password <span className="text-red-500">*</span>
-              </label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
               <div className="relative">
                 <input
                   type={showContractorPassword ? 'text' : 'password'}
-                  name="password"
                   value={contractorFormData.password}
-                  onChange={handleContractorInputChange}
-                  placeholder="Strong password"
-                  className={`w-full rounded-lg border bg-white px-3 py-2.5 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none ${
-                    contractorFormErrors.password
-                      ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
-                      : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                  }`}
-                  required
+                  onChange={(e) => setContractorFormData((p) => ({ ...p, password: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 pr-10 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowContractorPassword((previous) => !previous)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={showContractorPassword ? 'Hide password' : 'Show password'}
-                >
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" onClick={() => setShowContractorPassword((p) => !p)}>
                   {showContractorPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {contractorFormErrors.password && <p className="mt-1.5 text-xs text-red-500">{contractorFormErrors.password}</p>}
+              {contractorFormErrors.password && <p className="mt-1 text-xs text-red-600">{contractorFormErrors.password}</p>}
             </div>
-
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm Password</label>
               <div className="relative">
                 <input
                   type={showContractorConfirmPassword ? 'text' : 'password'}
-                  name="confirmPassword"
                   value={contractorFormData.confirmPassword}
-                  onChange={handleContractorInputChange}
-                  placeholder="Re-enter password"
-                  className={`w-full rounded-lg border bg-white px-3 py-2.5 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none ${
-                    contractorFormErrors.confirmPassword
-                      ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
-                      : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                  }`}
-                  required
+                  onChange={(e) => setContractorFormData((p) => ({ ...p, confirmPassword: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 pr-10 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowContractorConfirmPassword((previous) => !previous)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={showContractorConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                >
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" onClick={() => setShowContractorConfirmPassword((p) => !p)}>
                   {showContractorConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {contractorFormErrors.confirmPassword && <p className="mt-1.5 text-xs text-red-500">{contractorFormErrors.confirmPassword}</p>}
+              {contractorFormErrors.confirmPassword && <p className="mt-1 text-xs text-red-600">{contractorFormErrors.confirmPassword}</p>}
             </div>
+          </form>
+        </Modal>
 
-            {!isFullTimeEmployee && (
-              <div className="md:col-span-2">
-                <Textarea
-                  label="Remarks"
-                  name="remarks"
-                  value={contractorFormData.remarks}
-                  onChange={handleContractorInputChange}
-                  error={contractorFormErrors.remarks}
-                  placeholder="Important notes about the contractor"
-                  required
-                />
+        <Modal
+          isOpen={isContractModalOpen}
+          onClose={() => setIsContractModalOpen(false)}
+          title="Create Contract"
+          size="xxl"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setIsContractModalOpen(false)}>Cancel</Button>
+              <Button variant="primary" isLoading={isCreatingContract} onClick={submitContract}>Create Contract</Button>
+            </>
+          }
+        >
+          <form className="space-y-4" onSubmit={submitContract}>
+            {contractFormErrors.submit && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="text-sm text-red-700">{contractFormErrors.submit}</p>
               </div>
             )}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Contractor</label>
+                <select name="contractorId" value={contractFormData.contractorId} onChange={handleContractInputChange} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500">
+                  <option value="">Select contractor...</option>
+                  {contractors.map((contractor) => (
+                    <option key={contractor.id} value={String(contractor.id)}>{contractor.name} ({contractor.contractorId})</option>
+                  ))}
+                </select>
+                {contractFormErrors.contractorId && <p className="mt-1 text-xs text-red-600">{contractFormErrors.contractorId}</p>}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">PO Allocation (Optional)</label>
+                <select name="poAllocation" value={contractFormData.poAllocation} onChange={handleContractInputChange} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500">
+                  <option value="">No PO</option>
+                  {purchaseOrders.filter((po) => po.poNumber).map((po) => (
+                    <option key={po.id || po.poNumber} value={String(po.poNumber).trim()}>
+                      {po.poNumber} ({customerNameById[String(po.customerId)] || `Customer #${po.customerId}`})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Customer</label>
+              <select name="customerId" value={contractFormData.customerId} onChange={handleContractInputChange} disabled={Boolean(contractFormData.poAllocation)} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500 disabled:bg-gray-100">
+                <option value="">Select customer...</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
+                ))}
+              </select>
+              {contractFormErrors.customerId && <p className="mt-1 text-xs text-red-600">{contractFormErrors.customerId}</p>}
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Bill Rate" name="billRate" type="number" step="0.01" value={contractFormData.billRate} onChange={handleContractInputChange} error={contractFormErrors.billRate} />
+              <Input label="Pay Rate" name="payRate" type="number" step="0.01" value={contractFormData.payRate} onChange={handleContractInputChange} error={contractFormErrors.payRate} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Estimated Hours" name="estimatedHours" type="number" value={contractFormData.estimatedHours} onChange={handleContractInputChange} error={contractFormErrors.estimatedHours} />
+              <Input label="Estimated Budget" name="estimatedBudget" type="number" value={contractFormData.estimatedBudget} onChange={handleContractInputChange} error={contractFormErrors.estimatedBudget} readOnly />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Start Date" name="startDate" type="date" value={contractFormData.startDate} onChange={handleContractInputChange} error={contractFormErrors.startDate} />
+              <Input label="End Date" name="endDate" type="date" value={contractFormData.endDate} onChange={handleContractInputChange} error={contractFormErrors.endDate} />
+            </div>
+            <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={contractFormData.noticePeriodDays} onChange={handleContractInputChange} error={contractFormErrors.noticePeriodDays} />
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="throughEor" checked={contractFormData.throughEor} onChange={handleContractInputChange} />
+              Through EOR
+            </label>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Textarea label="Remarks" name="remarks" value={contractFormData.remarks} onChange={handleContractInputChange} />
+              <Textarea label="Termination Remarks" name="terminationRemarks" value={contractFormData.terminationRemarks} onChange={handleContractInputChange} />
+            </div>
           </form>
         </Modal>
 
@@ -1018,340 +694,29 @@ const ContractorsPage = () => {
           {!viewingContractor || viewingContractor.contracts.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center">
               <p className="font-medium text-gray-700">No contracts assigned yet</p>
-              <p className="mt-1 text-sm text-gray-500">
-                Create a contract to start tracking rate, hours, totals, and EOR details for this contractor.
-              </p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {[
-                { key: 'ACTIVE', title: 'Active Contracts', variant: 'approved', contracts: viewingContractor.contracts.filter((contract) => contract.status === 'ACTIVE') },
-                { key: 'INACTIVE', title: 'Inactive Contracts', variant: 'default', contracts: viewingContractor.contracts.filter((contract) => contract.status !== 'ACTIVE') },
-              ].map((section) => (
-                <div key={section.key}>
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-800">{section.title}</h3>
-                    <Badge variant={section.variant}>{section.contracts.length}</Badge>
+            <div className="space-y-3">
+              {viewingContractor.contracts.map((contract) => (
+                <div key={contract.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <p className="text-sm font-semibold text-gray-900">Contract #{contract.id}</p>
+                    <Badge variant={String(contract.status).toUpperCase() === 'ACTIVE' ? 'approved' : 'default'}>{contract.status}</Badge>
                   </div>
-                  {section.contracts.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
-                      No {section.title.toLowerCase()} for this contractor.
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {section.contracts.map((contract) => {
-                        const estimatedPayout = (Number(contract.payRate) || 0) * (Number(contract.estimatedHours) || 0)
-                        const dueDays = calculateDueDays(contract.endDate)
-                        const statusVariant =
-                          contract.status === 'ACTIVE'
-                            ? 'approved'
-                            : contract.status === 'TERMINATED'
-                              ? 'rejected'
-                              : 'default'
-
-                        return (
-                          <div key={contract.id} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-                            <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                              <h3 className="text-sm font-semibold text-gray-900">
-                                Contract #{String(contract.id).padStart(3, '0')}
-                              </h3>
-                              <Badge variant={statusVariant}>{contract.status}</Badge>
-                              <Badge variant={contract.throughEor ? 'info' : 'default'}>
-                                {contract.throughEor ? 'Through EOR' : 'Direct'}
-                              </Badge>
-                              <Badge variant="indigo">{contract.noticePeriodDays ?? 0} day notice</Badge>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Customer</p>
-                                <p className="mt-0.5 text-xs font-medium text-gray-900">{customerNameById[contract.customerId] || 'Not assigned'}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">PO Allocation</p>
-                                <p className="mt-0.5 text-xs font-medium text-gray-900">{contract.poAllocation || '-'}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Timeline</p>
-                                <p className="mt-0.5 text-xs font-medium text-gray-900">
-                                  {formatters.formatDate(contract.startDate)} to {formatters.formatDate(contract.endDate)}
-                                </p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Due</p>
-                                <p className="mt-0.5 text-xs font-medium text-gray-900">{dueDays}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Pay Rate</p>
-                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatCurrency(contract.payRate)}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Bill Rate</p>
-                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatCurrency(contract.billRate)}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Hours</p>
-                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatHours(contract.estimatedHours)}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Total Payout</p>
-                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatCurrency(estimatedPayout)}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Estimated Budget</p>
-                                <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatters.formatCurrency(contract.estimatedBudget)}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Remarks</p>
-                                <p className="mt-0.5 text-xs font-medium text-gray-900">{contract.remarks || '-'}</p>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-2 md:col-span-2 xl:col-span-1">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Termination Remarks</p>
-                                <p className="mt-0.5 text-xs font-medium text-gray-900">{contract.terminationRemarks || '-'}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <p className="text-sm text-gray-700">Customer: <span className="font-medium text-gray-900">{customerNameById[String(contract.customerId)] || '-'}</span></p>
+                    <p className="text-sm text-gray-700">PO: <span className="font-medium text-gray-900">{contract.poAllocation || '-'}</span></p>
+                    <p className="text-sm text-gray-700">Duration: <span className="font-medium text-gray-900">{formatters.formatDate(contract.startDate)} - {formatters.formatDate(contract.endDate)}</span></p>
+                    <p className="text-sm text-gray-700">Pay Rate: <span className="font-medium text-gray-900">{formatters.formatCurrency(contract.payRate)}</span></p>
+                    <p className="text-sm text-gray-700">Bill Rate: <span className="font-medium text-gray-900">{formatters.formatCurrency(contract.billRate)}</span></p>
+                    <p className="text-sm text-gray-700">Hours: <span className="font-medium text-gray-900">{contract.estimatedHours || 0}</span></p>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </Modal>
-
-        <Modal
-          isOpen={isContractModalOpen}
-          onClose={() => {
-            closeContractModal()
-            resetContractForm()
-          }}
-          title="Create Contract"
-          size="xxl"
-          footer={
-            <>
-              <Button variant="secondary" onClick={closeContractModal}>
-                Cancel
-              </Button>
-              <Button variant="primary" isLoading={isCreatingContract} onClick={submitContract}>
-                Create Contract
-              </Button>
-            </>
-          }
-        >
-          <form className="space-y-4" onSubmit={submitContract}>
-            {contractFormErrors.submit && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                <p className="text-sm text-red-700">{contractFormErrors.submit}</p>
-              </div>
-            )}
-
-           {lockedContractorId || isContractorSelectionLocked ? (
-  <Input
-    label="Contractor"
-    value={getContractorDisplayName(selectedContractor)}
-    required
-    readOnly
-    className="cursor-not-allowed bg-gray-50"
-  />
-) : (
-  <Select
-    label="Contractor"
-    name="contractorId"
-    value={contractFormData.contractorId}
-    onChange={handleContractInputChange}
-    error={contractFormErrors.contractorId}
-    required
-    options={[
-      { value: '', label: 'Select a contractor...' },
-      ...contractors.map((contractor) => ({
-        value: String(contractor.id),
-        label: getContractorDisplayName(contractor),
-      })),
-    ]}
-  />
-)}
-
-            <Select
-              label="Purchase Order (Optional)"
-              name="poAllocation"
-              value={contractFormData.poAllocation}
-              onChange={handleContractInputChange}
-              error={contractFormErrors.poAllocation}
-              options={[
-                { value: '', label: 'No PO - Select customer manually...' },
-                ...purchaseOrders
-                  .filter((purchaseOrder) => Boolean(purchaseOrder?.poNumber))
-                  .map((purchaseOrder) => {
-                    const normalizedPoNumber = String(purchaseOrder.poNumber).trim()
-                    const allocatedCount = activePoUsageByNumber[normalizedPoNumber]?.size || 0
-                    const capacity = Number(purchaseOrder.numberOfResources) || 0
-                    const customerName = customerNameById[purchaseOrder.customerId] || `Customer #${purchaseOrder.customerId}`
-                    return {
-                      value: normalizedPoNumber,
-                      label: `${normalizedPoNumber} | ${customerName} | ${allocatedCount}/${capacity || 'NA'} resources`,
-                    }
-                  }),
-              ]}
-            />
-
-            {contractFormData.poAllocation ? (
-              <Input
-                label="Customer"
-                value={contractFormData.customerId ? (customerNameById[contractFormData.customerId] || `Customer #${contractFormData.customerId}`) : ''}
-                error={contractFormErrors.customerId}
-                readOnly
-                className="cursor-not-allowed bg-gray-50"
-                placeholder="Auto-linked from selected PO"
-              />
-            ) : (
-              <Select
-                label="Customer"
-                name="customerId"
-                value={contractFormData.customerId || ''}
-                onChange={handleContractInputChange}
-                error={contractFormErrors.customerId}
-                required
-                options={[
-                  { value: '', label: 'Select a customer...' },
-                  ...customers.map((customer) => ({
-                    value: String(customer.id),
-                    label: customer.name,
-                  })),
-                ]}
-              />
-            )}
-
-            {selectedPurchaseOrder && (
-              <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
-                <p className="text-sm font-medium text-indigo-900">
-                  PO Window: {formatters.formatDate(selectedPurchaseOrder.startDate)} to {formatters.formatDate(selectedPurchaseOrder.endDate)}
-                </p>
-                <p className="mt-1 text-sm text-indigo-800">
-                  Resource Allocation: {selectedPurchaseOrderUsage}/{selectedPurchaseOrder.numberOfResources || 'NA'} active contractors
-                </p>
-              </div>
-            )}
-
-            {contractFormErrors.rateValidation && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                <p className="text-sm text-red-700">{contractFormErrors.rateValidation}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                label="Bill Rate ($)"
-                name="billRate"
-                type="number"
-                step="0.01"
-                value={contractFormData.billRate}
-                onChange={handleContractInputChange}
-                error={contractFormErrors.billRate}
-                required
-              />
-              <Input
-                label="Pay Rate ($)"
-                name="payRate"
-                type="number"
-                step="0.01"
-                value={contractFormData.payRate}
-                onChange={handleContractInputChange}
-                error={contractFormErrors.payRate}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                label="Estimated Hours"
-                name="estimatedHours"
-                type="number"
-                value={contractFormData.estimatedHours}
-                onChange={handleContractInputChange}
-                error={contractFormErrors.estimatedHours}
-                required
-              />
-              <Input
-                label="Estimated Budget ($)"
-                name="estimatedBudget"
-                type="number"
-                step="0.01"
-                value={contractFormData.estimatedBudget}
-                error={contractFormErrors.estimatedBudget}
-                readOnly
-                className="cursor-not-allowed bg-gray-50"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                label="Start Date"
-                name="startDate"
-                type="date"
-                value={contractFormData.startDate}
-                onChange={handleContractInputChange}
-                error={contractFormErrors.startDate}
-                required
-              />
-              <Input
-                label="End Date"
-                name="endDate"
-                type="date"
-                value={contractFormData.endDate}
-                onChange={handleContractInputChange}
-                error={contractFormErrors.endDate}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                label="Notice Period (days)"
-                name="noticePeriodDays"
-                type="number"
-                value={contractFormData.noticePeriodDays}
-                onChange={handleContractInputChange}
-                error={contractFormErrors.noticePeriodDays}
-                min="0"
-              />
-            </div>
-
-            <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <input
-                id="throughEor"
-                type="checkbox"
-                name="throughEor"
-                checked={contractFormData.throughEor}
-                onChange={handleContractInputChange}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-200"
-              />
-              <label htmlFor="throughEor" className="text-sm font-medium text-gray-700">
-                Through EOR
-              </label>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Textarea
-                label="Remarks"
-                name="remarks"
-                value={contractFormData.remarks}
-                onChange={handleContractInputChange}
-                placeholder="Commercial notes, onboarding notes, or delivery context"
-              />
-              <Textarea
-                label="Termination Remarks"
-                name="terminationRemarks"
-                value={contractFormData.terminationRemarks}
-                onChange={handleContractInputChange}
-                placeholder="Termination context or exit notes"
-              />
-            </div>
-          </form>
-        </Modal>
-      </motion.div>
+      </div>
     </DashboardLayout>
   )
 }

@@ -7,7 +7,7 @@ import { Navbar } from './Navbar'
 export const DashboardLayout = ({ children }) => {
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const isDashboardPage = location.pathname === '/dashboard'
+  const isTopbarPage = location.pathname === '/dashboard'
 
   return (
     <div className="flex h-screen bg-[#f3f4fb]">
@@ -15,8 +15,8 @@ export const DashboardLayout = ({ children }) => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-        {isDashboardPage ? (
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-[264px]">
+        {isTopbarPage ? (
           <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         ) : (
           <button
@@ -30,7 +30,7 @@ export const DashboardLayout = ({ children }) => {
         )}
         
         <main className="flex-1 overflow-y-auto">
-          <div className={isDashboardPage ? 'p-6' : 'p-6 pt-4'}>
+          <div className={isTopbarPage ? 'p-5' : 'p-5 pt-4'}>
             {children}
           </div>
         </main>

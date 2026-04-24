@@ -3,11 +3,11 @@ import React from 'react'
 export const Table = ({ columns = [], data = [], className = '' }) => {
   return (
     <div className={`overflow-x-auto ${className}`}>
-      <table className="min-w-full text-sm">
+      <table className="min-w-full text-[13px]">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">
+              <th key={column.key} className="px-4 py-2.5 text-left font-semibold text-gray-700 whitespace-nowrap">
                 {column.label}
               </th>
             ))}
@@ -17,7 +17,7 @@ export const Table = ({ columns = [], data = [], className = '' }) => {
           {data.map((row, rowIndex) => (
             <tr key={row.id || rowIndex} className="hover:bg-gray-50">
               {columns.map((column) => (
-                <td key={column.key} className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                <td key={column.key} className="px-4 py-2.5 text-gray-700 whitespace-nowrap">
                   {column.render ? column.render(row) : row[column.key]}
                 </td>
               ))}

@@ -8,8 +8,8 @@ export const Card = ({
 }) => {
   return (
     <div className={`bg-white border border-gray-200 rounded-2xl shadow-sm ${className}`}>
-      {header && <div className="px-5 py-4 border-b border-gray-200">{header}</div>}
-      <div className={isPadded ? 'p-5' : ''}>{children}</div>
+      {header && <div className="border-b border-gray-200 px-4 py-3">{header}</div>}
+      <div className={isPadded ? 'p-4' : ''}>{children}</div>
     </div>
   )
 }

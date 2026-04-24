@@ -1,116 +1,164 @@
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Plus, AlertCircle, Briefcase, DollarSign, CalendarDays } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  AlertCircle,
+  Briefcase,
+  CalendarClock,
+  CheckCircle2,
+  CircleDollarSign,
+  Download,
+  MoreVertical,
+  Eye,
+  Filter,
+  Plus,
+  Search,
+  User,
+} from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Card, Button, Table, Modal, Input, Select, Badge, Loader } from '../../components/ui'
+import { Button, Card, Loader, Modal, Input, Textarea } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
+import { poService } from '../../services/poService'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 
+const EMPTY_FORM = {
+  contractorId: '',
+  customerId: '',
+  poAllocation: '',
+  billRate: '',
+  payRate: '',
+  estimatedHours: '',
+  estimatedBudget: '',
+  startDate: '',
+  endDate: '',
+  noticePeriodDays: 30,
+  throughEor: false,
+  remarks: '',
+  terminationRemarks: '',
+}
+
 const ContractsPage = () => {
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [contracts, setContracts] = useState([])
-  const [customers, setCustomers] = useState([])
   const [contractors, setContractors] = useState([])
+  const [customers, setCustomers] = useState([])
+  const [purchaseOrders, setPurchaseOrders] = useState([])
+
+  const [searchTerm, setSearchTerm] = useState('')
+  const [page, setPage] = useState(1)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [formData, setFormData] = useState({
-    contractorId: '',
-    customerId: '',
-    billRate: '',
-    payRate: '',
-    estimatedHours: '',
-    estimatedBudget: '',
-    startDate: '',
-    endDate: '',
-    noticePeriodDays: 30,
-    throughEor: false,
-    remarks: '',
-  })
-  const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const today = new Date()
-  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-  const minStartDate = tomorrow.toISOString().slice(0, 10)
+  const [formData, setFormData] = useState(EMPTY_FORM)
+  const [formErrors, setFormErrors] = useState({})
+
+  const PAGE_SIZE = 10
+  const minStartDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
   useEffect(() => {
-    loadContracts()
-    loadCustomers()
-    loadContractors()
+    loadData()
   }, [])
 
-  const calculateEstimatedBudget = (billRate, estimatedHours) => {
-    const normalizedBillRate = Number(billRate)
-    const normalizedHours = Number(estimatedHours)
-
-    if (!normalizedBillRate || !normalizedHours) {
-      return ''
-    }
-
-    return Number((normalizedBillRate * normalizedHours).toFixed(2))
-  }
-
-  const loadContracts = async () => {
+  const loadData = async () => {
     try {
       setIsLoading(true)
-      setError(null)
-      const data = await contractService.getAllContracts()
-      setContracts(Array.isArray(data) ? data : [])
-    } catch (err) {
-      setError(err?.error?.message || 'Failed to load contracts')
+      setError('')
+      const [contractsResult, contractorsResult, customersResult, poResult] = await Promise.allSettled([
+        contractService.getAllContracts(),
+        contractorService.getAllContractors(),
+        customerService.getAllCustomers(),
+        poService.getAllPurchaseOrders(),
+      ])
+
+      setContracts(contractsResult.status === 'fulfilled' && Array.isArray(contractsResult.value) ? contractsResult.value : [])
+      setContractors(contractorsResult.status === 'fulfilled' && Array.isArray(contractorsResult.value) ? contractorsResult.value : [])
+      setCustomers(customersResult.status === 'fulfilled' && Array.isArray(customersResult.value) ? customersResult.value : [])
+      setPurchaseOrders(poResult.status === 'fulfilled' && Array.isArray(poResult.value) ? poResult.value : [])
+
+      if (
+        contractsResult.status === 'rejected' ||
+        contractorsResult.status === 'rejected' ||
+        customersResult.status === 'rejected' ||
+        poResult.status === 'rejected'
+      ) {
+        setError('Failed to load contract management data')
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  const loadCustomers = async () => {
-    try {
-      const data = await customerService.getAllCustomers()
-      setCustomers(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error('Failed to load customers:', err)
-    }
-  }
+  const contractorById = useMemo(
+    () =>
+      contractors.reduce((lookup, contractor) => {
+        lookup[String(contractor.id)] = contractor
+        lookup[String(contractor.userId)] = contractor
+        return lookup
+      }, {}),
+    [contractors]
+  )
 
-  const loadContractors = async () => {
-    try {
-      const data = await contractorService.getAllContractors()
-      setContractors(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error('Failed to load contractors:', err)
-    }
-  }
+  const customerById = useMemo(
+    () =>
+      customers.reduce((lookup, customer) => {
+        lookup[String(customer.id)] = customer
+        return lookup
+      }, {}),
+    [customers]
+  )
 
-  const validateForm = () => {
-    const newErrors = {}
-    if (!validators.isRequired(formData.contractorId)) newErrors.contractorId = 'Contractor ID is required'
-    if (!validators.isRequired(formData.billRate)) newErrors.billRate = 'Bill rate is required'
-    if (!validators.isRequired(formData.payRate)) newErrors.payRate = 'Pay rate is required'
-    if (!validators.isRequired(formData.estimatedHours)) newErrors.estimatedHours = 'Estimated hours is required'
-    if (!validators.isRequired(formData.estimatedBudget)) newErrors.estimatedBudget = 'Estimated budget is required'
-    if (
-      validators.isRequired(formData.billRate) &&
-      validators.isRequired(formData.payRate) &&
-      Number(formData.payRate) >= Number(formData.billRate)
-    ) {
-      newErrors.rateValidation = 'Pay rate must be less than bill rate'
-    }
-    if (!validators.isRequired(formData.startDate)) newErrors.startDate = 'Start date is required'
-    if (!validators.isRequired(formData.endDate)) newErrors.endDate = 'End date is required'
-    if (formData.startDate && formData.startDate <= new Date().toISOString().slice(0, 10)) {
-      newErrors.startDate = 'Start date must be in the future (upcoming contract only)'
-    }
-    if (formData.startDate && formData.endDate && formData.endDate < formData.startDate) {
-      newErrors.endDate = 'End date cannot be before start date'
-    }
-    setFormErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+  const poByNumber = useMemo(
+    () =>
+      purchaseOrders.reduce((lookup, po) => {
+        const key = String(po.poNumber || '').trim()
+        if (key) lookup[key] = po
+        return lookup
+      }, {}),
+    [purchaseOrders]
+  )
 
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target
-    let blockedRateEntry = false
+  const rows = useMemo(() => {
+    return contracts.map((contract) => {
+      const contractor = contractorById[String(contract.contractorId)] || null
+      return {
+        ...contract,
+        displayName: contract.contractorName || contractor?.name || 'N/A',
+        roleText: contractor?.remarks || 'Not Assigned',
+      }
+    })
+  }, [contracts, contractorById])
+
+  const filteredRows = useMemo(() => {
+    if (!searchTerm.trim()) return rows
+    const q = searchTerm.toLowerCase()
+    return rows.filter((row) => {
+      return (
+        String(row.displayName || '').toLowerCase().includes(q) ||
+        String(row.poAllocation || '').toLowerCase().includes(q) ||
+        String(row.status || '').toLowerCase().includes(q)
+      )
+    })
+  }, [rows, searchTerm])
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm, rows.length])
+
+  const stats = useMemo(() => {
+    const total = contracts.length
+    const active = contracts.filter((contract) => String(contract.status || '').toUpperCase() === 'ACTIVE').length
+    const upcoming = contracts.filter((contract) => String(contract.status || '').toUpperCase() === 'UPCOMING').length
+    const totalBudget = contracts.reduce((sum, contract) => sum + (Number(contract.estimatedBudget) || 0), 0)
+    return { total, active, upcoming, totalBudget }
+  }, [contracts])
+
+  const handleInputChange = (event) => {
+    const { name, value, type, checked } = event.target
 
     setFormData((prev) => {
       const parsedValue =
@@ -119,187 +167,270 @@ const ContractsPage = () => {
           : ['billRate', 'payRate'].includes(name)
             ? parseFloat(value) || ''
             : ['estimatedHours', 'noticePeriodDays'].includes(name)
-              ? parseInt(value) || ''
+              ? parseInt(value, 10) || ''
               : value
 
-      const nextFormData = {
-        ...prev,
-        [name]: parsedValue,
-      }
+      let next = { ...prev, [name]: parsedValue }
 
-      if (name === 'payRate' && parsedValue !== '' && prev.billRate !== '' && Number(parsedValue) > Number(prev.billRate)) {
-        blockedRateEntry = true
-        return prev
-      }
-
-      if (name === 'billRate' && parsedValue !== '' && prev.payRate !== '' && Number(prev.payRate) >= Number(parsedValue)) {
-        blockedRateEntry = true
-        return prev
+      if (name === 'poAllocation') {
+        const linkedPo = poByNumber[String(parsedValue || '').trim()]
+        next.customerId = linkedPo?.customerId ? String(linkedPo.customerId) : ''
       }
 
       if (name === 'billRate' || name === 'estimatedHours') {
-        nextFormData.estimatedBudget = calculateEstimatedBudget(
-          name === 'billRate' ? parsedValue : prev.billRate,
-          name === 'estimatedHours' ? parsedValue : prev.estimatedHours
-        )
+        const billRate = Number(name === 'billRate' ? parsedValue : prev.billRate) || 0
+        const estimatedHours = Number(name === 'estimatedHours' ? parsedValue : prev.estimatedHours) || 0
+        next.estimatedBudget = billRate > 0 && estimatedHours > 0 ? Number((billRate * estimatedHours).toFixed(2)) : ''
       }
 
-      return nextFormData
+      return next
     })
-
-    if (blockedRateEntry) {
-      setFormErrors((prev) => ({
-        ...prev,
-        rateValidation: 'Pay rate must be less than bill rate',
-      }))
-      return
-    }
 
     if (formErrors[name]) {
       setFormErrors((prev) => ({ ...prev, [name]: '' }))
     }
-
-    if ((name === 'billRate' || name === 'estimatedHours') && formErrors.estimatedBudget) {
-      setFormErrors((prev) => ({ ...prev, estimatedBudget: '' }))
-    }
-
-    if ((name === 'billRate' || name === 'payRate') && (formErrors.billRate || formErrors.payRate || formErrors.rateValidation)) {
-      setFormErrors((prev) => ({ ...prev, billRate: '', payRate: '', rateValidation: '' }))
-    }
-
-    if ((name === 'startDate' || name === 'endDate') && (formErrors.startDate || formErrors.endDate)) {
-      setFormErrors((prev) => ({ ...prev, startDate: '', endDate: '' }))
+    if ((name === 'billRate' || name === 'payRate') && formErrors.rateValidation) {
+      setFormErrors((prev) => ({ ...prev, rateValidation: '' }))
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const validateForm = () => {
+    const errors = {}
+    if (!validators.isRequired(formData.contractorId)) errors.contractorId = 'Contractor is required'
+    if (!validators.isRequired(formData.billRate)) errors.billRate = 'Bill rate is required'
+    if (!validators.isRequired(formData.payRate)) errors.payRate = 'Pay rate is required'
+    if (!validators.isRequired(formData.estimatedHours)) errors.estimatedHours = 'Estimated hours is required'
+    if (!validators.isRequired(formData.estimatedBudget)) errors.estimatedBudget = 'Estimated budget is required'
+    if (Number(formData.payRate) >= Number(formData.billRate)) errors.rateValidation = 'Pay rate must be less than bill rate'
+    if (!validators.isRequired(formData.startDate)) errors.startDate = 'Start date is required'
+    if (!validators.isRequired(formData.endDate)) errors.endDate = 'End date is required'
+    if (formData.startDate && formData.startDate < minStartDate) errors.startDate = 'Start date must be in the future'
+    if (formData.startDate && formData.endDate && formData.endDate < formData.startDate) errors.endDate = 'End date cannot be before start date'
+    if (!formData.poAllocation && !validators.isRequired(formData.customerId)) errors.customerId = 'Customer is required when PO is not selected'
+    if (Number(formData.noticePeriodDays) < 0) errors.noticePeriodDays = 'Notice period cannot be negative'
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
     if (!validateForm()) return
 
     setIsSubmitting(true)
     try {
-      await contractService.createContract(formData)
-      setIsModalOpen(false)
-      setFormData({
-        contractorId: '',
-        customerId: '',
-        billRate: '',
-        payRate: '',
-        estimatedHours: '',
-        estimatedBudget: '',
-        startDate: '',
-        endDate: '',
-        noticePeriodDays: 30,
-        throughEor: false,
-        remarks: '',
+      await contractService.createContract({
+        contractorId: Number(formData.contractorId),
+        customerId: formData.customerId ? Number(formData.customerId) : null,
+        poAllocation: String(formData.poAllocation || '').trim() || null,
+        billRate: Number(formData.billRate),
+        payRate: Number(formData.payRate),
+        estimatedHours: Number(formData.estimatedHours),
+        estimatedBudget: Number(formData.estimatedBudget),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        noticePeriodDays: Number(formData.noticePeriodDays) || 0,
+        throughEor: Boolean(formData.throughEor),
+        remarks: String(formData.remarks || ''),
+        terminationRemarks: String(formData.terminationRemarks || ''),
       })
-      await loadContracts()
+
+      setIsModalOpen(false)
+      setFormData(EMPTY_FORM)
+      setFormErrors({})
+      setSuccess('Contract created successfully')
+      await loadData()
     } catch (err) {
-      setFormErrors({ submit: err?.error?.message || 'Failed to create contract' })
+      setFormErrors({ submit: err?.error?.message || err?.message || 'Failed to create contract' })
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const columns = [
-    {
-      key: 'contractorName',
-      label: 'Contractor Name',
-      render: (row) => <span className="font-medium text-gray-900">{row.contractorName || 'N/A'}</span>,
-    },
-    {
-      key: 'billRate',
-      label: 'Bill Rate',
-      render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.billRate)}</span>,
-    },
-    {
-      key: 'payRate',
-      label: 'Pay Rate',
-      render: (row) => <span className="text-gray-700">{formatters.formatCurrency(row.payRate)}</span>,
-    },
-    { key: 'estimatedHours', label: 'Est. Hours', render: (row) => formatters.formatHours(row.estimatedHours) },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (row) => (
-        <Badge variant={formatters.getStatusColor(row.status)}>
-          {row.status}
-        </Badge>
-      ),
-    },
-  ]
-
-  const activeContracts = contracts.filter((contract) => contract.status === 'ACTIVE').length
-  const upcomingContracts = contracts.filter((contract) => contract.status === 'UPCOMING').length
-  const totalBudget = contracts.reduce((acc, contract) => acc + (contract.estimatedBudget || 0), 0)
-
   return (
     <DashboardLayout>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <div className="mb-6 flex justify-between items-center">
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Contracts</h1>
-            <p className="text-gray-600 mt-1 text-sm">Manage contractor contracts and assignments</p>
+            <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Contracts Management</h1>
+            <p className="mt-1 text-[13px] text-[#4a5c77]">Centralized oversight of all organizational agreements and billing rates.</p>
           </div>
-          <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Add Contract
-          </Button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFormData(EMPTY_FORM)
+                setFormErrors({})
+                setIsModalOpen(true)
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
+            >
+              <Plus className="h-4 w-4" /> New Contract
+            </button>
+          </div>
         </div>
 
-        {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            {[
-              { icon: Briefcase, label: 'Total Contracts', value: contracts.length, color: 'text-blue-400', bg: 'bg-blue-100' },
-              { icon: CalendarDays, label: 'Active', value: activeContracts, color: 'text-emerald-400', bg: 'bg-emerald-100' },
-              { icon: CalendarDays, label: 'Upcoming', value: upcomingContracts, color: 'text-amber-500', bg: 'bg-amber-100' },
-              { icon: DollarSign, label: 'Total Budget', value: formatters.formatCurrency(totalBudget), color: 'text-purple-400', bg: 'bg-purple-100' },
-            ].map((stat, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`${stat.bg} p-2.5 rounded-xl`}>
-                      <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">{stat.label}</p>
-                      <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
+        <Card className="border-[#d8e2ef] shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
+          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_88px_88px]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#95a2b7]" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search contracts..."
+                className="h-9 w-full rounded-xl border border-[#e6ebf3] bg-white pl-10 pr-3 text-[13px] text-[#263448] placeholder:text-[#9aa8bb] outline-none focus:border-[#a9b9d3]"
+              />
+            </div>
+            <button type="button" className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-white px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-[#f7f9fc]">
+              <span className="inline-flex items-center gap-1.5"><Filter className="h-3.5 w-3.5" /> Filter</span>
+            </button>
+            <button type="button" onClick={() => setSearchTerm('')} className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-[#f8fbff] px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-white">
+              Clear
+            </button>
+          </div>
+        </Card>
+
+        {error && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+            <p className="text-sm text-red-500">{error}</p>
           </div>
         )}
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-4 p-4 bg-red-500/10 rounded-xl border border-red-500/20 flex items-start gap-3"
-          >
-            <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-            <p className="text-red-400 text-sm">{error}</p>
-          </motion.div>
+        {success && (
+          <div className="flex items-start gap-3 rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
+            <p className="text-sm text-emerald-700">{success}</p>
+          </div>
         )}
 
-        <Card isPadded={false}>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-[#d8e2ef]">
+            <div className="flex items-center justify-between">
+              <div className="rounded-2xl bg-[#e9edff] p-2.5"><Briefcase className="h-5 w-5 text-[#4b4fe8]" /></div>
+              <p className="text-[12px] font-semibold text-[#7a8ba6]">TOTAL</p>
+            </div>
+            <p className="mt-3 text-[20px] leading-none font-bold text-[#0f1f36]">{stats.total}</p>
+            <p className="mt-1 text-[12px] font-semibold text-[#5c6e89]">Total Contracts</p>
+          </Card>
+          <Card className="border-[#d8e2ef]">
+            <div className="flex items-center justify-between">
+              <div className="rounded-2xl bg-[#e7f7f1] p-2.5"><CheckCircle2 className="h-5 w-5 text-[#12a26e]" /></div>
+              <p className="text-[12px] font-semibold text-[#12a26e]">CURRENT</p>
+            </div>
+            <p className="mt-3 text-[20px] leading-none font-bold text-[#0f1f36]">{stats.active}</p>
+            <p className="mt-1 text-[12px] font-semibold text-[#5c6e89]">Active Status</p>
+          </Card>
+          <Card className="border-[#d8e2ef]">
+            <div className="flex items-center justify-between">
+              <div className="rounded-2xl bg-[#e8eefc] p-2.5"><CalendarClock className="h-5 w-5 text-[#64748b]" /></div>
+              <p className="text-[12px] font-semibold text-[#23395b]">NEXT</p>
+            </div>
+            <p className="mt-3 text-[20px] leading-none font-bold text-[#0f1f36]">{stats.upcoming}</p>
+            <p className="mt-1 text-[12px] font-semibold text-[#5c6e89]">Upcoming Start</p>
+          </Card>
+          <Card className="border-[#d8e2ef]">
+            <div className="flex items-center justify-between">
+              <div className="rounded-2xl bg-[#e9edff] p-2.5"><CircleDollarSign className="h-5 w-5 text-[#4b4fe8]" /></div>
+              <p className="text-[12px] font-semibold text-[#4b4fe8]">BUDGET</p>
+            </div>
+            <p className="mt-3 text-[20px] leading-none font-bold text-[#0f1f36]">{formatters.formatCurrency(stats.totalBudget)}</p>
+            <p className="mt-1 text-[12px] font-semibold text-[#5c6e89]">Total Budget</p>
+          </Card>
+        </div>
+
+        <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]" isPadded={false}>
+          <div className="flex items-center justify-between border-b border-[#e0e8f3] px-5 py-4">
+            <h2 className="text-xl font-bold text-[#111c32]">Active Contract Inventory</h2>
+            <div className="flex items-center gap-2 text-[#8fa1bc]">
+              <button type="button" className="rounded-lg p-2 hover:bg-[#f1f5fb]"><Filter className="h-5 w-5" /></button>
+              <button type="button" className="rounded-lg p-2 hover:bg-[#f1f5fb]"><Filter className="h-5 w-5" /></button>
+            </div>
+          </div>
+
           {isLoading ? (
-            <div className="py-12 flex justify-center">
-              <Loader message="Loading contracts..." />
-            </div>
-          ) : contracts.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Briefcase className="w-8 h-8 text-gray-500" />
-              </div>
-              <p className="text-gray-600 text-lg font-medium">No contracts found</p>
-              <p className="text-gray-500 text-sm mt-1">Create your first contract to get started</p>
-              <Button variant="secondary" onClick={() => setIsModalOpen(true)} className="mt-4">
-                Create First Contract
-              </Button>
-            </div>
+            <div className="flex justify-center py-12"><Loader message="Loading contracts..." /></div>
           ) : (
-            <Table columns={columns} data={contracts} isLoading={false} />
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-[#e0e8f3] bg-[#f7f9fc]">
+                      <th className="px-5 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">CONTRACTOR NAME</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">BILL RATE</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">PAY RATE</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">EST. HOURS</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">STATUS</th>
+                      <th className="px-5 py-3 text-right text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageRows.map((row) => {
+                      const normalizedStatus = String(row.status || '').toUpperCase()
+                      const badgeClass =
+                        normalizedStatus === 'ACTIVE'
+                          ? 'bg-[#dff3e8] text-[#14834f]'
+                          : normalizedStatus === 'UPCOMING'
+                            ? 'bg-[#e7efff] text-[#2352d8]'
+                            : 'bg-[#eef2f7] text-[#556981]'
+
+                      return (
+                        <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eef2f7] text-[#60748f]">
+                                <User className="h-4.5 w-4.5" />
+                              </div>
+                              <div>
+                                <p className="text-[13px] font-semibold text-[#12203a]">{row.displayName}</p>
+                                <p className="text-[11px] text-[#8a98ad]">{row.roleText}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3.5 text-[13px] font-medium leading-none text-[#23395b]">{formatters.formatCurrency(row.billRate)}/hr</td>
+                          <td className="px-3 py-3.5 text-[13px] font-medium leading-none text-[#23395b]">{formatters.formatCurrency(row.payRate)}/hr</td>
+                          <td className="px-3 py-3.5 text-[13px] font-medium leading-none text-[#23395b]">{formatters.formatHours(row.estimatedHours)} / week</td>
+                          <td className="px-3 py-3.5"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${badgeClass}`}>{normalizedStatus || 'PENDING'}</span></td>
+                          <td className="px-5 py-4 text-right">
+                            <button type="button" className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb]">
+                              <MoreVertical className="h-4.5 w-4.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-4">
+                <p className="text-[13px] text-[#5f6f88]">SHOWING <span className="font-semibold text-[#1e2d45]">{filteredRows.length}</span> OF <span className="font-semibold text-[#1e2d45]">{rows.length}</span> CONTRACT RECORDS</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="inline-flex h-9 min-w-12 items-center justify-center rounded-lg border border-[#d8e2ef] px-3 text-[13px] font-semibold text-[#8aa0bc] disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="inline-flex h-9 min-w-12 items-center justify-center rounded-lg border border-[#d8e2ef] px-3 text-[13px] font-semibold text-[#23395b] disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </Card>
 
@@ -310,62 +441,110 @@ const ContractsPage = () => {
           size="xxl"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>
-                Create
-              </Button>
+              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create Contract</Button>
             </>
           }
         >
           <form className="space-y-4">
             {formErrors.submit && (
-              <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
-                <p className="text-sm text-red-400">{formErrors.submit}</p>
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="text-sm text-red-700">{formErrors.submit}</p>
               </div>
             )}
-            <Select
-              label="Contractor"
-              name="contractorId"
-              value={formData.contractorId}
-              onChange={handleInputChange}
-              error={formErrors.contractorId}
-              required
-              options={[
-                { value: '', label: 'Select a contractor...' },
-                ...contractors.map((contractor) => ({
-                  value: String(contractor.id),
-                  label: `${contractor.name} (${contractor.contractorId})`,
-                })),
-              ]}
-            />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Contractor</label>
+                <select
+                  name="contractorId"
+                  value={formData.contractorId}
+                  onChange={handleInputChange}
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500"
+                >
+                  <option value="">Select contractor...</option>
+                  {contractors.map((contractor) => (
+                    <option key={contractor.id} value={String(contractor.id)}>
+                      {contractor.name} ({contractor.contractorId})
+                    </option>
+                  ))}
+                </select>
+                {formErrors.contractorId && <p className="mt-1 text-xs text-red-600">{formErrors.contractorId}</p>}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">PO Allocation (Optional)</label>
+                <select
+                  name="poAllocation"
+                  value={formData.poAllocation}
+                  onChange={handleInputChange}
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500"
+                >
+                  <option value="">No PO</option>
+                  {purchaseOrders.filter((po) => po.poNumber).map((po) => (
+                    <option key={po.id || po.poNumber} value={String(po.poNumber).trim()}>
+                      {po.poNumber} ({customerById[String(po.customerId)]?.name || `Customer #${po.customerId}`})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Customer</label>
+              <select
+                name="customerId"
+                value={formData.customerId}
+                onChange={handleInputChange}
+                disabled={Boolean(formData.poAllocation)}
+                className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500 disabled:bg-gray-100"
+              >
+                <option value="">Select customer...</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={String(customer.id)}>
+                    {customer.name}
+                  </option>
+                ))}
+              </select>
+              {formErrors.customerId && <p className="mt-1 text-xs text-red-600">{formErrors.customerId}</p>}
+            </div>
+
             {formErrors.rateValidation && (
-              <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
-                <p className="text-sm text-red-400">{formErrors.rateValidation}</p>
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="text-sm text-red-700">{formErrors.rateValidation}</p>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Bill Rate ($)" name="billRate" type="number" step="0.01" value={formData.billRate} onChange={handleInputChange} error={formErrors.billRate} required />
-              <Input label="Pay Rate ($)" name="payRate" type="number" step="0.01" value={formData.payRate} onChange={handleInputChange} error={formErrors.payRate} required />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Bill Rate ($)" name="billRate" type="number" step="0.01" value={formData.billRate} onChange={handleInputChange} error={formErrors.billRate} />
+              <Input label="Pay Rate ($)" name="payRate" type="number" step="0.01" value={formData.payRate} onChange={handleInputChange} error={formErrors.payRate} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Estimated Hours" name="estimatedHours" type="number" value={formData.estimatedHours} onChange={handleInputChange} error={formErrors.estimatedHours} required />
-              <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" step="0.01" value={formData.estimatedBudget} error={formErrors.estimatedBudget} readOnly className="bg-gray-50 cursor-not-allowed" required />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Estimated Hours" name="estimatedHours" type="number" value={formData.estimatedHours} onChange={handleInputChange} error={formErrors.estimatedHours} />
+              <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" value={formData.estimatedBudget} readOnly error={formErrors.estimatedBudget} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} min={minStartDate} required />
-              <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} min={formData.startDate || minStartDate} required />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} min={minStartDate} />
+              <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} min={formData.startDate || minStartDate} />
             </div>
-            <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={formData.noticePeriodDays} onChange={handleInputChange} />
-            <div className="flex items-center gap-3 py-2">
-              <input type="checkbox" name="throughEor" id="throughEor" checked={formData.throughEor} onChange={handleInputChange} className="w-4 h-4 rounded border-gray-300 bg-white text-indigo-600 focus:ring-indigo-200" />
-              <label htmlFor="throughEor" className="text-sm text-gray-700">Through EOR</label>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} />
+              <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+                <input type="checkbox" name="throughEor" checked={formData.throughEor} onChange={handleInputChange} />
+                Through EOR
+              </label>
             </div>
-            <Input label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} placeholder="Additional notes..." />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Textarea label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} />
+              <Textarea label="Termination Remarks" name="terminationRemarks" value={formData.terminationRemarks} onChange={handleInputChange} />
+            </div>
           </form>
         </Modal>
-      </motion.div>
+      </div>
     </DashboardLayout>
   )
 }
