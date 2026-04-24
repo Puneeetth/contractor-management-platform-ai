@@ -1147,81 +1147,57 @@ const ContractorsPage = () => {
               </div>
             )}
 
-           {lockedContractorId || isContractorSelectionLocked ? (
-  <Input
-    label="Contractor"
-    value={getContractorDisplayName(selectedContractor)}
-    required
-    readOnly
-    className="cursor-not-allowed bg-gray-50"
-  />
-) : (
-  <Select
-    label="Contractor"
-    name="contractorId"
-    value={contractFormData.contractorId}
-    onChange={handleContractInputChange}
-    error={contractFormErrors.contractorId}
-    required
-    options={[
-      { value: '', label: 'Select a contractor...' },
-      ...contractors.map((contractor) => ({
-        value: String(contractor.id),
-        label: getContractorDisplayName(contractor),
-      })),
-    ]}
-  />
-)}
-
-            <Select
-              label="Purchase Order (Optional)"
-              name="poAllocation"
-              value={contractFormData.poAllocation}
-              onChange={handleContractInputChange}
-              error={contractFormErrors.poAllocation}
-              options={[
-                { value: '', label: 'No PO - Select customer manually...' },
-                ...purchaseOrders
-                  .filter((purchaseOrder) => Boolean(purchaseOrder?.poNumber))
-                  .map((purchaseOrder) => {
-                    const normalizedPoNumber = String(purchaseOrder.poNumber).trim()
-                    const allocatedCount = activePoUsageByNumber[normalizedPoNumber]?.size || 0
-                    const capacity = Number(purchaseOrder.numberOfResources) || 0
-                    const customerName = customerNameById[purchaseOrder.customerId] || `Customer #${purchaseOrder.customerId}`
-                    return {
-                      value: normalizedPoNumber,
-                      label: `${normalizedPoNumber} | ${customerName} | ${allocatedCount}/${capacity || 'NA'} resources`,
-                    }
-                  }),
-              ]}
-            />
-
-            {contractFormData.poAllocation ? (
-              <Input
-                label="Customer"
-                value={contractFormData.customerId ? (customerNameById[contractFormData.customerId] || `Customer #${contractFormData.customerId}`) : ''}
-                error={contractFormErrors.customerId}
-                readOnly
-                className="cursor-not-allowed bg-gray-50"
-                placeholder="Auto-linked from selected PO"
-              />
-            ) : (
+            {/* Row 1: Select Customer | Select PO */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {contractFormData.poAllocation ? (
+                <Input
+                  label="Customer"
+                  value={contractFormData.customerId ? (customerNameById[contractFormData.customerId] || `Customer #${contractFormData.customerId}`) : ''}
+                  error={contractFormErrors.customerId}
+                  readOnly
+                  className="cursor-not-allowed bg-gray-50"
+                  placeholder="Auto-linked from selected PO"
+                />
+              ) : (
+                <Select
+                  label="Select Customer"
+                  name="customerId"
+                  value={contractFormData.customerId || ''}
+                  onChange={handleContractInputChange}
+                  error={contractFormErrors.customerId}
+                  required
+                  options={[
+                    { value: '', label: 'Select a customer...' },
+                    ...customers.map((customer) => ({
+                      value: String(customer.id),
+                      label: customer.name,
+                    })),
+                  ]}
+                />
+              )}
               <Select
-                label="Customer"
-                name="customerId"
-                value={contractFormData.customerId || ''}
+                label="Select PO (Optional)"
+                name="poAllocation"
+                value={contractFormData.poAllocation}
                 onChange={handleContractInputChange}
-                error={contractFormErrors.customerId}
-                required
+                error={contractFormErrors.poAllocation}
                 options={[
-                  { value: '', label: 'Select a customer...' },
-                  ...customers.map((customer) => ({
-                    value: String(customer.id),
-                    label: customer.name,
-                  })),
+                  { value: '', label: 'No PO — select customer manually...' },
+                  ...purchaseOrders
+                    .filter((purchaseOrder) => Boolean(purchaseOrder?.poNumber))
+                    .map((purchaseOrder) => {
+                      const normalizedPoNumber = String(purchaseOrder.poNumber).trim()
+                      const allocatedCount = activePoUsageByNumber[normalizedPoNumber]?.size || 0
+                      const capacity = Number(purchaseOrder.numberOfResources) || 0
+                      const customerName = customerNameById[purchaseOrder.customerId] || `Customer #${purchaseOrder.customerId}`
+                      return {
+                        value: normalizedPoNumber,
+                        label: `${normalizedPoNumber} | ${customerName} | ${allocatedCount}/${capacity || 'NA'} resources`,
+                      }
+                    }),
                 ]}
               />
-            )}
+            </div>
 
             {selectedPurchaseOrder && (
               <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
@@ -1234,12 +1210,40 @@ const ContractorsPage = () => {
               </div>
             )}
 
+            {/* Row 2: Contractor (full width) */}
+            {lockedContractorId || isContractorSelectionLocked ? (
+              <Input
+                label="Contractor"
+                value={getContractorDisplayName(selectedContractor)}
+                required
+                readOnly
+                className="cursor-not-allowed bg-gray-50"
+              />
+            ) : (
+              <Select
+                label="Contractor"
+                name="contractorId"
+                value={contractFormData.contractorId}
+                onChange={handleContractInputChange}
+                error={contractFormErrors.contractorId}
+                required
+                options={[
+                  { value: '', label: 'Select a contractor...' },
+                  ...contractors.map((contractor) => ({
+                    value: String(contractor.id),
+                    label: getContractorDisplayName(contractor),
+                  })),
+                ]}
+              />
+            )}
+
             {contractFormErrors.rateValidation && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                 <p className="text-sm text-red-700">{contractFormErrors.rateValidation}</p>
               </div>
             )}
 
+            {/* Row 3: Bill Rate | Pay Rate */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Bill Rate ($)"
@@ -1263,6 +1267,7 @@ const ContractorsPage = () => {
               />
             </div>
 
+            {/* Row 4: Estimated Hours | Estimated Budget */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Estimated Hours"
@@ -1286,6 +1291,7 @@ const ContractorsPage = () => {
               />
             </div>
 
+            {/* Row 5: Start Date | End Date */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Start Date"
@@ -1307,6 +1313,7 @@ const ContractorsPage = () => {
               />
             </div>
 
+            {/* Row 6: Notice Period | Through EOR */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Notice Period (days)"
@@ -1317,22 +1324,22 @@ const ContractorsPage = () => {
                 error={contractFormErrors.noticePeriodDays}
                 min="0"
               />
+              <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 mt-auto">
+                <input
+                  id="throughEor"
+                  type="checkbox"
+                  name="throughEor"
+                  checked={contractFormData.throughEor}
+                  onChange={handleContractInputChange}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-200"
+                />
+                <label htmlFor="throughEor" className="text-sm font-medium text-gray-700">
+                  Through EOR
+                </label>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <input
-                id="throughEor"
-                type="checkbox"
-                name="throughEor"
-                checked={contractFormData.throughEor}
-                onChange={handleContractInputChange}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-200"
-              />
-              <label htmlFor="throughEor" className="text-sm font-medium text-gray-700">
-                Through EOR
-              </label>
-            </div>
-
+            {/* Row 7: Remarks | Termination Remarks */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Textarea
                 label="Remarks"

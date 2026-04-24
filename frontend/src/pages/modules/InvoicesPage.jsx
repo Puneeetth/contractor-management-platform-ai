@@ -5,6 +5,7 @@ import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Loader, Modal, Input, Badge, Textarea, Select } from '../../components/ui'
 import { invoiceService } from '../../services/invoiceService'
 import { contractService } from '../../services/contractorService'
+import { bankDetailsService } from '../../services/bankDetailsService'
 import { API_ORIGIN } from '../../services/apiClient'
 import { formatters } from '../../utils/formatters'
 import { useAuth } from '../../hooks/useAuth'
@@ -46,6 +47,15 @@ const InvoicesPage = () => {
   const [contracts, setContracts] = useState([])
   const [selectedContract, setSelectedContract] = useState('')
   const [contractsLoading, setContractsLoading] = useState(false)
+
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscSwift: '',
+    upiId: '',
+  })
+  const [bankDetailsLoading, setBankDetailsLoading] = useState(false)
 
   const [formData, setFormData] = useState({
     contractorId: user?.id || '',
@@ -103,13 +113,36 @@ const InvoicesPage = () => {
     loadContracts()
   }, [isModalOpen, user?.id, user?.role])
 
-  // Auto-fill rate when contract is selected (only if rate is empty or 0)
+  // Load bank details when modal opens
   useEffect(() => {
-    if (selectedContract && contracts.length > 0 && (!formData.rate || Number(formData.rate) === 0)) {
+    const loadBankDetails = async () => {
+      if (!isModalOpen || user?.role !== 'CONTRACTOR') return
+      try {
+        setBankDetailsLoading(true)
+        const data = await bankDetailsService.getMyBankDetails()
+        const bd = data?.data || data || {}
+        setBankDetails({
+          accountHolderName: bd.accountHolderName || '',
+          bankName: bd.bankName || '',
+          accountNumber: bd.accountNumber || '',
+          ifscSwift: bd.ifscSwift || '',
+          upiId: bd.upiId || '',
+        })
+      } catch (err) {
+        // non-critical — leave blank
+      } finally {
+        setBankDetailsLoading(false)
+      }
+    }
+    loadBankDetails()
+  }, [isModalOpen, user?.role])
+
+  // Auto-fill rate when contract is selected
+  useEffect(() => {
+    if (selectedContract && contracts.length > 0) {
       const selected = contracts.find(c => String(c.id) === String(selectedContract))
       if (selected) {
-        // Try multiple possible field names for the contract rate
-        const contractRate = selected.hourlyRate || selected.rate || selected.contractRate || selected.payRate || 0
+        const contractRate = selected.payRate ?? selected.billRate ?? 0
         setFormData(prev => ({
           ...prev,
           rate: contractRate ? String(contractRate) : ''
@@ -207,6 +240,11 @@ const InvoicesPage = () => {
     }))
   }
 
+  const handleBankDetailsChange = (e) => {
+    const { name, value } = e.target
+    setBankDetails(prev => ({ ...prev, [name]: value }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -239,6 +277,15 @@ const InvoicesPage = () => {
     setIsSubmitting(true)
 
     try {
+      // Save bank details silently (upsert) so they persist for next invoice
+      if (user?.role === 'CONTRACTOR') {
+        try {
+          await bankDetailsService.saveMyBankDetails(bankDetails)
+        } catch {
+          // non-critical
+        }
+      }
+
       await invoiceService.createInvoice({
         contractorId: formData.contractorId,
         invoiceMonth: formData.invoiceMonth,
@@ -576,7 +623,9 @@ const InvoicesPage = () => {
             placeholder={contractsLoading ? "Loading contracts..." : "Choose an active contract"}
             options={contracts.map(contract => ({
               value: contract.id,
-              label: `${contract.contractName || contract.poNumber || `Contract ${contract.id}`}`
+              label: contract.customerName
+                ? `Contract #${contract.id} · ${contract.customerName}`
+                : `Contract #${contract.id}`
             }))}
             value={selectedContract}
             onChange={(e) => setSelectedContract(e.target.value)}
@@ -610,11 +659,12 @@ const InvoicesPage = () => {
               label="Rate (per hour)"
               name="rate"
               type="number"
-              placeholder="0.00"
+              placeholder="Select a contract"
               step="0.01"
               value={formData.rate}
               onChange={handleInputChange}
               error={formErrors.rate}
+              readOnly
             />
             <div>
               <Input
@@ -663,6 +713,53 @@ const InvoicesPage = () => {
                 disabled
               />
               <p className="text-xs text-gray-500 mt-1">Auto-calculated: Base Amount + Tax</p>
+            </div>
+          </div>
+
+          {/* Payment Details */}
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide">Payment Details</h3>
+              {bankDetailsLoading && <span className="text-xs text-gray-400">Loading…</span>}
+            </div>
+            <p className="text-xs text-gray-500">Auto-filled from your saved bank details. Edit below to update before submitting.</p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <Input
+                label="Account Holder Name"
+                name="accountHolderName"
+                placeholder="Full name on account"
+                value={bankDetails.accountHolderName}
+                onChange={handleBankDetailsChange}
+              />
+              <Input
+                label="Bank Name"
+                name="bankName"
+                placeholder="e.g. HDFC Bank"
+                value={bankDetails.bankName}
+                onChange={handleBankDetailsChange}
+              />
+              <Input
+                label="Account Number"
+                name="accountNumber"
+                placeholder="Bank account number"
+                value={bankDetails.accountNumber}
+                onChange={handleBankDetailsChange}
+              />
+              <Input
+                label="IFSC / SWIFT Code"
+                name="ifscSwift"
+                placeholder="e.g. HDFC0001234"
+                value={bankDetails.ifscSwift}
+                onChange={handleBankDetailsChange}
+              />
+              <Input
+                label="UPI ID"
+                name="upiId"
+                placeholder="e.g. name@upi"
+                value={bankDetails.upiId}
+                onChange={handleBankDetailsChange}
+                className="md:col-span-2"
+              />
             </div>
           </div>
 

@@ -15,6 +15,7 @@ import InvoicesPage from '../pages/modules/InvoicesPage'
 import ExpensesPage from '../pages/modules/ExpensesPage'
 import AdminPendingApprovalsPage from '../pages/modules/AdminPendingApprovalsPage'
 import AdministrationPage from '../pages/modules/AdministrationPage'
+import SettingsPage from '../pages/modules/SettingsPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
 
 export const AppRoutes = () => {
@@ -126,6 +127,15 @@ export const AppRoutes = () => {
           element={
             <PrivateRoute requiredRoles={['ADMIN']}>
               <AdministrationPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <PrivateRoute>
+              <SettingsPage />
             </PrivateRoute>
           }
         />

@@ -8,6 +8,7 @@ import {
   Receipt, 
   CreditCard, 
   ShieldCheck,
+  Settings,
   LogOut,
   X,
   Sparkles
@@ -27,6 +28,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     { icon: Receipt, label: 'Invoices', path: '/invoices', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR'] },
     { icon: CreditCard, label: 'Expenses', path: '/expenses', roles: ['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE'] },
     { icon: ShieldCheck, label: 'Administration', path: '/admin/administration', roles: ['ADMIN'] },
+    { icon: Settings, label: 'Settings', path: '/settings', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR', 'SALES', 'HR', 'GEO_MANAGER', 'BDM'] },
   ]
 
   const isActive = (path) => location.pathname === path
