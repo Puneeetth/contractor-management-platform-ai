@@ -489,17 +489,23 @@ const CustomersPage = () => {
               <Input label="End Date" name="endDate" type="date" value={poFormData.endDate} onChange={handlePoInputChange} />
             </div>
 
-            {/* PO Value, Country & Currency */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* PO Value | Country (70%) + Currency (30%) */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input label="PO Value" name="poValue" type="number" step="0.01" value={poFormData.poValue} onChange={handlePoInputChange} error={poFormErrors.poValue} required />
-              <Select
-                label="Country"
-                value={poFormData.country}
-                onChange={handlePoCountryChange}
-                options={countries.map(c => ({ value: c.code, label: c.name }))}
-                placeholder="Select country"
-              />
-              <Input label="Currency" name="currency" value={poFormData.currency} onChange={handlePoInputChange} placeholder="Auto-filled from country" readOnly />
+              <div className="flex gap-4">
+                <div className="w-[70%]">
+                  <Select
+                    label="Country"
+                    value={poFormData.country}
+                    onChange={handlePoCountryChange}
+                    options={countries.map(c => ({ value: c.code, label: c.name }))}
+                    placeholder="Select country"
+                  />
+                </div>
+                <div className="w-[30%]">
+                  <Input label="Currency" name="currency" value={poFormData.currency} onChange={handlePoInputChange} placeholder="—" readOnly />
+                </div>
+              </div>
             </div>
 
             {/* Payment Terms & No. of Contractors */}

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, AlertCircle, Briefcase, DollarSign, CalendarDays } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Card, Button, Table, Modal, Input, Select, Badge, Loader } from '../../components/ui'
+import { Card, Button, Table, Modal, Input, Select, Badge, Loader, Textarea } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
+import { poService } from '../../services/poService'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 import { useAuth } from '../../hooks/useAuth'
@@ -17,10 +18,12 @@ const ContractsPage = () => {
   const [contracts, setContracts] = useState([])
   const [customers, setCustomers] = useState([])
   const [contractors, setContractors] = useState([])
+  const [purchaseOrders, setPurchaseOrders] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
     contractorId: '',
     customerId: '',
+    poAllocation: '',
     billRate: '',
     payRate: '',
     estimatedHours: '',
@@ -30,6 +33,7 @@ const ContractsPage = () => {
     noticePeriodDays: 30,
     throughEor: false,
     remarks: '',
+    terminationRemarks: '',
   })
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,7 +45,33 @@ const ContractsPage = () => {
     loadContracts()
     loadCustomers()
     loadContractors()
+    loadPurchaseOrders()
   }, [])
+
+  const customerNameById = useMemo(
+    () =>
+      customers.reduce((lookup, customer) => {
+        lookup[customer.id] = customer.name
+        return lookup
+      }, {}),
+    [customers]
+  )
+
+  const purchaseOrderByNumber = useMemo(
+    () =>
+      purchaseOrders.reduce((lookup, po) => {
+        const normalized = String(po?.poNumber || '').trim()
+        if (normalized) lookup[normalized] = po
+        return lookup
+      }, {}),
+    [purchaseOrders]
+  )
+
+  const selectedPurchaseOrder = useMemo(() => {
+    const normalized = String(formData.poAllocation || '').trim()
+    if (!normalized) return null
+    return purchaseOrderByNumber[normalized] || null
+  }, [formData.poAllocation, purchaseOrderByNumber])
 
   const calculateEstimatedBudget = (billRate, estimatedHours) => {
     const normalizedBillRate = Number(billRate)
@@ -87,9 +117,20 @@ const ContractsPage = () => {
     }
   }
 
+  const loadPurchaseOrders = async () => {
+    try {
+      const data = await poService.getAllPurchaseOrders()
+      setPurchaseOrders(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('Failed to load purchase orders:', err)
+    }
+  }
+
   const validateForm = () => {
     const newErrors = {}
-    if (!validators.isRequired(formData.contractorId)) newErrors.contractorId = 'Contractor ID is required'
+    const hasPo = Boolean(String(formData.poAllocation || '').trim())
+    if (!validators.isRequired(formData.contractorId)) newErrors.contractorId = 'Contractor is required'
+    if (!hasPo && !validators.isRequired(formData.customerId)) newErrors.customerId = 'Customer is required'
     if (!validators.isRequired(formData.billRate)) newErrors.billRate = 'Bill rate is required'
     if (!validators.isRequired(formData.payRate)) newErrors.payRate = 'Pay rate is required'
     if (!validators.isRequired(formData.estimatedHours)) newErrors.estimatedHours = 'Estimated hours is required'
@@ -130,6 +171,12 @@ const ContractsPage = () => {
       const nextFormData = {
         ...prev,
         [name]: parsedValue,
+      }
+
+      if (name === 'poAllocation') {
+        const normalizedPoNumber = String(parsedValue || '').trim()
+        const linkedPo = purchaseOrderByNumber[normalizedPoNumber]
+        nextFormData.customerId = linkedPo?.customerId ? String(linkedPo.customerId) : ''
       }
 
       if (name === 'payRate' && parsedValue !== '' && prev.billRate !== '' && Number(parsedValue) > Number(prev.billRate)) {
@@ -188,6 +235,7 @@ const ContractsPage = () => {
       setFormData({
         contractorId: '',
         customerId: '',
+        poAllocation: '',
         billRate: '',
         payRate: '',
         estimatedHours: '',
@@ -197,6 +245,7 @@ const ContractsPage = () => {
         noticePeriodDays: 30,
         throughEor: false,
         remarks: '',
+        terminationRemarks: '',
       })
       await loadContracts()
     } catch (err) {
@@ -333,6 +382,63 @@ const ContractsPage = () => {
                 <p className="text-sm text-red-400">{formErrors.submit}</p>
               </div>
             )}
+
+            {/* Row 1: Select Customer | Select PO */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {formData.poAllocation ? (
+                <Input
+                  label="Customer"
+                  value={formData.customerId ? (customerNameById[formData.customerId] || `Customer #${formData.customerId}`) : ''}
+                  error={formErrors.customerId}
+                  readOnly
+                  className="cursor-not-allowed bg-gray-50"
+                  placeholder="Auto-linked from selected PO"
+                />
+              ) : (
+                <Select
+                  label="Select Customer"
+                  name="customerId"
+                  value={formData.customerId}
+                  onChange={handleInputChange}
+                  error={formErrors.customerId}
+                  required
+                  options={[
+                    { value: '', label: 'Select a customer...' },
+                    ...customers.map((c) => ({ value: String(c.id), label: c.name })),
+                  ]}
+                />
+              )}
+              <Select
+                label="Select PO (Optional)"
+                name="poAllocation"
+                value={formData.poAllocation}
+                onChange={handleInputChange}
+                error={formErrors.poAllocation}
+                options={[
+                  { value: '', label: 'No PO — select customer manually...' },
+                  ...purchaseOrders
+                    .filter((po) => Boolean(po?.poNumber))
+                    .map((po) => {
+                      const normalized = String(po.poNumber).trim()
+                      const customerName = customerNameById[po.customerId] || `Customer #${po.customerId}`
+                      return { value: normalized, label: `${normalized} | ${customerName}` }
+                    }),
+                ]}
+              />
+            </div>
+
+            {selectedPurchaseOrder && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
+                <p className="text-sm font-medium text-indigo-900">
+                  PO Window: {formatters.formatDate(selectedPurchaseOrder.startDate)} to {formatters.formatDate(selectedPurchaseOrder.endDate)}
+                </p>
+                <p className="mt-1 text-sm text-indigo-800">
+                  Resources: {selectedPurchaseOrder.numberOfResources || 'NA'} allocated
+                </p>
+              </div>
+            )}
+
+            {/* Row 2: Contractor (full width) */}
             <Select
               label="Contractor"
               name="contractorId"
@@ -348,29 +454,64 @@ const ContractsPage = () => {
                 })),
               ]}
             />
+
             {formErrors.rateValidation && (
               <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
                 <p className="text-sm text-red-400">{formErrors.rateValidation}</p>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Row 3: Bill Rate | Pay Rate */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input label="Bill Rate ($)" name="billRate" type="number" step="0.01" value={formData.billRate} onChange={handleInputChange} error={formErrors.billRate} required />
               <Input label="Pay Rate ($)" name="payRate" type="number" step="0.01" value={formData.payRate} onChange={handleInputChange} error={formErrors.payRate} required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Row 4: Estimated Hours | Estimated Budget */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input label="Estimated Hours" name="estimatedHours" type="number" value={formData.estimatedHours} onChange={handleInputChange} error={formErrors.estimatedHours} required />
               <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" step="0.01" value={formData.estimatedBudget} error={formErrors.estimatedBudget} readOnly className="bg-gray-50 cursor-not-allowed" required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Row 5: Start Date | End Date */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} min={minStartDate} required />
               <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} min={formData.startDate || minStartDate} required />
             </div>
-            <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={formData.noticePeriodDays} onChange={handleInputChange} />
-            <div className="flex items-center gap-3 py-2">
-              <input type="checkbox" name="throughEor" id="throughEor" checked={formData.throughEor} onChange={handleInputChange} className="w-4 h-4 rounded border-gray-300 bg-white text-indigo-600 focus:ring-indigo-200" />
-              <label htmlFor="throughEor" className="text-sm text-gray-700">Through EOR</label>
+
+            {/* Row 6: Notice Period | Through EOR */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} min="0" />
+              <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 mt-auto">
+                <input
+                  type="checkbox"
+                  name="throughEor"
+                  id="throughEor"
+                  checked={formData.throughEor}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-200"
+                />
+                <label htmlFor="throughEor" className="text-sm font-medium text-gray-700">Through EOR</label>
+              </div>
             </div>
-            <Input label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} placeholder="Additional notes..." />
+
+            {/* Row 7: Remarks | Termination Remarks */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Textarea
+                label="Remarks"
+                name="remarks"
+                value={formData.remarks}
+                onChange={handleInputChange}
+                placeholder="Commercial notes, onboarding notes, or delivery context"
+              />
+              <Textarea
+                label="Termination Remarks"
+                name="terminationRemarks"
+                value={formData.terminationRemarks}
+                onChange={handleInputChange}
+                placeholder="Termination context or exit notes"
+              />
+            </div>
           </form>
         </Modal>
       </motion.div>

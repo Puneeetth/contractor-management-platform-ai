@@ -5,6 +5,7 @@ import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Loader, Modal, Input, Badge, Textarea, Select } from '../../components/ui'
 import { invoiceService } from '../../services/invoiceService'
 import { contractService } from '../../services/contractorService'
+import { bankDetailsService } from '../../services/bankDetailsService'
 import { API_ORIGIN } from '../../services/apiClient'
 import { formatters } from '../../utils/formatters'
 import { useAuth } from '../../hooks/useAuth'
@@ -104,6 +105,7 @@ const InvoicesPage = () => {
         console.error('Failed to load contracts:', err)
         setContractsError('Failed to load contracts. Please try again.')
         setContracts([])
+        setContractsError('Failed to load contracts. Please try again.')
       } finally {
         setContractsLoading(false)
       }
@@ -214,6 +216,11 @@ const InvoicesPage = () => {
     }))
   }
 
+  const handleBankDetailsChange = (e) => {
+    const { name, value } = e.target
+    setBankDetails(prev => ({ ...prev, [name]: value }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -246,6 +253,15 @@ const InvoicesPage = () => {
     setIsSubmitting(true)
 
     try {
+      // Save bank details silently (upsert) so they persist for next invoice
+      if (user?.role === 'CONTRACTOR') {
+        try {
+          await bankDetailsService.saveMyBankDetails(bankDetails)
+        } catch {
+          // non-critical
+        }
+      }
+
       await invoiceService.createInvoice({
         contractorId: formData.contractorId,
         invoiceMonth: formData.invoiceMonth,
@@ -623,11 +639,12 @@ const InvoicesPage = () => {
               label="Rate (per hour)"
               name="rate"
               type="number"
-              placeholder="0.00"
+              placeholder="Select a contract"
               step="0.01"
               value={formData.rate}
               onChange={handleInputChange}
               error={formErrors.rate}
+              readOnly
             />
             <div>
               <Input
@@ -676,6 +693,53 @@ const InvoicesPage = () => {
                 disabled
               />
               <p className="text-xs text-gray-500 mt-1">Auto-calculated: Base Amount + Tax</p>
+            </div>
+          </div>
+
+          {/* Payment Details */}
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide">Payment Details</h3>
+              {bankDetailsLoading && <span className="text-xs text-gray-400">Loading…</span>}
+            </div>
+            <p className="text-xs text-gray-500">Auto-filled from your saved bank details. Edit below to update before submitting.</p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <Input
+                label="Account Holder Name"
+                name="accountHolderName"
+                placeholder="Full name on account"
+                value={bankDetails.accountHolderName}
+                onChange={handleBankDetailsChange}
+              />
+              <Input
+                label="Bank Name"
+                name="bankName"
+                placeholder="e.g. HDFC Bank"
+                value={bankDetails.bankName}
+                onChange={handleBankDetailsChange}
+              />
+              <Input
+                label="Account Number"
+                name="accountNumber"
+                placeholder="Bank account number"
+                value={bankDetails.accountNumber}
+                onChange={handleBankDetailsChange}
+              />
+              <Input
+                label="IFSC / SWIFT Code"
+                name="ifscSwift"
+                placeholder="e.g. HDFC0001234"
+                value={bankDetails.ifscSwift}
+                onChange={handleBankDetailsChange}
+              />
+              <Input
+                label="UPI ID"
+                name="upiId"
+                placeholder="e.g. name@upi"
+                value={bankDetails.upiId}
+                onChange={handleBankDetailsChange}
+                className="md:col-span-2"
+              />
             </div>
           </div>
 

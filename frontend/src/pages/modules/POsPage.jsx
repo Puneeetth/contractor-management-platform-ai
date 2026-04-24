@@ -341,18 +341,24 @@ const POsPage = () => {
               <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} />
             </div>
 
-            {/* PO Value, Country & Currency */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* PO Value | Country (70%) + Currency (30%) */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input label="PO Value" name="poValue" type="number" step="0.01" value={formData.poValue} onChange={handleInputChange} error={formErrors.poValue} required />
-              <Select
-                label="Country"
-                value={formData.country}
-                onChange={handleCountryChange}
-                options={countries.map(c => ({ value: c.code, label: c.name }))}
-                disabled={isReferenceLoading}
-                placeholder={isReferenceLoading ? 'Loading countries...' : 'Select country'}
-              />
-              <Input label="Currency" name="currency" value={formData.currency} onChange={handleInputChange} placeholder="Auto-filled from country" readOnly />
+              <div className="flex gap-4">
+                <div className="w-[70%]">
+                  <Select
+                    label="Country"
+                    value={formData.country}
+                    onChange={handleCountryChange}
+                    options={countries.map(c => ({ value: c.code, label: c.name }))}
+                    disabled={isReferenceLoading}
+                    placeholder={isReferenceLoading ? 'Loading...' : 'Select country'}
+                  />
+                </div>
+                <div className="w-[30%]">
+                  <Input label="Currency" name="currency" value={formData.currency} onChange={handleInputChange} placeholder="—" readOnly />
+                </div>
+              </div>
             </div>
 
             {/* Payment Terms & No. of Contractors */}
