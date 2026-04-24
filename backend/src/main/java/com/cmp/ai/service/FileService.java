@@ -1,5 +1,6 @@
 package com.cmp.ai.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,7 +12,8 @@ import java.nio.file.Paths;
 @Service
 public class FileService {
 
-    private final String uploadDir = "uploads/";
+    @Value("${app.upload-dir}")
+    private String uploadDir;
 
     public String uploadFile(MultipartFile file) {
 
@@ -26,9 +28,11 @@ public class FileService {
             }
 
             // 🔥 Unique file name (avoid overwrite)
-            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String originalName = file.getOriginalFilename() == null ? "document.pdf" : file.getOriginalFilename().replaceAll("[^a-zA-Z0-9._-]", "_");
+            String fileName = System.currentTimeMillis() + "_" + originalName;
 
-            Path path = Paths.get(uploadDir + fileName);
+            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Path path = uploadPath.resolve(fileName);
 
             // create folder if not exists
             Files.createDirectories(path.getParent());

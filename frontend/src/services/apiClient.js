@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '../hooks/useAuth'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8080/api')
 const API_ORIGIN = (() => {
   try {
     return new URL(API_BASE_URL, window.location.origin).origin

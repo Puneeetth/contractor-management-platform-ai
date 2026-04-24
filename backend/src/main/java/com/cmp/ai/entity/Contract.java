@@ -73,6 +73,5 @@ public class Contract {
     private List<PurchaseOrder> purchaseOrders;
 
 
-    private Long user;
     
 }
