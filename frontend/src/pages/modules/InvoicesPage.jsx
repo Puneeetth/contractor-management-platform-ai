@@ -47,6 +47,7 @@ const InvoicesPage = () => {
   const [contracts, setContracts] = useState([])
   const [selectedContract, setSelectedContract] = useState('')
   const [contractsLoading, setContractsLoading] = useState(false)
+  const [contractsError, setContractsError] = useState('')
 
   const [bankDetails, setBankDetails] = useState({
     accountHolderName: '',
@@ -97,15 +98,20 @@ const InvoicesPage = () => {
       if (!isModalOpen || !user?.id || user?.role !== 'CONTRACTOR') return
       try {
         setContractsLoading(true)
+        setContractsError('')
         const data = await contractService.getContractsByContractor(user.id)
         // Filter for active contracts only
         const activeContracts = Array.isArray(data) 
           ? data.filter(contract => contract.status === 'ACTIVE' || contract.status === 'active')
           : []
         setContracts(activeContracts)
+        if (activeContracts.length === 0) {
+          setContractsError('No active contracts found. Please create a contract first.')
+        }
       } catch (err) {
         console.error('Failed to load contracts:', err)
         setContracts([])
+        setContractsError('Failed to load contracts. Please try again.')
       } finally {
         setContractsLoading(false)
       }
@@ -618,19 +624,23 @@ const InvoicesPage = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Select Contract */}
-          <Select
-            label="Select Contract"
-            placeholder={contractsLoading ? "Loading contracts..." : "Choose an active contract"}
-            options={contracts.map(contract => ({
-              value: contract.id,
-              label: contract.customerName
-                ? `Contract #${contract.id} · ${contract.customerName}`
-                : `Contract #${contract.id}`
-            }))}
-            value={selectedContract}
-            onChange={(e) => setSelectedContract(e.target.value)}
-            disabled={contractsLoading}
-          />
+          <div className="space-y-1">
+            <Select
+              label="Select Contract"
+              placeholder={contractsLoading ? "Loading contracts..." : "Choose an active contract"}
+              options={contracts.map(contract => ({
+                value: contract.id,
+                label: `${contract.customerName ? `${contract.customerName} - ` : ''}${contract.poAllocation || `Contract #${contract.id}`}`
+              }))}
+              value={selectedContract}
+              onChange={(e) => setSelectedContract(e.target.value)}
+              disabled={contractsLoading}
+              error={contractsError}
+            />
+            {contractsError && !contractsLoading && (
+              <p className="text-xs text-red-500 mt-1">{contractsError}</p>
+            )}
+          </div>
 
           {/* Row 1: Month & Total Hours */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
