@@ -26,7 +26,6 @@ import jakarta.persistence.Column;
 @Entity
 @Getter
 @Setter
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
