@@ -28,6 +28,7 @@ import jakarta.persistence.Column;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+
 @Builder
 @Table(name = "contracts",
     indexes =  {
@@ -72,6 +73,6 @@ public class Contract {
     private List<PurchaseOrder> purchaseOrders;
 
 
-    
+    private Long user;
     
 }
