@@ -23,4 +23,4 @@ jobs:
           SPRING_PROFILES_ACTIVE: test
         run: |
           chmod +x mvnw
-          ./mvnw -B clean verify
+          ./mvnw -B clean verify -Dmaven.compiler.forceJavacCompilerUse=true
