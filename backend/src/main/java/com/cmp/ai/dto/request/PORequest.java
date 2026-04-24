@@ -32,6 +32,8 @@ public class PORequest {
     @NotBlank
     private String currency;
 
+    private String country;
+
     @NotNull
     @PositiveOrZero
     private Integer paymentTermsDays;

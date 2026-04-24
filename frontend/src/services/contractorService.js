@@ -5,6 +5,10 @@ export const contractService = {
     return apiClient.get('/admin/contracts')
   },
 
+  getContractsByContractor: async (contractorId) => {
+    return apiClient.get(`/admin/contracts/contractor/${contractorId}`)
+  },
+
   createContract: async (contractData) => {
     return apiClient.post('/admin/contracts', contractData)
   },

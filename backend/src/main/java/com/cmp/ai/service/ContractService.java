@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.cmp.ai.dto.request.ContractRequest;
@@ -22,6 +24,7 @@ import com.cmp.ai.repository.ContractRepository;
 import com.cmp.ai.repository.CustomerRepository;
 import com.cmp.ai.repository.ContractorRepository;
 import com.cmp.ai.repository.PurchaseOrderRepository;
+import com.cmp.ai.repository.UserRepository;
 import com.cmp.ai.transformer.ContractTransformer;
 
 import lombok.RequiredArgsConstructor;
@@ -34,6 +37,7 @@ public class ContractService {
     private final ContractorRepository contractorRepository;
     private final CustomerRepository customerRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final UserRepository userRepository;
 
     public ContractResponse createContract(ContractRequest request) {
         String normalizedPoNumber = request.getPoAllocation() == null ? "" : request.getPoAllocation().trim();
@@ -132,6 +136,27 @@ public class ContractService {
 
     public List<ContractResponse> getAllContracts() {
         List<Contract> contracts = syncContractStatuses(contractRepository.findAll(), LocalDate.now());
+        return contracts.stream()
+                .map(ContractTransformer::contractToContractResponse)
+                .toList();
+    }
+
+    public List<ContractResponse> getContractsByContractor(Long contractorId) {
+        // Security check: ensure contractor can only access their own contracts
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        
+        User currentUser = userRepository.findByEmail(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        Contractor currentContractor = contractorRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Contractor not found for current user"));
+        
+        if (!currentContractor.getId().equals(contractorId)) {
+            throw new BadRequestException("Access denied: Can only access your own contracts");
+        }
+        
+        List<Contract> contracts = syncContractStatuses(contractRepository.findByContractorId(contractorId), LocalDate.now());
         return contracts.stream()
                 .map(ContractTransformer::contractToContractResponse)
                 .toList();

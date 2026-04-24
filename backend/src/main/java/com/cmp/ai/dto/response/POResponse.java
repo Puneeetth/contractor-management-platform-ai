@@ -20,6 +20,7 @@ public class POResponse {
     private String endDate;
     private Double poValue;
     private String currency;
+    private String country;
     private Integer paymentTermsDays;
     private String remark;
     private Integer numberOfResources;

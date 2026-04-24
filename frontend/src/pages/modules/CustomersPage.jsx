@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, AlertCircle, Users, Building2, Globe, Eye } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Card, Button, Table, Modal, Input, Badge, Loader } from '../../components/ui'
+import { Card, Button, Table, Modal, Input, Badge, Loader, Select } from '../../components/ui'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
+import { countryService } from '../../services/countryService'
 import { useAuth } from '../../hooks/useAuth'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
@@ -15,13 +16,15 @@ const createInitialPoFormData = (customerId = '') => ({
   startDate: '',
   endDate: '',
   poValue: '',
-  currency: 'USD',
+  currency: '',
+  country: '',
   paymentTermsDays: 30,
   customerId,
   remark: '',
   numberOfResources: '',
   sharedWith: '',
   file: null,
+  agreementFile: null,
 })
 
 const CustomersPage = () => {
@@ -51,6 +54,7 @@ const CustomersPage = () => {
   const [poFormData, setPoFormData] = useState(createInitialPoFormData())
   const [poFormErrors, setPoFormErrors] = useState({})
   const [isPoSubmitting, setIsPoSubmitting] = useState(false)
+  const [countries, setCountries] = useState([])
 
   useEffect(() => {
     loadCustomers()
@@ -60,12 +64,14 @@ const CustomersPage = () => {
     try {
       setIsLoading(true)
       setError(null)
-      const [customersData, poData] = await Promise.all([
+      const [customersData, poData, countriesData] = await Promise.all([
         customerService.getAllCustomers(),
         poService.getAllPurchaseOrders(),
+        countryService.getAllCountries(),
       ])
       setCustomers(Array.isArray(customersData) ? customersData : [])
       setPos(Array.isArray(poData) ? poData : [])
+      setCountries(Array.isArray(countriesData) ? countriesData : [])
     } catch (err) {
       setError(err?.message || 'Failed to load customers')
       setCustomers([])
@@ -185,8 +191,22 @@ const CustomersPage = () => {
   }
 
   const handlePoFileChange = (e) => {
+    const { name } = e.target
     const file = e.target.files?.[0] || null
-    setPoFormData(prev => ({ ...prev, file }))
+    setPoFormData(prev => ({ ...prev, [name]: file }))
+  }
+
+  const handlePoCountryChange = (e) => {
+    const countryCode = e.target.value
+    const selectedCountry = countries.find(c => c.code === countryCode)
+    setPoFormData(prev => ({
+      ...prev,
+      country: countryCode,
+      currency: selectedCountry?.currency || '',
+    }))
+    if (poFormErrors.country) {
+      setPoFormErrors(prev => ({ ...prev, country: '' }))
+    }
   }
 
   const validatePoForm = () => {
@@ -444,46 +464,60 @@ const CustomersPage = () => {
           onClose={() => setIsPoModalOpen(false)}
           title={selectedCustomer ? `Add PO for ${selectedCustomer.name}` : 'Add PO'}
           size="xxl"
-          footer={
-            <>
-              <Button variant="secondary" onClick={() => setIsPoModalOpen(false)}>Cancel</Button>
-              <Button variant="primary" isLoading={isPoSubmitting} onClick={handlePoSubmit}>Create PO</Button>
-            </>
-          }
         >
-          <form className="space-y-4">
+          <form onSubmit={handlePoSubmit} className="space-y-4">
             {poFormErrors.submit && (
               <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
                 <p className="text-sm text-red-400">{poFormErrors.submit}</p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Customer (locked) */}
+            <div>
+              <Input label="Customer" value={selectedCustomer?.name || ''} readOnly disabled required />
+            </div>
+
+            {/* PO Number & PO Date */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input label="PO Number" name="poNumber" value={poFormData.poNumber} onChange={handlePoInputChange} error={poFormErrors.poNumber} placeholder="Enter PO number" required />
               <Input label="PO Date" name="poDate" type="date" value={poFormData.poDate} onChange={handlePoInputChange} error={poFormErrors.poDate} required />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Start Date & End Date */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input label="Start Date" name="startDate" type="date" value={poFormData.startDate} onChange={handlePoInputChange} />
               <Input label="End Date" name="endDate" type="date" value={poFormData.endDate} onChange={handlePoInputChange} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* PO Value, Country & Currency */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <Input label="PO Value" name="poValue" type="number" step="0.01" value={poFormData.poValue} onChange={handlePoInputChange} error={poFormErrors.poValue} required />
-              <Input label="Currency" name="currency" value={poFormData.currency} onChange={handlePoInputChange} placeholder="USD" />
+              <Select
+                label="Country"
+                value={poFormData.country}
+                onChange={handlePoCountryChange}
+                options={countries.map(c => ({ value: c.code, label: c.name }))}
+                placeholder="Select country"
+              />
+              <Input label="Currency" name="currency" value={poFormData.currency} onChange={handlePoInputChange} placeholder="Auto-filled from country" readOnly />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Payment Terms (no. of days)" name="paymentTermsDays" type="number" value={poFormData.paymentTermsDays} onChange={handlePoInputChange} />
-              <Input label="Customer" value={selectedCustomer?.name || ''} readOnly disabled required />
+            {/* Payment Terms & No. of Contractors */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Payment Terms" name="paymentTermsDays" type="number" value={poFormData.paymentTermsDays} onChange={handlePoInputChange} placeholder="30" />
+              <Input label="No. of Contractors" name="numberOfResources" type="number" value={poFormData.numberOfResources} onChange={handlePoInputChange} placeholder="0" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="No. of resources - contractors" name="numberOfResources" type="number" value={poFormData.numberOfResources} onChange={handlePoInputChange} />
-              <Input label="PO Upload (File)" type="file" name="file" onChange={handlePoFileChange} accept=".pdf,.doc,.docx" />
+            {/* PO Upload & Agreement Upload */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="PO Upload" type="file" name="file" onChange={handlePoFileChange} accept=".pdf,.doc,.docx" />
+              <Input label="Agreement Upload" type="file" name="agreementFile" onChange={handlePoFileChange} accept=".pdf,.doc,.docx" />
             </div>
 
+            {/* Remark */}
             <Input label="Remark" name="remark" value={poFormData.remark} onChange={handlePoInputChange} />
+
+            {/* Shared With */}
             <Input
               label={<>Remarks <i>(Indicating with whom it&apos;s being shared e.g. co-worker)</i></>}
               name="sharedWith"
@@ -491,6 +525,20 @@ const CustomersPage = () => {
               onChange={handlePoInputChange}
               placeholder="Shared with Finance team"
             />
+
+            {/* Cancel & Create PO Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsPoModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" isLoading={isPoSubmitting}>
+                Create PO
+              </Button>
+            </div>
           </form>
         </Modal>
       </motion.div>

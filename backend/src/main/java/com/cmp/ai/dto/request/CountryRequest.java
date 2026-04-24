@@ -15,4 +15,6 @@ public class CountryRequest {
 
     @NotBlank
     private String name;
+
+    private String currency;
 }

@@ -13,4 +13,5 @@ public class CountryResponse {
 
     private String code;
     private String name;
+    private String currency;
 }
