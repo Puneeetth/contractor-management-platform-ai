@@ -46,6 +46,7 @@ const InvoicesPage = () => {
   const [contracts, setContracts] = useState([])
   const [selectedContract, setSelectedContract] = useState('')
   const [contractsLoading, setContractsLoading] = useState(false)
+  const [contractsError, setContractsError] = useState('')
 
   const [formData, setFormData] = useState({
     contractorId: user?.id || '',
@@ -87,14 +88,21 @@ const InvoicesPage = () => {
       if (!isModalOpen || !user?.id || user?.role !== 'CONTRACTOR') return
       try {
         setContractsLoading(true)
+        setContractsError('')
         const data = await contractService.getContractsByContractor(user.id)
-        // Filter for active contracts only
-        const activeContracts = Array.isArray(data) 
-          ? data.filter(contract => contract.status === 'ACTIVE' || contract.status === 'active')
+        // Include ACTIVE and UPCOMING contracts
+        const availableContracts = Array.isArray(data) 
+          ? data.filter(contract => 
+              ['ACTIVE', 'UPCOMING'].includes(String(contract.status).toUpperCase())
+            )
           : []
-        setContracts(activeContracts)
+        setContracts(availableContracts)
+        if (availableContracts.length === 0) {
+          setContractsError('No active or upcoming contracts found.')
+        }
       } catch (err) {
         console.error('Failed to load contracts:', err)
+        setContractsError('Failed to load contracts. Please try again.')
         setContracts([])
       } finally {
         setContractsLoading(false)
@@ -103,16 +111,15 @@ const InvoicesPage = () => {
     loadContracts()
   }, [isModalOpen, user?.id, user?.role])
 
-  // Auto-fill rate when contract is selected (only if rate is empty or 0)
+  // Auto-fill rate when contract is selected
   useEffect(() => {
-    if (selectedContract && contracts.length > 0 && (!formData.rate || Number(formData.rate) === 0)) {
+    if (selectedContract && contracts.length > 0) {
       const selected = contracts.find(c => String(c.id) === String(selectedContract))
       if (selected) {
-        // Try multiple possible field names for the contract rate
-        const contractRate = selected.hourlyRate || selected.rate || selected.contractRate || selected.payRate || 0
+        const contractRate = selected.payRate || 0
         setFormData(prev => ({
           ...prev,
-          rate: contractRate ? String(contractRate) : ''
+          rate: contractRate ? String(contractRate) : prev.rate
         }))
       }
     }
@@ -571,17 +578,23 @@ const InvoicesPage = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Select Contract */}
-          <Select
-            label="Select Contract"
-            placeholder={contractsLoading ? "Loading contracts..." : "Choose an active contract"}
-            options={contracts.map(contract => ({
-              value: contract.id,
-              label: `${contract.contractName || contract.poNumber || `Contract ${contract.id}`}`
-            }))}
-            value={selectedContract}
-            onChange={(e) => setSelectedContract(e.target.value)}
-            disabled={contractsLoading}
-          />
+          <div className="space-y-1">
+            <Select
+              label="Select Contract"
+              placeholder={contractsLoading ? "Loading contracts..." : "Choose an active contract"}
+              options={contracts.map(contract => ({
+                value: contract.id,
+                label: `${contract.customerName ? `${contract.customerName} - ` : ''}${contract.poAllocation || `Contract #${contract.id}`}`
+              }))}
+              value={selectedContract}
+              onChange={(e) => setSelectedContract(e.target.value)}
+              disabled={contractsLoading}
+              error={contractsError}
+            />
+            {contractsError && !contractsLoading && (
+              <p className="text-xs text-red-500 mt-1">{contractsError}</p>
+            )}
+          </div>
 
           {/* Row 1: Month & Total Hours */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

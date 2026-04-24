@@ -9,15 +9,15 @@ import { Mail, Lock, Eye, EyeOff, User, CheckCircle, Sparkles, Apple } from 'luc
 // Each entry should return a JSX element with your image/icon
 
 const SocialIcons = {
-  github: <img src="\images\github.svg" width = "30" height = "24"alt="GitHub" />, 
-  linkedin: <img src="\images\linkedin.svg" width = "33" height = "26.5" alt="LinkedIn" />,
-  google: <img src="\images\google.svg" width = "38" height = "30" alt="Google" />,
-  stackoverflow: <img src="\images\stackoverflow.svg" width = "30" height = "24" alt="Stack Overflow" />,
-  twitter: <img src="\images\twitter.svg" width = "35" height = "29" alt="Twitter" />,
-  outlook: <img src="\images\outlook.svg" width = "30" height = "24" alt="Outlook" />,
-  microsoft: <img src="\images\microsoft.svg" width = "26" height = "20" alt="Microsoft" />,
-  apple: <img src="\images\apple.svg" width = "28" height = "21" alt="Apple" />,
-  teams: <img src="\images\teams.svg" width = "30" height = "24" alt="Teams" />,
+  github: <img src="/images/github.svg" width = "30" height = "24"alt="GitHub" />, 
+  linkedin: <img src="/images/linkedin.svg" width = "33" height = "26.5" alt="LinkedIn" />,
+  google: <img src="/images/google.svg" width = "38" height = "30" alt="Google" />,
+  stackoverflow: <img src="/images/stackoverflow.svg" width = "30" height = "24" alt="Stack Overflow" />,
+  twitter: <img src="/images/twitter.svg" width = "35" height = "29" alt="Twitter" />,
+  outlook: <img src="/images/outlook.svg" width = "30" height = "24" alt="Outlook" />,
+  microsoft: <img src="/images/microsoft.svg" width = "26" height = "20" alt="Microsoft" />,
+  apple: <img src="/images/apple.svg" width = "28" height = "21" alt="Apple" />,
+  teams: <img src="/images/teams.svg" width = "30" height = "24" alt="Teams" />,
 }
 const SignupPage = () => {
   const navigate = useNavigate()
