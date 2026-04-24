@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Plus, X } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Card, Button, Table, Loader, Modal, Input, Badge, Textarea } from '../../components/ui'
+import { Card, Button, Table, Loader, Modal, Input, Badge, Textarea, Select } from '../../components/ui'
 import { invoiceService } from '../../services/invoiceService'
+import { contractService } from '../../services/contractorService'
 import { API_ORIGIN } from '../../services/apiClient'
 import { formatters } from '../../utils/formatters'
 import { useAuth } from '../../hooks/useAuth'
@@ -26,7 +27,7 @@ const InvoicesPage = () => {
   const [reasonModalLines, setReasonModalLines] = useState([])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModal] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
   const [isEditingInvoiceDetails, setIsEditingInvoiceDetails] = useState(false)
   const [invoiceDetailsForm, setInvoiceDetailsForm] = useState({
@@ -42,6 +43,9 @@ const InvoicesPage = () => {
   const [rateError, setRateError] = useState('')
   const [monthFilter, setMonthFilter] = useState('')
   const [canEditTax, setCanEditTax] = useState(false)
+  const [contracts, setContracts] = useState([])
+  const [selectedContract, setSelectedContract] = useState('')
+  const [contractsLoading, setContractsLoading] = useState(false)
 
   const [formData, setFormData] = useState({
     contractorId: user?.id || '',
@@ -76,6 +80,43 @@ const InvoicesPage = () => {
     }
     loadRate()
   }, [user?.id, user?.role])
+
+  // Load contracts when modal opens
+  useEffect(() => {
+    const loadContracts = async () => {
+      if (!isModalOpen || !user?.id || user?.role !== 'CONTRACTOR') return
+      try {
+        setContractsLoading(true)
+        const data = await contractService.getContractsByContractor(user.id)
+        // Filter for active contracts only
+        const activeContracts = Array.isArray(data) 
+          ? data.filter(contract => contract.status === 'ACTIVE' || contract.status === 'active')
+          : []
+        setContracts(activeContracts)
+      } catch (err) {
+        console.error('Failed to load contracts:', err)
+        setContracts([])
+      } finally {
+        setContractsLoading(false)
+      }
+    }
+    loadContracts()
+  }, [isModalOpen, user?.id, user?.role])
+
+  // Auto-fill rate when contract is selected (only if rate is empty or 0)
+  useEffect(() => {
+    if (selectedContract && contracts.length > 0 && (!formData.rate || Number(formData.rate) === 0)) {
+      const selected = contracts.find(c => String(c.id) === String(selectedContract))
+      if (selected) {
+        // Try multiple possible field names for the contract rate
+        const contractRate = selected.hourlyRate || selected.rate || selected.contractRate || selected.payRate || 0
+        setFormData(prev => ({
+          ...prev,
+          rate: contractRate ? String(contractRate) : ''
+        }))
+      }
+    }
+  }, [selectedContract, contracts])
 
   const loadInvoices = async () => {
     try {
@@ -179,6 +220,9 @@ const InvoicesPage = () => {
     if (!formData.totalHours || Number(formData.totalHours) <= 0)
       newErrors.totalHours = 'Total hours must be > 0'
 
+    if (!formData.rate || Number(formData.rate) <= 0)
+      newErrors.rate = 'Rate must be > 0'
+
     if (!formData.taxPercentage || Number(formData.taxPercentage) < 0)
       newErrors.taxPercentage = 'Invalid tax'
 
@@ -199,6 +243,7 @@ const InvoicesPage = () => {
         contractorId: formData.contractorId,
         invoiceMonth: formData.invoiceMonth,
         totalHours: Number(formData.totalHours),
+        rate: Number(formData.rate),
         taxPercentage: Number(formData.taxPercentage),
         invoiceFile: formData.invoiceFile,
         timesheetFile: formData.timesheetFile,
@@ -525,6 +570,20 @@ const InvoicesPage = () => {
         size="xxl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Select Contract */}
+          <Select
+            label="Select Contract"
+            placeholder={contractsLoading ? "Loading contracts..." : "Choose an active contract"}
+            options={contracts.map(contract => ({
+              value: contract.id,
+              label: `${contract.contractName || contract.poNumber || `Contract ${contract.id}`}`
+            }))}
+            value={selectedContract}
+            onChange={(e) => setSelectedContract(e.target.value)}
+            disabled={contractsLoading}
+          />
+
+          {/* Row 1: Month & Total Hours */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               label="Month"
@@ -538,18 +597,49 @@ const InvoicesPage = () => {
               label="Total Hours"
               name="totalHours"
               type="number"
+              placeholder="0"
               value={formData.totalHours}
               onChange={handleInputChange}
+              error={formErrors.totalHours}
             />
           </div>
 
+          {/* Row 2: Rate & Base Amount */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input label="Base Amount" value={baseAmount.toFixed(2)} readOnly />
-            <Input label="Total Amount" value={totalAmount.toFixed(2)} readOnly />
+            <Input
+              label="Rate (per hour)"
+              name="rate"
+              type="number"
+              placeholder="0.00"
+              step="0.01"
+              value={formData.rate}
+              onChange={handleInputChange}
+              error={formErrors.rate}
+            />
+            <div>
+              <Input
+                label="Base Amount"
+                value={baseAmount.toFixed(2)}
+                readOnly
+                disabled
+              />
+              <p className="text-xs text-gray-500 mt-1">Auto-calculated: Total Hours × Rate</p>
+            </div>
           </div>
 
+          {/* Row 3: Tax % & Total Amount */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
+              <Input
+                label="Tax (%)"
+                name="taxPercentage"
+                type="number"
+                placeholder="18"
+                value={formData.taxPercentage}
+                onChange={handleInputChange}
+                disabled={!canEditTax}
+                error={formErrors.taxPercentage}
+              />
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input
                   type="checkbox"
@@ -564,37 +654,56 @@ const InvoicesPage = () => {
                 />
                 Allow tax change (default 18%)
               </label>
+            </div>
+            <div>
               <Input
-                label="Tax (%)"
-                name="taxPercentage"
-                type="number"
-                value={formData.taxPercentage}
-                onChange={handleInputChange}
-                disabled={!canEditTax}
+                label="Total Amount"
+                value={totalAmount.toFixed(2)}
+                readOnly
+                disabled
               />
+              <p className="text-xs text-gray-500 mt-1">Auto-calculated: Base Amount + Tax</p>
             </div>
           </div>
 
+          {/* Row 4: Invoice & Timesheet Files */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               label="Invoice File"
               type="file"
               name="invoiceFile"
               onChange={handleInputChange}
+              error={formErrors.invoiceFile}
             />
             <Input
               label="Timesheet File"
               type="file"
               name="timesheetFile"
               onChange={handleInputChange}
+              error={formErrors.timesheetFile}
             />
           </div>
 
-          <div className="flex justify-end">
+          {/* Row 5: Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <Button 
+              type="button" 
+              variant="secondary"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancel
+            </Button>
             <Button type="submit" isLoading={isSubmitting}>
               Submit
             </Button>
           </div>
+
+          {/* Display errors */}
+          {formErrors.submit && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+              <p className="text-sm text-red-700">{formErrors.submit}</p>
+            </div>
+          )}
         </form>
       </Modal>
 

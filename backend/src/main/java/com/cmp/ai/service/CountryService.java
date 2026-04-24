@@ -43,6 +43,7 @@ public class CountryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Country not found"));
 
         country.setName(request.getName());
+        country.setCurrency(request.getCurrency());
         return CountryTransformer.countryToCountryResponse(countryRepository.save(country));
     }
 

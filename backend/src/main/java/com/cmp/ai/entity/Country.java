@@ -21,4 +21,5 @@ public class Country {
     @Id
     private String code;
     private String name;
+    private String currency;
 }

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,5 +34,11 @@ public class ContractController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public List<ContractResponse> getAllContracts() {
         return contractService.getAllContracts();
+    }
+
+    @GetMapping("/contractor/{contractorId}")
+    @PreAuthorize("hasRole('CONTRACTOR')")
+    public List<ContractResponse> getContractsByContractor(@PathVariable Long contractorId) {
+        return contractService.getContractsByContractor(contractorId);
     }
 }

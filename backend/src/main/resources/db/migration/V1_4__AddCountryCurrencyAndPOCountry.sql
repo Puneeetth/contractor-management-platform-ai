@@ -1,0 +1,2 @@
+ALTER TABLE countries ADD COLUMN currency VARCHAR(10) NULL;
+ALTER TABLE purchase_orders ADD COLUMN country VARCHAR(10) NULL;

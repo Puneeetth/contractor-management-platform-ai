@@ -12,6 +12,7 @@ export const invoiceService = {
     formData.append('contractorId', invoiceData.contractorId)
     formData.append('invoiceMonth', invoiceData.invoiceMonth)
     formData.append('totalHours', invoiceData.totalHours)
+    formData.append('rate', invoiceData.rate)
     formData.append('taxPercentage', invoiceData.taxPercentage)
 
     if (invoiceData.invoiceFile) {

@@ -10,10 +10,15 @@ public class CountryTransformer {
         return CountryResponse.builder()
                 .code(country.getCode())
                 .name(country.getName())
+                .currency(country.getCurrency())
                 .build();
     }
 
     public static Country countryRequestToCountry(CountryRequest request) {
-        return new Country(request.getCode(), request.getName());
+        Country country = new Country();
+        country.setCode(request.getCode());
+        country.setName(request.getName());
+        country.setCurrency(request.getCurrency());
+        return country;
     }
 }

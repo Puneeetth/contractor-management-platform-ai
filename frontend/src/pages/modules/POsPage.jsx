@@ -7,6 +7,7 @@ import { API_ORIGIN } from '../../services/apiClient'
 import { poService } from '../../services/poService'
 import { contractService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
+import { countryService } from '../../services/countryService'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 import { useLocation } from 'react-router-dom'
@@ -17,7 +18,8 @@ const createInitialFormData = (customerId = '') => ({
   startDate: '',
   endDate: '',
   poValue: '',
-  currency: 'USD',
+  currency: '',
+  country: '',
   paymentTermsDays: 30,
   customerId,
   remark: '',
@@ -25,6 +27,7 @@ const createInitialFormData = (customerId = '') => ({
   sharedWith: '',
   fileUrl: '',
   file: null,
+  agreementFile: null,
 })
 
 const POsPage = () => {
@@ -36,6 +39,7 @@ const POsPage = () => {
   const [pos, setPos] = useState([])
   const [contracts, setContracts] = useState([])
   const [customers, setCustomers] = useState([])
+  const [countries, setCountries] = useState([])
   const [isReferenceLoading, setIsReferenceLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState(createInitialFormData(preselectedCustomerId))
@@ -75,17 +79,19 @@ const POsPage = () => {
   const loadReferenceData = async () => {
     try {
       setIsReferenceLoading(true)
-      const [contractsData, customersData] = await Promise.all([
+      const [contractsData, customersData, countriesData] = await Promise.all([
         contractService.getAllContracts(),
         customerService.getAllCustomers(),
+        countryService.getAllCountries(),
       ])
       setContracts(Array.isArray(contractsData) ? contractsData : [])
       setCustomers(Array.isArray(customersData) ? customersData : [])
+      setCountries(Array.isArray(countriesData) ? countriesData : [])
       if (preselectedCustomerId) {
         setFormData(prev => ({ ...prev, customerId: preselectedCustomerId }))
       }
     } catch (err) {
-      setFormErrors({ submit: err?.message || 'Failed to load contracts/customers' })
+      setFormErrors({ submit: err?.message || 'Failed to load reference data' })
     } finally {
       setIsReferenceLoading(false)
     }
@@ -120,13 +126,13 @@ const POsPage = () => {
     return Object.keys(newErrors).length === 0
   }
   const handleFileChange = (e) => {
-  const file = e.target.files[0]
-
-  setFormData(prev => ({
-    ...prev,
-    file
-  }))
-}
+    const { name } = e.target
+    const file = e.target.files[0]
+    setFormData(prev => ({
+      ...prev,
+      [name]: file
+    }))
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -149,6 +155,17 @@ const POsPage = () => {
       customerId: selected?.customerId ?? '',
     }))
     setFormErrors(prev => ({ ...prev, contractId: '', customerId: '' }))
+  }
+
+  const handleCountryChange = (e) => {
+    const countryCode = e.target.value
+    const selectedCountry = countries.find(c => c.code === countryCode)
+    setFormData(prev => ({
+      ...prev,
+      country: countryCode,
+      currency: selectedCountry?.currency || '',
+    }))
+    if (formErrors.country) setFormErrors(prev => ({ ...prev, country: '' }))
   }
 
   const handleSubmit = async (e) => {
@@ -284,28 +301,12 @@ const POsPage = () => {
           )}
         </Card>
 
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Purchase Order" size="xxl"
-          footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create PO</Button></>}>
-          <form className="space-y-4">
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Purchase Order" size="xxl">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {formErrors.submit && <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
-            
-            <div className="grid grid-cols-2 gap-4">
-                  <Input label="PO Number" name="poNumber" value={formData.poNumber} onChange={handleInputChange} error={formErrors.poNumber} placeholder="Enter PO number" required />
-              <Input label="PO Date" name="poDate" type="date" value={formData.poDate} onChange={handleInputChange} error={formErrors.poDate} required />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} />
-              <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="PO Value" name="poValue" type="number" step="0.01" value={formData.poValue} onChange={handleInputChange} error={formErrors.poValue} required />
-              <Input label="Currency" name="currency" value={formData.currency} onChange={handleInputChange} placeholder="USD" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Payment Terms (no. of days)" name="paymentTermsDays" type="number" value={formData.paymentTermsDays} onChange={handleInputChange} />
+            {/* Select Customer */}
+            <div>
               {preselectedCustomerId ? (
                 <Input
                   label="Customer"
@@ -323,29 +324,74 @@ const POsPage = () => {
                   error={formErrors.customerId}
                   required
                   disabled={isReferenceLoading}
-                  placeholder={isReferenceLoading ? 'Loading customers...' : 'Select a customer'}
+                  placeholder={isReferenceLoading ? 'Loading customers...' : 'Choose a customer'}
                 />
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="No. of resources - contractors" name="numberOfResources" type="number" value={formData.numberOfResources} onChange={handleInputChange} />
-              <Input
-  label="PO Upload (File)"
-  type="file"
-  name="file"
-  onChange={handleFileChange}
-  accept=".pdf,.doc,.docx"
-/>
+            {/* PO Number & PO Date */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="PO Number" name="poNumber" value={formData.poNumber} onChange={handleInputChange} error={formErrors.poNumber} placeholder="Enter PO number" required />
+              <Input label="PO Date" name="poDate" type="date" value={formData.poDate} onChange={handleInputChange} error={formErrors.poDate} required />
             </div>
 
-            <Input label="Remark" name="remark" value={formData.remark} onChange={handleInputChange} />
-            <Input label = {
-              <>
-                    Remarks <i>(Indicating with whom it’s being shared e.g. co-worker)</i>
+            {/* Start Date & End Date */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} />
+              <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} />
+            </div>
 
-              </>
-            } name="sharedWith" value={formData.sharedWith} onChange={handleInputChange} placeholder="Shared with Finance team" />
+            {/* PO Value, Country & Currency */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Input label="PO Value" name="poValue" type="number" step="0.01" value={formData.poValue} onChange={handleInputChange} error={formErrors.poValue} required />
+              <Select
+                label="Country"
+                value={formData.country}
+                onChange={handleCountryChange}
+                options={countries.map(c => ({ value: c.code, label: c.name }))}
+                disabled={isReferenceLoading}
+                placeholder={isReferenceLoading ? 'Loading countries...' : 'Select country'}
+              />
+              <Input label="Currency" name="currency" value={formData.currency} onChange={handleInputChange} placeholder="Auto-filled from country" readOnly />
+            </div>
+
+            {/* Payment Terms & No. of Contractors */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input label="Payment Terms" name="paymentTermsDays" type="number" value={formData.paymentTermsDays} onChange={handleInputChange} placeholder="30" />
+              <Input label="No. of Contractors" name="numberOfResources" type="number" value={formData.numberOfResources} onChange={handleInputChange} placeholder="0" />
+            </div>
+
+            {/* PO Upload & Agreement Upload */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input
+                label="PO Upload"
+                type="file"
+                name="file"
+                onChange={handleFileChange}
+                accept=".pdf,.doc,.docx"
+              />
+              <Input
+                label="Agreement Upload"
+                type="file"
+                name="agreementFile"
+                onChange={handleFileChange}
+                accept=".pdf,.doc,.docx"
+              />
+            </div>
+
+            {/* Cancel & Create PO Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" isLoading={isSubmitting}>
+                Create PO
+              </Button>
+            </div>
           </form>
         </Modal>
 
@@ -375,6 +421,10 @@ const POsPage = () => {
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PO Value</p>
                   <p className="text-sm font-bold text-emerald-400">{formatters.formatCurrency(selectedPO.poValue)} {selectedPO.currency}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Country</p>
+                  <p className="text-sm text-gray-900">{selectedPO.country || 'N/A'}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Start Date</p>
@@ -422,4 +472,3 @@ const POsPage = () => {
 }
 
 export default POsPage
-

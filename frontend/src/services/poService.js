@@ -14,6 +14,10 @@ export const poService = {
   data.append("customerId", poData.customerId);
   data.append("numberOfResources", poData.numberOfResources);
 
+  if (poData.country) {
+    data.append("country", poData.country);
+  }
+
   if (poData.contractId) {
     data.append("contractId", poData.contractId);
   }
@@ -30,9 +34,8 @@ export const poService = {
     data.append("file", poData.file);
   }
 
-  // 🔥 DEBUG
-  for (let pair of data.entries()) {
-    console.log(pair[0], pair[1]);
+  if (poData.agreementFile) {
+    data.append("agreementFile", poData.agreementFile);
   }
 
   return apiClient.post('/admin/purchase-orders', data);
