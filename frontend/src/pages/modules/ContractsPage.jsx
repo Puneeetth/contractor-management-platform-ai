@@ -7,8 +7,11 @@ import { contractService, contractorService } from '../../services/contractorSer
 import { customerService } from '../../services/customerService'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
+import { useAuth } from '../../hooks/useAuth'
 
 const ContractsPage = () => {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER'
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [contracts, setContracts] = useState([])
@@ -55,7 +58,9 @@ const ContractsPage = () => {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await contractService.getAllContracts()
+      const data = user?.role === 'CONTRACTOR'
+        ? await contractService.getContractsByContractor(user.id)
+        : await contractService.getAllContracts()
       setContracts(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err?.error?.message || 'Failed to load contracts')
@@ -211,6 +216,7 @@ const ContractsPage = () => {
       key: 'billRate',
       label: 'Bill Rate',
       render: (row) => <span className="text-emerald-400 font-medium">{formatters.formatCurrency(row.billRate)}</span>,
+      hidden: user?.role === 'CONTRACTOR'
     },
     {
       key: 'payRate',
@@ -227,7 +233,7 @@ const ContractsPage = () => {
         </Badge>
       ),
     },
-  ]
+  ].filter(col => !col.hidden)
 
   const activeContracts = contracts.filter((contract) => contract.status === 'ACTIVE').length
   const upcomingContracts = contracts.filter((contract) => contract.status === 'UPCOMING').length
@@ -241,9 +247,11 @@ const ContractsPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">Contracts</h1>
             <p className="text-gray-600 mt-1 text-sm">Manage contractor contracts and assignments</p>
           </div>
-          <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Add Contract
-          </Button>
+          {isAdmin && (
+            <Button variant="primary" onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Add Contract
+            </Button>
+          )}
         </div>
 
         {!isLoading && (
@@ -252,8 +260,8 @@ const ContractsPage = () => {
               { icon: Briefcase, label: 'Total Contracts', value: contracts.length, color: 'text-blue-400', bg: 'bg-blue-100' },
               { icon: CalendarDays, label: 'Active', value: activeContracts, color: 'text-emerald-400', bg: 'bg-emerald-100' },
               { icon: CalendarDays, label: 'Upcoming', value: upcomingContracts, color: 'text-amber-500', bg: 'bg-amber-100' },
-              { icon: DollarSign, label: 'Total Budget', value: formatters.formatCurrency(totalBudget), color: 'text-purple-400', bg: 'bg-purple-100' },
-            ].map((stat, i) => (
+              { icon: DollarSign, label: 'Total Budget', value: formatters.formatCurrency(totalBudget), color: 'text-purple-400', bg: 'bg-purple-100', hidden: user?.role === 'CONTRACTOR' },
+            ].filter(s => !s.hidden).map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <Card className="!p-4">
                   <div className="flex items-center gap-3">
