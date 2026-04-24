@@ -58,6 +58,38 @@ export const ROLE_PERMISSIONS = {
   CONTRACTOR: ['submit_timesheet', 'submit_expense', 'view_invoices'],
 }
 
+export const COUNTRY_CURRENCY_MAP = {
+  India: 'INR',
+  'United States': 'USD',
+  Germany: 'EUR',
+  'United Kingdom': 'GBP',
+  Australia: 'AUD',
+  France: 'EUR',
+  Italy: 'EUR',
+  Spain: 'EUR',
+  Netherlands: 'EUR',
+  Canada: 'CAD',
+  Japan: 'JPY',
+  Singapore: 'SGD',
+  'United Arab Emirates': 'AED',
+  'Saudi Arabia': 'SAR',
+  China: 'CNY',
+  Brazil: 'BRL',
+  Mexico: 'MXN',
+  'South Korea': 'KRW',
+  Indonesia: 'IDR',
+  Malaysia: 'MYR',
+  Thailand: 'THB',
+  'South Africa': 'ZAR',
+  Nigeria: 'NGN',
+  Egypt: 'EGP',
+  Poland: 'PLN',
+  Sweden: 'SEK',
+  Switzerland: 'CHF',
+}
+
+export const COUNTRIES = Object.keys(COUNTRY_CURRENCY_MAP)
+
 export const CURRENCIES = [
   { value: 'USD', label: 'US Dollar ($)' },
   { value: 'EUR', label: 'Euro (€)' },
