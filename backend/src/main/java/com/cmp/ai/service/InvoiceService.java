@@ -32,7 +32,7 @@ public class InvoiceService {
     private final UserRepository userRepository;
     private final FileService fileService;
 
-    public InvoiceResponse createInvoice(InvoiceRequest request, MultipartFile invoiceFile, MultipartFile timesheetFile) {
+    public InvoiceResponse createInvoice(InvoiceRequest request, Long contractId, MultipartFile invoiceFile, MultipartFile timesheetFile) {
 
         // ✅ Get contractor
         User contractor = userRepository.findById(request.getContractorId())
@@ -43,12 +43,24 @@ public class InvoiceService {
         Optional<Invoice> existingInvoiceOptional =
                 invoiceRepository.findByContractorIdAndInvoiceMonth(contractor.getId(), request.getInvoiceMonth());
 
-        // ✅ Get active contract rate
-        Double activeContractRate = contractRepository.findByContractorId(contractor.getId()).stream()
-                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
-                .findFirst()
-                .map(c -> c.getPayRate())
-                .orElseThrow(() -> new BadRequestException("No active contract found for this contractor"));
+        // ✅ Get contract rate — use selected contract if provided, otherwise fallback to any active contract
+        Double activeContractRate;
+        Contract activeContract;
+
+        if (contractId != null) {
+            activeContract = contractRepository.findById(contractId)
+                    .orElseThrow(() -> new BadRequestException("Selected contract not found"));
+            if (activeContract.getStatus() != ContractStatus.ACTIVE && activeContract.getStatus() != ContractStatus.UPCOMING) {
+                throw new BadRequestException("Selected contract is not active or upcoming");
+            }
+            activeContractRate = activeContract.getPayRate();
+        } else {
+            activeContract = contractRepository.findByContractorId(contractor.getId()).stream()
+                    .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("No active contract found for this contractor"));
+            activeContractRate = activeContract.getPayRate();
+        }
 
         if (activeContractRate == null || activeContractRate <= 0) {
             throw new BadRequestException("Active contract does not have a valid pay rate");
@@ -115,11 +127,11 @@ public class InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
 
         return contractRepository.findByContractorId(contractorId).stream()
-                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
+                .filter(c -> c.getStatus() == ContractStatus.ACTIVE || c.getStatus() == ContractStatus.UPCOMING)
                 .findFirst()
                 .map(c -> c.getPayRate())
                 .filter(rate -> rate != null && rate > 0)
-                .orElseThrow(() -> new BadRequestException("No active contract with valid pay rate found for this contractor"));
+                .orElseThrow(() -> new BadRequestException("No active or upcoming contract with valid pay rate found for this contractor"));
     }
 
 
@@ -202,7 +214,7 @@ public class InvoiceService {
 
     private InvoiceResponse toInvoiceResponseWithRates(Invoice invoice) {
         Contract activeContract = contractRepository.findByContractorId(invoice.getContractor().getId()).stream()
-                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
+                .filter(c -> c.getStatus() == ContractStatus.ACTIVE || c.getStatus() == ContractStatus.UPCOMING)
                 .findFirst()
                 .orElse(null);
 

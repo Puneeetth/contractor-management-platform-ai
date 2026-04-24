@@ -15,6 +15,10 @@ export const invoiceService = {
     formData.append('rate', invoiceData.rate)
     formData.append('taxPercentage', invoiceData.taxPercentage)
 
+    if (invoiceData.contractId) {
+      formData.append('contractId', invoiceData.contractId)
+    }
+
     if (invoiceData.invoiceFile) {
       formData.append('invoiceFile', invoiceData.invoiceFile)
     }

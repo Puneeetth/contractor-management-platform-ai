@@ -26,7 +26,9 @@ public class InvoiceController {
             @RequestParam Long contractorId,
             @RequestParam String invoiceMonth,
             @RequestParam Double totalHours,
+            @RequestParam(required = false) Double rate,
             @RequestParam Double taxPercentage,
+            @RequestParam(value = "contractId", required = false) Long contractId,
             @RequestParam(value = "invoiceFile", required = false) MultipartFile invoiceFile,
             @RequestParam(value = "timesheetFile", required = false) MultipartFile timesheetFile) {
 
@@ -37,7 +39,7 @@ public class InvoiceController {
                 taxPercentage
         );
 
-        return invoiceService.createInvoice(request, invoiceFile, timesheetFile);
+        return invoiceService.createInvoice(request, contractId, invoiceFile, timesheetFile);
     }
 
     // ✅ Get contractor rate from active contract

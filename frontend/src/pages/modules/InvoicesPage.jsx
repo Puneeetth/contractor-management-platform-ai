@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { Check, Plus, X } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Table, Loader, Modal, Input, Badge, Textarea, Select } from '../../components/ui'
@@ -48,6 +47,15 @@ const InvoicesPage = () => {
   const [selectedContract, setSelectedContract] = useState('')
   const [contractsLoading, setContractsLoading] = useState(false)
   const [contractsError, setContractsError] = useState('')
+
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscSwift: '',
+    upiId: '',
+  })
+  const [bankDetailsLoading, setBankDetailsLoading] = useState(false)
 
   const [formData, setFormData] = useState({
     contractorId: user?.id || '',
@@ -103,7 +111,6 @@ const InvoicesPage = () => {
         }
       } catch (err) {
         console.error('Failed to load contracts:', err)
-        setContractsError('Failed to load contracts. Please try again.')
         setContracts([])
         setContractsError('Failed to load contracts. Please try again.')
       } finally {
@@ -113,12 +120,36 @@ const InvoicesPage = () => {
     loadContracts()
   }, [isModalOpen, user?.id, user?.role])
 
+  // Load bank details when modal opens
+  useEffect(() => {
+    const loadBankDetails = async () => {
+      if (!isModalOpen || user?.role !== 'CONTRACTOR') return
+      try {
+        setBankDetailsLoading(true)
+        const data = await bankDetailsService.getMyBankDetails()
+        const bd = data?.data || data || {}
+        setBankDetails({
+          accountHolderName: bd.accountHolderName || '',
+          bankName: bd.bankName || '',
+          accountNumber: bd.accountNumber || '',
+          ifscSwift: bd.ifscSwift || '',
+          upiId: bd.upiId || '',
+        })
+      } catch {
+        // non-critical — leave blank
+      } finally {
+        setBankDetailsLoading(false)
+      }
+    }
+    loadBankDetails()
+  }, [isModalOpen, user?.role])
+
   // Auto-fill rate when contract is selected
   useEffect(() => {
     if (selectedContract && contracts.length > 0) {
       const selected = contracts.find(c => String(c.id) === String(selectedContract))
       if (selected) {
-        const contractRate = selected.payRate || 0
+        const contractRate = selected.payRate ?? selected.billRate ?? 0
         setFormData(prev => ({
           ...prev,
           rate: contractRate ? String(contractRate) : prev.rate
@@ -226,6 +257,10 @@ const InvoicesPage = () => {
 
     const newErrors = {}
 
+    if (user?.role === 'CONTRACTOR' && !selectedContract) {
+      newErrors.selectedContract = 'Please select a contract'
+    }
+
     const existingMonthInvoice = invoices.find(
       (invoice) => String(invoice.invoiceMonth || '') === String(formData.invoiceMonth || '')
     )
@@ -264,6 +299,7 @@ const InvoicesPage = () => {
 
       await invoiceService.createInvoice({
         contractorId: formData.contractorId,
+        contractId: selectedContract || undefined,
         invoiceMonth: formData.invoiceMonth,
         totalHours: Number(formData.totalHours),
         rate: Number(formData.rate),
@@ -605,11 +641,8 @@ const InvoicesPage = () => {
               value={selectedContract}
               onChange={(e) => setSelectedContract(e.target.value)}
               disabled={contractsLoading}
-              error={contractsError}
+              error={formErrors.selectedContract || contractsError}
             />
-            {contractsError && !contractsLoading && (
-              <p className="text-xs text-red-500 mt-1">{contractsError}</p>
-            )}
           </div>
 
           {/* Row 1: Month & Total Hours */}
@@ -761,6 +794,13 @@ const InvoicesPage = () => {
             />
           </div>
 
+          {/* Display errors */}
+          {formErrors.submit && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+              <p className="text-sm text-red-700">{formErrors.submit}</p>
+            </div>
+          )}
+
           {/* Row 5: Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button 
@@ -774,13 +814,6 @@ const InvoicesPage = () => {
               Submit
             </Button>
           </div>
-
-          {/* Display errors */}
-          {formErrors.submit && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-              <p className="text-sm text-red-700">{formErrors.submit}</p>
-            </div>
-          )}
         </form>
       </Modal>
 
