@@ -320,7 +320,7 @@ const SignupPage = () => {
         {/* Bottom text */}
         <div className="absolute bottom-12 left-0 right-0 text-center px-8">
           <p className="text-gray-600 text-sm leading-relaxed">
-            Compatible with <em className="font-semibold text-gray-800">Contracts, Invoices, Timesheets</em> and most{' '}
+            Compatible with <em className="font-semibold text-gray-800">Contracts, Invoices, Expenses</em> and most{' '}
             <em className="font-semibold text-gray-800">management tools</em> for a smooth experience.
           </p>
           <div className="flex items-center justify-center gap-2 mt-4">
@@ -342,3 +342,4 @@ const SignupPage = () => {
 }
 
 export default SignupPage
+

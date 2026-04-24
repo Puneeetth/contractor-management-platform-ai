@@ -17,6 +17,7 @@ import { Card, Button, Modal, Input, Badge, Loader } from '../../components/ui'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
 import { useAuth } from '../../hooks/useAuth'
+import { dedupeBy } from '../../utils/dedupe'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 
@@ -80,8 +81,12 @@ const CustomersPage = () => {
         customerService.getAllCustomers(),
         poService.getAllPurchaseOrders(),
       ])
-      setCustomers(Array.isArray(customersData) ? customersData : [])
-      setPos(Array.isArray(poData) ? poData : [])
+      setCustomers(
+        dedupeBy(customersData, (customer, index) => customer?.id || `${customer?.name || 'customer'}-${customer?.msa || customer?.msaContactEmail || index}`)
+      )
+      setPos(
+        dedupeBy(poData, (po, index) => po?.id || `${po?.poNumber || 'po'}-${po?.customerId || index}`)
+      )
     } catch (err) {
       setError(err?.message || 'Failed to load customers')
       setCustomers([])
@@ -245,16 +250,16 @@ const CustomersPage = () => {
 
   return (
     <DashboardLayout>
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Customers</h1>
-            <p className="mt-1 text-[13px] text-[#4a5c77]">Manage your global customer directory and master service agreements.</p>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-3.5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-baseline gap-3">
+            <h1 className="shrink-0 text-[24px] leading-none font-extrabold tracking-[-0.02em] text-[#0f1d33]">Customers</h1>
+            <p className="truncate text-[13px] font-medium text-[#4a5c77]">Manage your global customer directory and master service agreements.</p>
           </div>
           {isAdmin && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-1 inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
             >
               <Plus className="h-4 w-4" /> Add Customer
             </button>
@@ -262,18 +267,18 @@ const CustomersPage = () => {
         </div>
 
         {!isLoading && (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
             {summaryStats.map((stat) => {
               const Icon = stat.icon
               return (
-                <div key={stat.label} className="rounded-2xl border border-[#e3e9f2] bg-white px-4 py-3.5 shadow-[0_2px_4px_rgba(15,23,42,0.04)]">
-                  <div className="flex items-center gap-3">
-                    <div className={`${stat.bg} rounded-xl p-2.5`}>
-                      <Icon className={`h-4.5 w-4.5 ${stat.color}`} />
+                <div key={stat.label} className="rounded-2xl border border-[#e3e9f2] bg-white px-3.5 py-3 shadow-[0_2px_4px_rgba(15,23,42,0.04)]">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`${stat.bg} rounded-xl p-2`}>
+                      <Icon className={`h-4 w-4 ${stat.color}`} />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[10px] font-bold tracking-[0.12em] text-[#5f7290]">{stat.label}</p>
-                      <p className="mt-1 text-[20px] leading-none font-bold text-[#0f1f36]">{stat.value}</p>
+                      <p className="mt-0.5 text-[18px] leading-none font-bold text-[#0f1f36]">{stat.value}</p>
                     </div>
                   </div>
                 </div>
@@ -311,13 +316,13 @@ const CustomersPage = () => {
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-[#e0e8f3] bg-[#f7f9fc]">
-                      <th className="px-5 py-3 text-left text-[11px] font-bold tracking-[0.08em] text-[#5c6e89]">CUSTOMER NAME</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-bold tracking-[0.08em] text-[#5c6e89]">IDENTIFIER</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-bold tracking-[0.08em] text-[#5c6e89]">CONTACT EMAIL</th>
-                      <th className="px-4 py-3 text-center text-[11px] font-bold tracking-[0.08em] text-[#5c6e89]">ACTIVE POS</th>
-                      <th className="px-4 py-3 text-center text-[11px] font-bold tracking-[0.08em] text-[#5c6e89]">INACTIVE POS</th>
-                      <th className="px-4 py-3 text-center text-[11px] font-bold tracking-[0.08em] text-[#5c6e89]">STATUS</th>
-                      <th className="px-5 py-3 text-right text-[11px] font-bold tracking-[0.08em] text-[#5c6e89]">ACTIONS</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">CUSTOMER NAME</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">CONTACT PERSON</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">CONTACT EMAIL</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-center text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ACTIVE POS</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-center text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">INACTIVE POS</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-center text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">STATUS</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-right text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -327,34 +332,33 @@ const CustomersPage = () => {
                       const shortName = String(customer.name || 'CU').split(' ').filter(Boolean).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('')
                       return (
                         <tr key={customer.id} className="border-b border-[#e5ebf4] bg-white">
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#dee5fb] text-sm font-bold text-[#3e53dd]">{shortName}</div>
-                              <div>
-                                <p className="text-sm font-semibold text-[#12203a]">{customer.name}</p>
-                                <p className="text-xs text-[#8a98ad]">Standard Tier</p>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dee5fb] text-[10px] font-bold text-[#3e53dd]">{shortName}</div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate whitespace-nowrap text-[13px] font-semibold leading-none text-[#12203a]">{customer.name}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-sm text-[#1f3048]">{customer.msa || '-'}</td>
-                          <td className="px-4 py-4"><a href={`mailto:${customer.msaContactEmail}`} className="text-sm text-[#2f3f58] hover:text-[#3f51df]">{customer.msaContactEmail || '-'}</a></td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="text-[18px] font-semibold leading-none text-[#13243d]">{activePos}</span>
-                              <span className="h-2.5 w-2.5 rounded-full bg-[#1db685]" />
+                          <td className="px-2.5 py-2.5 text-[13px] text-[#1f3048]">{customer.msaContactPerson || '-'}</td>
+                          <td className="px-2.5 py-2.5"><a href={`mailto:${customer.msaContactEmail}`} className="text-[13px] text-[#2f3f58] hover:text-[#3f51df]">{customer.msaContactEmail || '-'}</a></td>
+                          <td className="px-2.5 py-2.5">
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="h-2 w-2 rounded-full bg-[#1db685]" />
+                              <span className="text-[15px] font-semibold leading-none text-[#13243d]">{activePos}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="text-[18px] font-semibold leading-none text-[#7b8ca6]">{inactivePos}</span>
-                              <span className="h-2.5 w-2.5 rounded-full bg-[#dbe3ef]" />
+                          <td className="px-2.5 py-2.5">
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="h-2 w-2 rounded-full bg-[#dbe3ef]" />
+                              <span className="text-[15px] font-semibold leading-none text-[#7b8ca6]">{inactivePos}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center"><span className="inline-flex rounded-full bg-[#c9f0dd] px-3 py-1 text-xs font-semibold text-[#198657]">Active</span></td>
-                          <td className="px-5 py-4 text-right">
+                          <td className="px-2.5 py-2.5 text-center"><span className="inline-flex rounded-full bg-[#c9f0dd] px-2.5 py-0.5 text-[11px] font-semibold text-[#198657]">Active</span></td>
+                          <td className="px-3 py-2.5 text-right">
                             <div className="relative inline-block text-left">
-                              <button type="button" onClick={() => setActionMenuCustomerId((prev) => (prev === customer.id ? null : customer.id))} className="rounded-lg p-1.5 text-[#7f90ab] hover:bg-[#eef3fb]">
-                                <MoreVertical className="h-5 w-5" />
+                              <button type="button" onClick={() => setActionMenuCustomerId((prev) => (prev === customer.id ? null : customer.id))} className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb]">
+                                <MoreVertical className="h-4 w-4" />
                               </button>
                               {actionMenuCustomerId === customer.id && (
                                 <div className="absolute right-0 z-20 mt-2 w-32 rounded-lg border border-[#dbe4f1] bg-white p-1 shadow-lg">

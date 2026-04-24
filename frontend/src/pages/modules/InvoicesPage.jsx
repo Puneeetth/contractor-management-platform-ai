@@ -7,6 +7,7 @@ import { invoiceService } from '../../services/invoiceService'
 import { API_ORIGIN } from '../../services/apiClient'
 import { formatters } from '../../utils/formatters'
 import { useAuth } from '../../hooks/useAuth'
+import { dedupeBy } from '../../utils/dedupe'
 
 const InvoicesPage = () => {
   const { user } = useAuth()
@@ -84,7 +85,9 @@ const InvoicesPage = () => {
       const data = user?.role === 'CONTRACTOR'
         ? await invoiceService.getInvoicesByContractor(user.id)
         : await invoiceService.getAllInvoices()
-      setInvoices(Array.isArray(data) ? data : [])
+      setInvoices(
+        dedupeBy(data, (invoice, index) => invoice?.id || `${invoice?.contractorId || invoice?.contractorName || 'invoice'}-${invoice?.invoiceMonth || index}`)
+      )
     } catch (err) {
       setError(err?.message || 'Failed to load invoices')
     } finally {
@@ -496,27 +499,39 @@ const InvoicesPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex justify-between mb-6">
-        <h1 className="text-xl font-bold">Invoices</h1>
-        {user?.role === 'CONTRACTOR' && (
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus /> Create Invoice
-          </Button>
-        )}
-      </div>
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Invoices</h1>
+            <p className="mt-1 text-[13px] text-[#4a5c77]">Submit, review, and track invoice approvals.</p>
+          </div>
+          {user?.role === 'CONTRACTOR' && (
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#4b4fe8] px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
+            >
+              <Plus className="h-4 w-4" /> Create Invoice
+            </button>
+          )}
+        </div>
 
-      <div className="mb-4 max-w-xs">
-        <Input
-          label="Filter by Month"
-          type="month"
-          value={monthFilter}
-          onChange={(e) => setMonthFilter(e.target.value)}
-        />
-      </div>
+        <Card className="border-[#d8e2ef] shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
+          <div className="max-w-[220px]">
+            <Input
+              label="Filter by Month"
+              type="month"
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="px-3 py-2 text-[13px]"
+            />
+          </div>
+        </Card>
 
-      <Card>
-        {isLoading ? <Loader /> : <Table columns={columns} data={filteredInvoices} />}
-      </Card>
+        <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]" isPadded={false}>
+          {isLoading ? <Loader /> : <Table columns={columns} data={filteredInvoices} />}
+        </Card>
+      </div>
 
       <Modal
         isOpen={isModalOpen}
@@ -525,75 +540,145 @@ const InvoicesPage = () => {
         size="xxl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="Month"
-              type="month"
-              name="invoiceMonth"
-              value={formData.invoiceMonth}
-              onChange={handleInputChange}
-              error={formErrors.invoiceMonth}
-            />
-            <Input
-              label="Total Hours"
-              name="totalHours"
-              type="number"
-              value={formData.totalHours}
-              onChange={handleInputChange}
-            />
+          <div>
+            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Invoice Details</h2>
+            <Card className="border-[#d8e2ef] px-4 py-3">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
+                <div className="w-full">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Month</label>
+                  <input
+                    type="month"
+                    name="invoiceMonth"
+                    value={formData.invoiceMonth}
+                    onChange={handleInputChange}
+                    className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
+                      formErrors.invoiceMonth
+                        ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                        : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                    }`}
+                  />
+                  {formErrors.invoiceMonth && <p className="mt-1 text-[10px] text-red-500">{formErrors.invoiceMonth}</p>}
+                </div>
+                <div className="w-full">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Total Hours</label>
+                  <input
+                    name="totalHours"
+                    type="number"
+                    value={formData.totalHours}
+                    onChange={handleInputChange}
+                    className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
+                      formErrors.totalHours
+                        ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                        : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                    }`}
+                  />
+                  {formErrors.totalHours && <p className="mt-1 text-[10px] text-red-500">{formErrors.totalHours}</p>}
+                </div>
+                <div className="w-full">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Base Amount</label>
+                  <input
+                    value={baseAmount.toFixed(2)}
+                    readOnly
+                    className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
+                  />
+                </div>
+                <div className="w-full">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Total Amount</label>
+                  <input
+                    value={totalAmount.toFixed(2)}
+                    readOnly
+                    className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
+                  />
+                </div>
+              </div>
+            </Card>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input label="Base Amount" value={baseAmount.toFixed(2)} readOnly />
-            <Input label="Total Amount" value={totalAmount.toFixed(2)} readOnly />
+          <div>
+            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Tax</h2>
+            <Card className="border-[#d8e2ef] px-4 py-3">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-[11px] font-medium text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={canEditTax}
+                      onChange={(e) => {
+                        const allowed = e.target.checked
+                        setCanEditTax(allowed)
+                        if (!allowed) {
+                          setFormData((prev) => ({ ...prev, taxPercentage: '18' }))
+                        }
+                      }}
+                    />
+                    Allow tax change (default 18%)
+                  </label>
+                </div>
+                <div className="w-full">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Tax (%)</label>
+                  <input
+                    name="taxPercentage"
+                    type="number"
+                    value={formData.taxPercentage}
+                    onChange={handleInputChange}
+                    disabled={!canEditTax}
+                    className="h-8 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:bg-[#f3f4f6]"
+                  />
+                  {formErrors.taxPercentage && <p className="mt-1 text-[10px] text-red-500">{formErrors.taxPercentage}</p>}
+                </div>
+              </div>
+            </Card>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={canEditTax}
-                  onChange={(e) => {
-                    const allowed = e.target.checked
-                    setCanEditTax(allowed)
-                    if (!allowed) {
-                      setFormData((prev) => ({ ...prev, taxPercentage: '18' }))
-                    }
-                  }}
-                />
-                Allow tax change (default 18%)
-              </label>
-              <Input
-                label="Tax (%)"
-                name="taxPercentage"
-                type="number"
-                value={formData.taxPercentage}
-                onChange={handleInputChange}
-                disabled={!canEditTax}
-              />
+          <div>
+            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Attachments</h2>
+            <Card className="border-[#d8e2ef] px-4 py-3">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
+                <div className="w-full">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Invoice File</label>
+                  <input
+                    type="file"
+                    name="invoiceFile"
+                    onChange={handleInputChange}
+                    className="block h-8 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700 file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
+                  />
+                  {formErrors.invoiceFile && <p className="mt-1 text-[10px] text-red-500">{formErrors.invoiceFile}</p>}
+                </div>
+                <div className="w-full">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Timesheet File</label>
+                  <input
+                    type="file"
+                    name="timesheetFile"
+                    onChange={handleInputChange}
+                    className="block h-8 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700 file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
+                  />
+                  {formErrors.timesheetFile && <p className="mt-1 text-[10px] text-red-500">{formErrors.timesheetFile}</p>}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {formErrors.submit && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+              <p className="text-sm text-red-700">{formErrors.submit}</p>
             </div>
-          </div>
+          )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="Invoice File"
-              type="file"
-              name="invoiceFile"
-              onChange={handleInputChange}
-            />
-            <Input
-              label="Timesheet File"
-              type="file"
-              name="timesheetFile"
-              onChange={handleInputChange}
-            />
-          </div>
-
-          <div className="flex justify-end">
-            <Button type="submit" isLoading={isSubmitting}>
-              Submit
-            </Button>
+          <div className="flex items-center justify-end gap-3 border-t border-[#d8e2ef] pt-4">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-3.5 text-[13px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#4b4fe8] px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db] disabled:opacity-60"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </button>
           </div>
         </form>
       </Modal>

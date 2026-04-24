@@ -206,10 +206,10 @@ const AdministrationPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 w-full">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Administration</h1>
-          <p className="text-gray-600">Create Finance, Sales, HR, GEO Manager, and BDM users from one place.</p>
+      <div className="w-full px-6 pb-6 pt-2">
+        <div className="mb-5 flex items-baseline gap-3">
+          <h1 className="text-3xl font-bold leading-none text-gray-900">Administration</h1>
+          <p className="text-sm text-gray-600">Create Finance, Sales, HR, GEO Manager, and BDM users from one place.</p>
         </div>
 
         {error && (

@@ -45,7 +45,7 @@ export const AuthLayout = ({ children }) => {
           {/* Bottom tagline */}
           <div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
-              Manage contractors, invoices, timesheets and expenses — all in one AI-powered platform.
+              Manage contractors, invoices, contracts and expenses in one AI-powered platform.
             </p>
             {/* Decorative dots */}
             <div className="flex gap-2 mt-4">
@@ -81,3 +81,5 @@ export const AuthLayout = ({ children }) => {
     </div>
   )
 }
+
+

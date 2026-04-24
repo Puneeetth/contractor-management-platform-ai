@@ -11,13 +11,15 @@ import {
   LogOut,
   X,
   Sparkles,
-  Clock3,
 } from 'lucide-react'
 import { useAuthStore } from '../../hooks/useAuth'
 
 export const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation()
   const { user, logout } = useAuthStore()
+  const roleLabel = String(user?.role || '')
+    .replace(/_/g, ' ')
+    .trim()
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR', 'SALES', 'HR', 'GEO_MANAGER', 'BDM'] },
@@ -25,7 +27,6 @@ export const Sidebar = ({ isOpen, onClose }) => {
     { icon: UserCog, label: 'Contractors', path: '/contractors', roles: ['ADMIN', 'MANAGER'] },
     { icon: FileText, label: 'Contracts', path: '/contracts', roles: ['ADMIN', 'MANAGER'] },
     { icon: Receipt, label: 'POs', path: '/pos', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
-    { icon: Clock3, label: 'Timesheets', path: '/timesheets', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR'] },
     { icon: Wallet, label: 'Invoices', path: '/invoices', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR'] },
     { icon: Wallet, label: 'Expenses', path: '/expenses', roles: ['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE'] },
   ]
@@ -55,14 +56,21 @@ export const Sidebar = ({ isOpen, onClose }) => {
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        <div className="flex items-center justify-between px-4 pb-2 pt-2">
+        <div className="flex items-center justify-between px-4 pb-2 pt-8">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4b4fe8] shadow-[0_6px_10px_rgba(75,79,232,0.2)]">
               <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#e9edf4]">
                 <Sparkles className="h-4 w-4 text-[#3f4cd3]" />
               </div>
             </div>
-            <h1 className="whitespace-nowrap text-[15px] font-bold leading-none tracking-[-0.01em] text-[#4b4fe8]">CMP AI</h1>
+            <div className="flex min-w-0 flex-col items-start gap-1">
+              <h1 className="whitespace-nowrap text-[15px] font-bold leading-none tracking-[-0.01em] text-[#4b4fe8]">CMP AI</h1>
+              {roleLabel && (
+                <span className="rounded-md bg-[#dce6ff] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#3c58c9]">
+                  {roleLabel}
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -72,7 +80,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <nav className="flex-1 px-2 py-2">
+        <nav className="flex-1 px-2 pt-6 pb-3">
           <div className="space-y-1">
             {filteredMenuItems.map((item) => {
               const active = isActive(item.path)
@@ -98,33 +106,33 @@ export const Sidebar = ({ isOpen, onClose }) => {
             })}
           </div>
 
-          <div className="mt-2 border-t border-[#dde3ec] pt-2">
+          <div className="mt-4 border-t border-[#dde3ec] pt-3">
             {filteredSystemItems.length > 0 && (
               <>
-              <p className="mb-1.5 px-3 text-[10px] font-bold tracking-[0.2em] text-[#8da0b8]">SYSTEM</p>
-              <div className="space-y-1">
-                {filteredSystemItems.map((item) => {
-                  const active = isActive(item.path)
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={onClose}
-                      className={`
+                <p className="mb-2 px-3 text-[10px] font-bold tracking-[0.2em] text-[#8da0b8]">SYSTEM</p>
+                <div className="space-y-1">
+                  {filteredSystemItems.map((item) => {
+                    const active = isActive(item.path)
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={onClose}
+                        className={`
                         flex h-9 items-center gap-2.5 rounded-xl px-3 transition-all
                         ${active ? 'bg-white text-[#4b4fe8] shadow-[0_2px_6px_rgba(15,23,42,0.04)]' : 'text-[#64748b] hover:bg-white/80'}
                       `}
-                    >
-                      <item.icon className={`h-4.5 w-4.5 ${active ? 'text-[#4b4fe8]' : 'text-[#6f7d91]'}`} />
-                      <span className="text-[13px] font-medium">{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+                      >
+                        <item.icon className={`h-4.5 w-4.5 ${active ? 'text-[#4b4fe8]' : 'text-[#6f7d91]'}`} />
+                        <span className="text-[13px] font-medium">{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
               </>
             )}
 
-            <div className={`${filteredSystemItems.length > 0 ? 'mt-2 border-t border-[#dde3ec] pt-2' : 'mt-1'}`}>
+            <div className={`${filteredSystemItems.length > 0 ? 'mt-4 border-t border-[#dde3ec] pt-3' : 'mt-3'}`}>
               <button
                 onClick={logout}
                 className="flex h-9 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[#cc1b1b] hover:bg-white/80"

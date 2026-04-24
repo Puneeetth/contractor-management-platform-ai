@@ -7,6 +7,7 @@ import { expenseService } from '../../services/expenseService'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 import { useAuth } from '../../hooks/useAuth'
+import { dedupeBy } from '../../utils/dedupe'
 
 const ExpensesPage = () => {
   const { user } = useAuth()
@@ -29,7 +30,9 @@ const ExpensesPage = () => {
     try {
       setIsLoading(true); setError(null)
       const data = await expenseService.getAllExpenses()
-      setExpenses(Array.isArray(data) ? data : [])
+      setExpenses(
+        dedupeBy(data, (expense, index) => expense?.id || `${expense?.description || 'expense'}-${expense?.amount || 0}-${expense?.proofUrl || index}`)
+      )
     } catch (err) {
       setError(err?.message || 'Failed to load expenses')
     } finally {
@@ -129,21 +132,25 @@ const ExpensesPage = () => {
           )}
         </div>
 
-        {/* Finance-style summary cards (pic-3 inspired) */}
         {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
             {[
-              { icon: CreditCard, label: 'Total Expenses', value: formatters.formatCurrency(totalExpenses), color: 'text-blue-400', bg: 'bg-blue-100' },
-              { icon: DollarSign, label: 'Approved', value: formatters.formatCurrency(approvedTotal), color: 'text-emerald-400', bg: 'bg-emerald-100' },
-              { icon: Clock, label: 'Pending', value: formatters.formatCurrency(pendingTotal), color: 'text-amber-400', bg: 'bg-amber-100' },
+              { icon: CreditCard, label: 'TOTAL EXPENSES', value: formatters.formatCurrency(totalExpenses), iconWrap: 'bg-[#eef1ff] text-[#3e57d8]' },
+              { icon: DollarSign, label: 'APPROVED', value: formatters.formatCurrency(approvedTotal), iconWrap: 'bg-[#e8fbf0] text-[#24c487]' },
+              { icon: Clock, label: 'PENDING', value: formatters.formatCurrency(pendingTotal), iconWrap: 'bg-[#fff6d8] text-[#ffb100]' },
             ].map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                <Card className="!p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`${stat.bg} p-2.5 rounded-xl`}><stat.icon className={`w-5 h-5 ${stat.color}`} /></div>
-                    <div><p className="text-xs text-gray-500">{stat.label}</p><p className="text-xl font-bold text-gray-900">{stat.value}</p></div>
+                <div className="flex h-[72px] min-w-0 items-center rounded-2xl border border-[#dbe3ef] bg-white px-4 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                  <div className="flex w-full min-w-0 items-center gap-3">
+                    <div className={`rounded-2xl p-2 ${stat.iconWrap}`}>
+                      <stat.icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <p className="truncate text-[9px] font-bold tracking-[0.14em] text-[#6a7588]">{stat.label}</p>
+                      <p className="text-[18px] leading-none font-bold tracking-[-0.02em] text-[#0f2238]">{stat.value}</p>
+                    </div>
                   </div>
-                </Card>
+                </div>
               </motion.div>
             ))}
           </div>

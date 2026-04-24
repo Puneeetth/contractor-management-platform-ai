@@ -8,7 +8,6 @@ import {
   Download,
   MoreVertical,
   Eye,
-  Filter,
   Plus,
   Search,
   User,
@@ -18,6 +17,7 @@ import { Button, Card, Loader, Modal, Input, Textarea } from '../../components/u
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
+import { dedupeBy } from '../../utils/dedupe'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
 
@@ -71,10 +71,26 @@ const ContractsPage = () => {
         poService.getAllPurchaseOrders(),
       ])
 
-      setContracts(contractsResult.status === 'fulfilled' && Array.isArray(contractsResult.value) ? contractsResult.value : [])
-      setContractors(contractorsResult.status === 'fulfilled' && Array.isArray(contractorsResult.value) ? contractorsResult.value : [])
-      setCustomers(customersResult.status === 'fulfilled' && Array.isArray(customersResult.value) ? customersResult.value : [])
-      setPurchaseOrders(poResult.status === 'fulfilled' && Array.isArray(poResult.value) ? poResult.value : [])
+      setContracts(
+        contractsResult.status === 'fulfilled'
+          ? dedupeBy(contractsResult.value, (contract, index) => contract?.id || `${contract?.contractorId || 'contractor'}-${contract?.startDate || ''}-${contract?.endDate || ''}-${index}`)
+          : []
+      )
+      setContractors(
+        contractorsResult.status === 'fulfilled'
+          ? dedupeBy(contractorsResult.value, (contractor, index) => contractor?.id || contractor?.userId || `${contractor?.contractorId || contractor?.email || index}`)
+          : []
+      )
+      setCustomers(
+        customersResult.status === 'fulfilled'
+          ? dedupeBy(customersResult.value, (customer, index) => customer?.id || `${customer?.name || 'customer'}-${customer?.msa || index}`)
+          : []
+      )
+      setPurchaseOrders(
+        poResult.status === 'fulfilled'
+          ? dedupeBy(poResult.value, (po, index) => po?.id || `${po?.poNumber || 'po'}-${po?.customerId || index}`)
+          : []
+      )
 
       if (
         contractsResult.status === 'rejected' ||
@@ -276,7 +292,7 @@ const ContractsPage = () => {
         </div>
 
         <Card className="border-[#d8e2ef] shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
-          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_88px_88px]">
+          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_88px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#95a2b7]" />
               <input
@@ -287,9 +303,6 @@ const ContractsPage = () => {
                 className="h-9 w-full rounded-xl border border-[#e6ebf3] bg-white pl-10 pr-3 text-[13px] text-[#263448] placeholder:text-[#9aa8bb] outline-none focus:border-[#a9b9d3]"
               />
             </div>
-            <button type="button" className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-white px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-[#f7f9fc]">
-              <span className="inline-flex items-center gap-1.5"><Filter className="h-3.5 w-3.5" /> Filter</span>
-            </button>
             <button type="button" onClick={() => setSearchTerm('')} className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-[#f8fbff] px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-white">
               Clear
             </button>
@@ -310,50 +323,7 @@ const ContractsPage = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-[#d8e2ef]">
-            <div className="flex items-center justify-between">
-              <div className="rounded-2xl bg-[#e9edff] p-2.5"><Briefcase className="h-5 w-5 text-[#4b4fe8]" /></div>
-              <p className="text-[12px] font-semibold text-[#7a8ba6]">TOTAL</p>
-            </div>
-            <p className="mt-3 text-[20px] leading-none font-bold text-[#0f1f36]">{stats.total}</p>
-            <p className="mt-1 text-[12px] font-semibold text-[#5c6e89]">Total Contracts</p>
-          </Card>
-          <Card className="border-[#d8e2ef]">
-            <div className="flex items-center justify-between">
-              <div className="rounded-2xl bg-[#e7f7f1] p-2.5"><CheckCircle2 className="h-5 w-5 text-[#12a26e]" /></div>
-              <p className="text-[12px] font-semibold text-[#12a26e]">CURRENT</p>
-            </div>
-            <p className="mt-3 text-[20px] leading-none font-bold text-[#0f1f36]">{stats.active}</p>
-            <p className="mt-1 text-[12px] font-semibold text-[#5c6e89]">Active Status</p>
-          </Card>
-          <Card className="border-[#d8e2ef]">
-            <div className="flex items-center justify-between">
-              <div className="rounded-2xl bg-[#e8eefc] p-2.5"><CalendarClock className="h-5 w-5 text-[#64748b]" /></div>
-              <p className="text-[12px] font-semibold text-[#23395b]">NEXT</p>
-            </div>
-            <p className="mt-3 text-[20px] leading-none font-bold text-[#0f1f36]">{stats.upcoming}</p>
-            <p className="mt-1 text-[12px] font-semibold text-[#5c6e89]">Upcoming Start</p>
-          </Card>
-          <Card className="border-[#d8e2ef]">
-            <div className="flex items-center justify-between">
-              <div className="rounded-2xl bg-[#e9edff] p-2.5"><CircleDollarSign className="h-5 w-5 text-[#4b4fe8]" /></div>
-              <p className="text-[12px] font-semibold text-[#4b4fe8]">BUDGET</p>
-            </div>
-            <p className="mt-3 text-[20px] leading-none font-bold text-[#0f1f36]">{formatters.formatCurrency(stats.totalBudget)}</p>
-            <p className="mt-1 text-[12px] font-semibold text-[#5c6e89]">Total Budget</p>
-          </Card>
-        </div>
-
         <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]" isPadded={false}>
-          <div className="flex items-center justify-between border-b border-[#e0e8f3] px-5 py-4">
-            <h2 className="text-xl font-bold text-[#111c32]">Active Contract Inventory</h2>
-            <div className="flex items-center gap-2 text-[#8fa1bc]">
-              <button type="button" className="rounded-lg p-2 hover:bg-[#f1f5fb]"><Filter className="h-5 w-5" /></button>
-              <button type="button" className="rounded-lg p-2 hover:bg-[#f1f5fb]"><Filter className="h-5 w-5" /></button>
-            </div>
-          </div>
-
           {isLoading ? (
             <div className="flex justify-center py-12"><Loader message="Loading contracts..." /></div>
           ) : (
@@ -362,12 +332,12 @@ const ContractsPage = () => {
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-[#e0e8f3] bg-[#f7f9fc]">
-                      <th className="px-5 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">CONTRACTOR NAME</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">BILL RATE</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">PAY RATE</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">EST. HOURS</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">STATUS</th>
-                      <th className="px-5 py-3 text-right text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">ACTIONS</th>
+                      <th className="whitespace-nowrap px-2.5 py-2 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">CONTRACTOR NAME</th>
+                      <th className="whitespace-nowrap px-2 py-2 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">BILL RATE</th>
+                      <th className="whitespace-nowrap px-2 py-2 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PAY RATE</th>
+                      <th className="whitespace-nowrap px-2 py-2 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">EST. HOURS</th>
+                      <th className="whitespace-nowrap px-2 py-2 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">STATUS</th>
+                      <th className="whitespace-nowrap px-2.5 py-2 text-right text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -382,24 +352,24 @@ const ContractsPage = () => {
 
                       return (
                         <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eef2f7] text-[#60748f]">
-                                <User className="h-4.5 w-4.5" />
+                          <td className="px-2.5 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-[#60748f]">
+                                <User className="h-3.5 w-3.5" />
                               </div>
-                              <div>
-                                <p className="text-[13px] font-semibold text-[#12203a]">{row.displayName}</p>
-                                <p className="text-[11px] text-[#8a98ad]">{row.roleText}</p>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate whitespace-nowrap text-[12.5px] font-semibold leading-none text-[#12203a]">{row.displayName}</p>
+                                <p className="truncate whitespace-nowrap text-[9px] leading-none text-[#8a98ad]">{row.roleText}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-3.5 text-[13px] font-medium leading-none text-[#23395b]">{formatters.formatCurrency(row.billRate)}/hr</td>
-                          <td className="px-3 py-3.5 text-[13px] font-medium leading-none text-[#23395b]">{formatters.formatCurrency(row.payRate)}/hr</td>
-                          <td className="px-3 py-3.5 text-[13px] font-medium leading-none text-[#23395b]">{formatters.formatHours(row.estimatedHours)} / week</td>
-                          <td className="px-3 py-3.5"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${badgeClass}`}>{normalizedStatus || 'PENDING'}</span></td>
-                          <td className="px-5 py-4 text-right">
-                            <button type="button" className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb]">
-                              <MoreVertical className="h-4.5 w-4.5" />
+                          <td className="whitespace-nowrap px-2 py-2 text-[12.5px] font-medium leading-none text-[#23395b]">{formatters.formatCurrency(row.billRate)}/hr</td>
+                          <td className="whitespace-nowrap px-2 py-2 text-[12.5px] font-medium leading-none text-[#23395b]">{formatters.formatCurrency(row.payRate)}/hr</td>
+                          <td className="whitespace-nowrap px-2 py-2 text-[12.5px] font-medium leading-none text-[#23395b]">{formatters.formatHours(row.estimatedHours)} / week</td>
+                          <td className="px-2 py-2"><span className={`inline-flex whitespace-nowrap rounded-lg px-1.5 py-0.5 text-[10px] leading-none ${badgeClass}`}>{normalizedStatus || 'PENDING'}</span></td>
+                          <td className="px-2.5 py-2 text-right">
+                            <button type="button" className="rounded-lg p-0.5 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]">
+                              <MoreVertical className="h-3.5 w-3.5" />
                             </button>
                           </td>
                         </tr>

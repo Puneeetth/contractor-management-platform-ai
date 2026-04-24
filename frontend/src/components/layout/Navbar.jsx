@@ -8,6 +8,7 @@ export const Navbar = ({ onMenuClick }) => {
   const location = useLocation()
   const fileInputRef = useRef(null)
   const [profileImage, setProfileImage] = useState('')
+  const displayName = user?.name || user?.fullName || user?.username || user?.email?.split('@')[0] || 'User'
   const isTopbarPage =
     location.pathname === '/dashboard' ||
     location.pathname === '/customers' ||
@@ -15,6 +16,7 @@ export const Navbar = ({ onMenuClick }) => {
     location.pathname === '/contracts' ||
     location.pathname === '/pos'
   const isAdminShell = isTopbarPage && user?.role === 'ADMIN'
+  const isAdminDashboard = location.pathname === '/dashboard' && user?.role === 'ADMIN'
 
   useEffect(() => {
     const savedImage = localStorage.getItem('cmpai_profile_image')
@@ -45,6 +47,14 @@ export const Navbar = ({ onMenuClick }) => {
         </button>
       </div>
 
+      {isAdminDashboard && (
+        <div className="pointer-events-none absolute left-[46%] top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <span className="text-[25px] font-extrabold tracking-[-0.02em] text-[#2f56d6]">
+            Admin Dashboard
+          </span>
+        </div>
+      )}
+
       {isTopbarPage && (
         <div className="flex items-center gap-3">
           <button className="p-2 hover:bg-gray-100 rounded-xl relative transition-colors">
@@ -52,7 +62,7 @@ export const Navbar = ({ onMenuClick }) => {
             <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-white ${isAdminShell ? 'bg-red-500' : 'bg-indigo-500'}`} />
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-[#1f2937]">Admin Name</span>
+            <span className="text-sm font-semibold text-[#1f2937]">{displayName}</span>
             <span className="rounded-md bg-[#dce6ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#3c58c9]">
               {user?.role || 'ADMIN'}
             </span>
@@ -60,15 +70,17 @@ export const Navbar = ({ onMenuClick }) => {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="relative h-9 w-9 overflow-hidden rounded-full border border-[#d4deeb] bg-[#cfe2ea]"
+            className="relative h-9 w-9 rounded-full"
             title="Change profile photo"
           >
             <img
-              src={profileImage || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Admin%20Name'}
-              alt="Admin profile"
-              className="h-full w-full object-cover"
+              src={profileImage || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`}
+              alt={`${displayName} profile`}
+              className="h-full w-full overflow-hidden rounded-full border border-[#d4deeb] bg-[#cfe2ea] object-cover"
             />
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-white bg-[#10b981]" />
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 border-white bg-[#4b4fe8] text-[10px] font-bold leading-none text-white shadow-sm">
+              +
+            </span>
           </button>
           <input
             ref={fileInputRef}

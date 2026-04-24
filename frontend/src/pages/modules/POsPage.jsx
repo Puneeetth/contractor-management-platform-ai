@@ -3,21 +3,19 @@ import {
   AlertCircle,
   ArrowRight,
   Briefcase,
-  CalendarDays,
   CheckCircle2,
   Download,
-  Filter,
   Plus,
   Search,
   UploadCloud,
-  Wallet,
-  Users2,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Card, Button, Input, Loader } from '../../components/ui'
+import { Card, Button, Input, Loader, Modal } from '../../components/ui'
 import { poService } from '../../services/poService'
 import { customerService } from '../../services/customerService'
+import { dedupeBy } from '../../utils/dedupe'
 import { formatters } from '../../utils/formatters'
+import { downloadPOsPdf } from '../../utils/pdfExport'
 import { validators } from '../../utils/validators'
 
 const EMPTY_FORM = {
@@ -46,6 +44,7 @@ const POsPage = () => {
   const [customers, setCustomers] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
+  const [selectedPo, setSelectedPo] = useState(null)
 
   const [formData, setFormData] = useState(EMPTY_FORM)
   const [formErrors, setFormErrors] = useState({})
@@ -65,8 +64,16 @@ const POsPage = () => {
         customerService.getAllCustomers(),
       ])
 
-      setPos(poResult.status === 'fulfilled' && Array.isArray(poResult.value) ? poResult.value : [])
-      setCustomers(customerResult.status === 'fulfilled' && Array.isArray(customerResult.value) ? customerResult.value : [])
+      setPos(
+        poResult.status === 'fulfilled'
+          ? dedupeBy(poResult.value, (po, index) => po?.id || `${po?.poNumber || 'po'}-${po?.customerId || index}`)
+          : []
+      )
+      setCustomers(
+        customerResult.status === 'fulfilled'
+          ? dedupeBy(customerResult.value, (customer, index) => customer?.id || `${customer?.name || 'customer'}-${customer?.msa || index}`)
+          : []
+      )
 
       if (poResult.status === 'rejected' || customerResult.status === 'rejected') {
         setError('Failed to load purchase order data')
@@ -165,6 +172,15 @@ const POsPage = () => {
     }
   }
 
+  const handleExportData = () => {
+    downloadPOsPdf({
+      title: 'Purchase Orders Export',
+      filename: `purchase-orders-export-${new Date().toISOString().slice(0, 10)}.pdf`,
+      pos: filteredRows,
+      customerNameById,
+    })
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -190,10 +206,7 @@ const POsPage = () => {
                 <p className="mt-1 text-[13px] text-[#4a5c77]">Manage and track procurement cycles across the enterprise.</p>
               </div>
               <div className="flex items-center gap-3">
-                <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
-                  <Filter className="h-4 w-4" /> Filter
-                </button>
-                <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
+                <button type="button" onClick={handleExportData} className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
                   <Download className="h-4 w-4" /> Export
                 </button>
                 <button
@@ -206,13 +219,13 @@ const POsPage = () => {
                   }}
                   className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
                 >
-                  <Plus className="h-4 w-4" /> New Project
+                  <Plus className="h-4 w-4" /> New PO
                 </button>
               </div>
             </div>
 
             <Card className="border-[#d8e2ef] shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
-              <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_88px_88px]">
+              <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_88px]">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#95a2b7]" />
                   <input
@@ -223,53 +236,13 @@ const POsPage = () => {
                     className="h-9 w-full rounded-xl border border-[#e6ebf3] bg-white pl-10 pr-3 text-[13px] text-[#263448] placeholder:text-[#9aa8bb] outline-none focus:border-[#a9b9d3]"
                   />
                 </div>
-                <button type="button" className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-white px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-[#f7f9fc]">
-                  <span className="inline-flex items-center gap-1.5"><Filter className="h-3.5 w-3.5" /> Filter</span>
-                </button>
                 <button type="button" onClick={() => setSearchTerm('')} className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-[#f8fbff] px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-white">
                   Clear
                 </button>
               </div>
             </Card>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-              <Card className="border-[#d8e2ef]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[14px] font-semibold tracking-[0.08em] text-[#4b5563]">TOTAL POS</p>
-                    <p className="mt-3 text-[22px] leading-none font-bold text-[#0f1f36]">{stats.totalPOs}</p>
-                    <p className="mt-2 text-sm font-medium text-[#16a34a]">+12% from last month</p>
-                  </div>
-                  <div className="rounded-2xl bg-[#e9edff] p-3"><Briefcase className="h-6 w-6 text-[#4b4fe8]" /></div>
-                </div>
-              </Card>
-              <Card className="border-[#4b4fe8] border-l-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[14px] font-semibold tracking-[0.08em] text-[#4b5563]">TOTAL VALUE</p>
-                    <p className="mt-3 text-[22px] leading-none font-bold text-[#0f1f36]">{formatters.formatCurrency(stats.totalValue)}</p>
-                    <p className="mt-2 text-sm font-medium text-[#4b4fe8]">Active project funding</p>
-                  </div>
-                  <div className="rounded-2xl bg-[#e9edff] p-3"><Wallet className="h-6 w-6 text-[#4b4fe8]" /></div>
-                </div>
-              </Card>
-              <Card className="border-[#d8e2ef]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[14px] font-semibold tracking-[0.08em] text-[#4b5563]">TOTAL RESOURCES</p>
-                    <p className="mt-3 text-[22px] leading-none font-bold text-[#0f1f36]">{stats.totalResources}</p>
-                    <p className="mt-2 text-sm font-medium text-[#475569]">Allocated across {Math.max(1, customers.length)} vendors</p>
-                  </div>
-                  <div className="rounded-2xl bg-[#e9edff] p-3"><Users2 className="h-6 w-6 text-[#4b4fe8]" /></div>
-                </div>
-              </Card>
-            </div>
-
             <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]" isPadded={false}>
-              <div className="flex items-center justify-between border-b border-[#e0e8f3] px-5 py-4">
-                <h2 className="text-xl font-bold text-[#111c32]">Active Purchase Orders</h2>
-                <p className="text-sm font-medium text-[#23395b]"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-[#5b64f0]" />Real-time sync active</p>
-              </div>
               {isLoading ? (
                 <div className="py-12 flex justify-center"><Loader message="Loading purchase orders..." /></div>
               ) : (
@@ -278,27 +251,36 @@ const POsPage = () => {
                     <table className="min-w-full">
                       <thead>
                         <tr className="border-b border-[#e0e8f3] bg-[#f7f9fc]">
-                          <th className="px-5 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#4b5563]">PO Number</th>
-                          <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#4b5563]">Customer</th>
-                          <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#4b5563]">PO Date</th>
-                          <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#4b5563]">PO Value</th>
-                          <th className="px-5 py-3 text-right text-[10px] font-bold tracking-[0.08em] text-[#4b5563]">Actions</th>
+                          <th className="whitespace-nowrap px-3 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Number</th>
+                          <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">Customer</th>
+                          <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Date</th>
+                          <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Value</th>
+                          <th className="whitespace-nowrap px-3 py-2.5 text-right text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {pageRows.map((row) => (
                           <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
-                            <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-3">
-                                <div className="rounded-xl bg-[#e9edff] p-2"><Briefcase className="h-3.5 w-3.5 text-[#4b4fe8]" /></div>
-                                <span className="text-[13px] font-semibold text-[#3f4fe8]">{row.poNumber}</span>
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dee5fb] text-[#3e53dd]">
+                                  <Briefcase className="h-3.5 w-3.5" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate whitespace-nowrap text-[13px] font-semibold leading-none text-[#12203a]">{row.poNumber}</p>
+                                  <p className="truncate whitespace-nowrap text-[10px] text-[#8a98ad]">{customerNameById[String(row.customerId)] || `Customer #${row.customerId}`}</p>
+                                </div>
                               </div>
                             </td>
-                            <td className="px-3 py-3.5 text-[13px] font-medium text-[#111827]">{customerNameById[String(row.customerId)] || `Customer #${row.customerId}`}</td>
-                            <td className="px-3 py-3.5 text-[13px] text-[#374151]">{formatters.formatDate(row.poDate)}</td>
-                            <td className="px-3 py-3.5 text-[13px] font-semibold text-[#111827]">{formatters.formatCurrency(row.poValue)}</td>
-                            <td className="px-5 py-3.5 text-right">
-                              <button type="button" className="inline-flex items-center gap-1 text-[13px] font-medium text-[#3f4fe8] hover:underline">
+                            <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] font-medium text-[#111827]">{customerNameById[String(row.customerId)] || `Customer #${row.customerId}`}</td>
+                            <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] text-[#374151]">{formatters.formatDate(row.poDate)}</td>
+                            <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] font-semibold text-[#111827]">{formatters.formatCurrency(row.poValue)}</td>
+                            <td className="px-3 py-2.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPo(row)}
+                                className="inline-flex items-center gap-1 text-[13px] font-medium text-[#3f4fe8] hover:underline"
+                              >
                                 View <ArrowRight className="h-4 w-4" />
                               </button>
                             </td>
@@ -321,41 +303,19 @@ const POsPage = () => {
               )}
             </Card>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.6fr_1fr]">
-              <Card className="border-[#d8e2ef]">
-                <div className="flex items-start gap-4">
-                  <div className="rounded-full bg-[#e9edff] p-5"><CalendarDays className="h-8 w-8 text-[#4b4fe8]" /></div>
-                  <div>
-                    <h3 className="text-[20px] font-semibold text-[#111827]">Audit Readiness</h3>
-                    <p className="mt-2 text-[16px] leading-7 text-[#334155]">
-                      All POs listed are verified and documentation is currently 100% compliant with internal policies.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-              <Card className="border-[#3f3a96] bg-[#2f2d87] text-white">
-                <h3 className="text-[20px] font-semibold">Need bulk import?</h3>
-                <p className="mt-3 text-[16px] leading-7 text-white/85">
-                  Connect your ERP for automatic sync and real-time reconciliation.
-                </p>
-                <button type="button" className="mt-6 rounded-xl bg-white px-6 py-3 text-[15px] font-semibold text-[#1d2b8a]">
-                  Connect System
-                </button>
-              </Card>
-            </div>
           </>
         ) : (
           <>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Create New Purchase Order</h1>
-                <p className="mt-1 text-[13px] text-[#4a5c77]">Initiate a new procurement request by filling in the details below.</p>
+                <p className="mt-1 text-[12px] text-[#4a5c77]">Initiate a new procurement request by filling in the details below.</p>
               </div>
               <div className="flex items-center gap-3">
-                <button type="button" onClick={() => setMode('list')} className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
+                <button type="button" onClick={() => setMode('list')} className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-3.5 text-[13px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
                   Cancel
                 </button>
-                <button type="button" onClick={handleCreatePO} className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]">
+                <button type="button" onClick={handleCreatePO} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#4b4fe8] px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]">
                   Create PO
                 </button>
               </div>
@@ -367,83 +327,299 @@ const POsPage = () => {
               </div>
             )}
 
-            <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-              <h2 className="mb-4 text-[22px] font-semibold text-[#111827]">Order Identification</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input label="PO Number" name="poNumber" value={formData.poNumber} onChange={handleInputChange} placeholder="e.g. PO-2023-001" error={formErrors.poNumber} />
-                <Input label="PO Date" name="poDate" type="date" value={formData.poDate} onChange={handleInputChange} error={formErrors.poDate} />
-                <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} />
-                <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} />
+            <div>
+              <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Order Identification</h2>
+              <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+                <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
+                  <div className="w-full">
+                    <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Number</label>
+                    <input
+                      name="poNumber"
+                      value={formData.poNumber}
+                      onChange={handleInputChange}
+                      placeholder="e.g. PO-2023-001"
+                      className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 placeholder:text-gray-400 focus:outline-none ${
+                        formErrors.poNumber
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                      }`}
+                    />
+                    {formErrors.poNumber && <p className="mt-1 text-[10px] text-red-500">{formErrors.poNumber}</p>}
+                  </div>
+                  <div className="w-full">
+                    <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Date</label>
+                    <input
+                      name="poDate"
+                      type="date"
+                      value={formData.poDate}
+                      onChange={handleInputChange}
+                      className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
+                        formErrors.poDate
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                      }`}
+                    />
+                    {formErrors.poDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.poDate}</p>}
+                  </div>
+                  <div className="w-full">
+                    <label className="mb-1 block text-[11px] font-medium text-gray-700">Start Date</label>
+                    <input
+                      name="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={handleInputChange}
+                      className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
+                        formErrors.startDate
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                      }`}
+                    />
+                    {formErrors.startDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.startDate}</p>}
+                  </div>
+                  <div className="w-full">
+                    <label className="mb-1 block text-[11px] font-medium text-gray-700">End Date</label>
+                    <input
+                      name="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={handleInputChange}
+                      className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
+                        formErrors.endDate
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                      }`}
+                    />
+                    {formErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.endDate}</p>}
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[2fr_1fr]">
+              <div>
+                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Financial Details</h2>
+                <Card className="border-[#d8e2ef] px-4 py-3">
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Value</label>
+                      <input
+                        name="poValue"
+                        type="number"
+                        step="0.01"
+                        value={formData.poValue}
+                        onChange={handleInputChange}
+                        placeholder="$ 0.00"
+                        className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 placeholder:text-gray-400 focus:outline-none ${
+                          formErrors.poValue
+                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                        }`}
+                      />
+                      {formErrors.poValue && <p className="mt-1 text-[10px] text-red-500">{formErrors.poValue}</p>}
+                    </div>
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Currency</label>
+                      <select
+                        name="currency"
+                        value={formData.currency}
+                        onChange={handleInputChange}
+                        className="h-8 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="INR">INR</option>
+                        <option value="EUR">EUR</option>
+                      </select>
+                    </div>
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Payment Terms (No. of Days)</label>
+                      <input
+                        name="paymentTermsDays"
+                        type="number"
+                        value={formData.paymentTermsDays}
+                        onChange={handleInputChange}
+                        className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
+                          formErrors.paymentTermsDays
+                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                        }`}
+                      />
+                      {formErrors.paymentTermsDays && <p className="mt-1 text-[10px] text-red-500">{formErrors.paymentTermsDays}</p>}
+                    </div>
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Select Customer</label>
+                      <select
+                        name="customerId"
+                        value={formData.customerId}
+                        onChange={handleInputChange}
+                        className="h-8 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      >
+                        <option value="">Choose a customer</option>
+                        {customers.map((customer) => (
+                          <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
+                        ))}
+                      </select>
+                      {formErrors.customerId && <p className="mt-1 text-[10px] text-red-500">{formErrors.customerId}</p>}
+                    </div>
+                  </div>
+                </Card>
               </div>
-            </Card>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
-              <Card className="border-[#d8e2ef]">
-                <h2 className="mb-4 text-[22px] font-semibold text-[#111827]">Financial Details</h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <Input label="PO Value" name="poValue" type="number" step="0.01" value={formData.poValue} onChange={handleInputChange} placeholder="$ 0.00" error={formErrors.poValue} />
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Currency</label>
-                    <select name="currency" value={formData.currency} onChange={handleInputChange} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500">
-                      <option value="USD">USD</option>
-                      <option value="INR">INR</option>
-                      <option value="EUR">EUR</option>
-                    </select>
+              <div>
+                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Resources</h2>
+                <Card className="border-[#d8e2ef] px-4 py-3">
+                  <div className="w-full">
+                    <label className="mb-1 block text-[11px] font-medium text-gray-700">No. of resources - contractors</label>
+                    <input
+                      name="numberOfResources"
+                      type="number"
+                      value={formData.numberOfResources}
+                      onChange={handleInputChange}
+                      className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
+                        formErrors.numberOfResources
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                      }`}
+                    />
+                    {formErrors.numberOfResources && <p className="mt-1 text-[10px] text-red-500">{formErrors.numberOfResources}</p>}
                   </div>
-                  <Input label="Payment Terms (No. of Days)" name="paymentTermsDays" type="number" value={formData.paymentTermsDays} onChange={handleInputChange} error={formErrors.paymentTermsDays} />
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Select Customer</label>
-                    <select name="customerId" value={formData.customerId} onChange={handleInputChange} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500">
-                      <option value="">Choose a customer</option>
-                      {customers.map((customer) => (
-                        <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
-                      ))}
-                    </select>
-                    {formErrors.customerId && <p className="mt-1 text-xs text-red-600">{formErrors.customerId}</p>}
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="border-[#d8e2ef]">
-                <h2 className="mb-4 text-[22px] font-semibold text-[#111827]">Resources</h2>
-                <Input label="No. of resources - contractors" name="numberOfResources" type="number" value={formData.numberOfResources} onChange={handleInputChange} error={formErrors.numberOfResources} />
-                <p className="mt-4 text-sm italic text-[#64748b]">Specify the total headcount allocated for this PO.</p>
-              </Card>
+                  <p className="mt-2 text-[11px] italic leading-5 text-[#64748b]">Specify the total headcount allocated for this PO.</p>
+                </Card>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_1fr]">
-              <Card className="border-[#d8e2ef]">
-                <h2 className="mb-4 text-[28px] font-semibold text-[#111827]">PO Upload (File)</h2>
-                <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-[#d5deec] bg-[#f9fbff] p-8 text-center">
-                  <UploadCloud className="mx-auto h-10 w-10 text-[#94a3b8]" />
-                  <p className="mt-3 text-base text-[#475569]">Click to upload or drag and drop</p>
-                  <p className="mt-1 text-sm text-[#94a3b8]">PDF, DOCX, XLSX (Max. 10MB)</p>
-                  <input type="file" name="file" onChange={handleFileChange} accept=".pdf,.doc,.docx,.xlsx" className="hidden" />
-                </label>
-              </Card>
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.3fr_1fr]">
+              <div>
+                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">PO Upload (File)</h2>
+                <Card className="border-[#d8e2ef] px-4 py-3">
+                  <label className="block cursor-pointer rounded-md border border-dashed border-[#d5deec] bg-[#f9fbff] p-3 text-center">
+                    <UploadCloud className="mx-auto h-6 w-6 text-[#94a3b8]" />
+                    <p className="mt-1.5 text-[12px] text-[#475569]">Click to upload or drag and drop</p>
+                    <p className="mt-0.5 text-[10px] text-[#94a3b8]">PDF, DOCX, XLSX (Max. 10MB)</p>
+                    <input type="file" name="file" onChange={handleFileChange} accept=".pdf,.doc,.docx,.xlsx" className="hidden" />
+                  </label>
+                </Card>
+              </div>
 
-              <Card className="border-[#d8e2ef]">
-                <h2 className="mb-4 text-[28px] font-semibold text-[#111827]">Remark</h2>
-                <Input label="Remark" name="remark" value={formData.remark} onChange={handleInputChange} placeholder="Internal notes about this PO..." />
-                <Input label="Remarks (Worker)" name="sharedWith" value={formData.sharedWith} onChange={handleInputChange} placeholder="Share with..." />
-                <div className="mt-4 rounded-xl border border-[#d8e2ef] bg-white p-4">
-                  <p className="text-sm font-semibold text-[#16a34a]">Form Ready</p>
-                  <p className="mt-1 text-sm text-[#64748b]">Ensure all mandatory PO details are finalized before submission.</p>
-                </div>
-              </Card>
+              <div>
+                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Remark</h2>
+                <Card className="border-[#d8e2ef] px-4 py-3">
+                  <div className="space-y-2">
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Remark</label>
+                      <input
+                        name="remark"
+                        value={formData.remark}
+                        onChange={handleInputChange}
+                        placeholder="Internal notes about this PO..."
+                        className="h-8 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[12px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Remarks (Worker)</label>
+                      <input
+                        name="sharedWith"
+                        value={formData.sharedWith}
+                        onChange={handleInputChange}
+                        placeholder="Share with..."
+                        className="h-8 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[12px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2 rounded-md border border-[#d8e2ef] bg-white p-2.5">
+                    <p className="text-[11px] font-semibold text-[#16a34a]">Form Ready</p>
+                    <p className="mt-0.5 text-[11px] leading-5 text-[#64748b]">Ensure all mandatory PO details are finalized before submission.</p>
+                  </div>
+                </Card>
+              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 border-t border-[#d8e2ef] pt-5">
-                <button type="button" onClick={() => setMode('list')} className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
+            <div className="flex items-center justify-end gap-3 border-t border-[#d8e2ef] pt-4">
+                <button type="button" onClick={() => setMode('list')} className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-3.5 text-[13px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
                 Cancel
               </button>
-              <button type="button" onClick={handleCreatePO} disabled={isSubmitting} className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db] disabled:opacity-60">
+              <button type="button" onClick={handleCreatePO} disabled={isSubmitting} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#4b4fe8] px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db] disabled:opacity-60">
                 {isSubmitting ? 'Creating...' : 'Create Purchase Order'}
               </button>
             </div>
           </>
         )}
       </div>
+
+      <Modal
+        isOpen={Boolean(selectedPo)}
+        onClose={() => setSelectedPo(null)}
+        title="PO Details"
+        size="xxl"
+        footer={
+          <Button variant="secondary" onClick={() => setSelectedPo(null)}>
+            Close
+          </Button>
+        }
+      >
+        {selectedPo && (
+          <div className="space-y-6 p-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">PO Number</p>
+                <p className="text-sm font-medium text-gray-900">{selectedPo.poNumber || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Customer</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {selectedPo.customerId
+                    ? customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}`
+                    : '-'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">PO Date</p>
+                <p className="text-sm text-gray-900">{formatters.formatDate(selectedPo.poDate) || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Created Date</p>
+                <p className="text-sm text-gray-900">{formatters.formatDate(selectedPo.createdDate) || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Start Date</p>
+                <p className="text-sm text-gray-900">{formatters.formatDate(selectedPo.startDate) || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">End Date</p>
+                <p className="text-sm text-gray-900">{formatters.formatDate(selectedPo.endDate) || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">PO Value</p>
+                <p className="text-sm font-medium text-gray-900">{formatters.formatCurrency(selectedPo.poValue)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Currency</p>
+                <p className="text-sm text-gray-900">{selectedPo.currency || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Payment Terms</p>
+                <p className="text-sm text-gray-900">
+                  {selectedPo.paymentTermsDays ?? selectedPo.paymentTerms ?? '-'}
+                  {selectedPo.paymentTermsDays != null ? ' days' : ''}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">No. of Resources</p>
+                <p className="text-sm text-gray-900">{selectedPo.numberOfResources ?? '-'}</p>
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Shared With</p>
+                <p className="text-sm text-gray-900">{selectedPo.sharedWith || '-'}</p>
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Remark</p>
+                <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm italic text-gray-600">
+                  {selectedPo.remark || 'No remark added'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </DashboardLayout>
   )
 }

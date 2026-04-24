@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   AlertCircle,
   CheckCircle2,
@@ -14,8 +15,10 @@ import { Badge, Button, Card, Input, Loader, Modal, Textarea } from '../../compo
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
+import { dedupeBy } from '../../utils/dedupe'
 import { useAuthStore } from '../../hooks/useAuth'
 import { formatters } from '../../utils/formatters'
+import { downloadContractorsPdf } from '../../utils/pdfExport'
 import { validators } from '../../utils/validators'
 
 const EMPTY_CONTRACTOR_FORM = {
@@ -51,6 +54,8 @@ const EMPTY_CONTRACT_FORM = {
 }
 
 const ContractorsPage = () => {
+  const location = useLocation()
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'ADMIN'
   const canCreateContracts = ['ADMIN', 'MANAGER'].includes(user?.role)
@@ -90,6 +95,13 @@ const ContractorsPage = () => {
     loadPageData()
   }, [])
 
+  useEffect(() => {
+    if (location.state?.openAddContractor && isAdmin) {
+      setIsContractorModalOpen(true)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [isAdmin, location.pathname, location.state, navigate])
+
   const loadPageData = async () => {
     try {
       setIsLoading(true)
@@ -102,10 +114,26 @@ const ContractorsPage = () => {
         poService.getAllPurchaseOrders(),
       ])
 
-      setContractors(contractorsResult.status === 'fulfilled' && Array.isArray(contractorsResult.value) ? contractorsResult.value : [])
-      setContracts(contractsResult.status === 'fulfilled' && Array.isArray(contractsResult.value) ? contractsResult.value : [])
-      setCustomers(customersResult.status === 'fulfilled' && Array.isArray(customersResult.value) ? customersResult.value : [])
-      setPurchaseOrders(poResult.status === 'fulfilled' && Array.isArray(poResult.value) ? poResult.value : [])
+      setContractors(
+        contractorsResult.status === 'fulfilled'
+          ? dedupeBy(contractorsResult.value, (contractor, index) => contractor?.id || contractor?.userId || `${contractor?.contractorId || contractor?.email || index}`)
+          : []
+      )
+      setContracts(
+        contractsResult.status === 'fulfilled'
+          ? dedupeBy(contractsResult.value, (contract, index) => contract?.id || `${contract?.contractorId || 'contractor'}-${contract?.startDate || ''}-${contract?.endDate || ''}-${index}`)
+          : []
+      )
+      setCustomers(
+        customersResult.status === 'fulfilled'
+          ? dedupeBy(customersResult.value, (customer, index) => customer?.id || `${customer?.name || 'customer'}-${customer?.msa || index}`)
+          : []
+      )
+      setPurchaseOrders(
+        poResult.status === 'fulfilled'
+          ? dedupeBy(poResult.value, (po, index) => po?.id || `${po?.poNumber || 'po'}-${po?.customerId || index}`)
+          : []
+      )
 
       if (
         contractorsResult.status === 'rejected' ||
@@ -154,7 +182,10 @@ const ContractorsPage = () => {
     return contractors.map((contractor) => {
       const byUserId = contractsByContractor[String(contractor.userId)] || []
       const byContractorId = contractsByContractor[String(contractor.id)] || []
-      const contractorContracts = [...byUserId, ...byContractorId].sort((a, b) => String(b.startDate || '').localeCompare(String(a.startDate || '')))
+      const contractorContracts = dedupeBy(
+        [...byUserId, ...byContractorId],
+        (contract, index) => contract?.id || `${contract?.contractorId || contractor.id}-${contract?.startDate || ''}-${contract?.endDate || ''}-${index}`
+      ).sort((a, b) => String(b.startDate || '').localeCompare(String(a.startDate || '')))
       const latestContract = contractorContracts[0] || null
       return {
         ...contractor,
@@ -347,26 +378,29 @@ const ContractorsPage = () => {
     }
   }
 
-  const regionOptions = useMemo(() => {
-    const values = new Set(
-      contractors
-        .map((contractor) => String(contractor.currentLocation || '').trim().toUpperCase())
-        .filter(Boolean)
-    )
-    return ['ALL', ...Array.from(values)]
-  }, [contractors])
+  const regionOptions = ['ALL', 'UK', 'US', 'EU', 'APAC', 'MIDDLE EAST']
+
+  const handleExportData = () => {
+    downloadContractorsPdf({
+      title: 'Contractors Export',
+      filename: `contractors-export-${new Date().toISOString().slice(0, 10)}.pdf`,
+      contractors: filteredRows,
+      customerNameById,
+    })
+  }
 
   return (
     <DashboardLayout>
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Contractors</h1>
-            <p className="mt-1 text-[13px] text-[#4a5c77]">Manage and track your extended workforce ecosystem.</p>
+          <div className="flex min-w-0 items-baseline gap-3">
+            <h1 className="shrink-0 text-[22px] leading-none font-bold text-[#0f1d33]">Contractors</h1>
+            <p className="truncate text-[13px] text-[#4a5c77]">Manage and track your extended workforce ecosystem.</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
+              onClick={handleExportData}
               className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
             >
               <Download className="h-4 w-4" /> Export Data
@@ -451,14 +485,14 @@ const ContractorsPage = () => {
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-[#e0e8f3] bg-[#f7f9fc]">
-                      <th className="px-5 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">CONTRACTOR</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">CUSTOMER</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">PO / CONTRACT REF</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">START DATE</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">END DATE</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">PAY RATE</th>
-                      <th className="px-3 py-3 text-left text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">BILL RATE</th>
-                      <th className="px-5 py-3 text-right text-[10px] font-bold tracking-[0.08em] text-[#5c6e89]">ACTIONS</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">CONTRACTOR</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">CUSTOMER</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO / CONTRACT REF</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">START DATE</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">END DATE</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PAY RATE</th>
+                      <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">BILL RATE</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-right text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -469,27 +503,27 @@ const ContractorsPage = () => {
                       const contractRef = contract?.poAllocation || (contract?.id ? `Contract #${contract.id}` : '-')
                       return (
                         <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#dee5fb] text-xs font-bold text-[#3e53dd]">{initials}</div>
-                              <div>
-                                <p className="text-[13px] font-semibold text-[#12203a]">{row.name}</p>
-                                <p className="text-[11px] text-[#8a98ad]">{row.remarks || 'Contractor'}</p>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dee5fb] text-[10px] font-bold text-[#3e53dd]">{initials}</div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate whitespace-nowrap text-[13px] font-semibold leading-none text-[#12203a]">{row.name}</p>
+                                <p className="truncate whitespace-nowrap text-[10px] text-[#8a98ad]">{row.remarks || 'Contractor'}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-3.5">
-                            <span className={`inline-flex rounded-lg px-2.5 py-1 text-[12px] ${contract?.customerId ? 'bg-[#e8edff] text-[#3b50d7]' : 'bg-[#eef2f7] text-[#5f6f88]'}`}>
+                          <td className="px-2.5 py-2.5">
+                            <span className={`inline-flex whitespace-nowrap rounded-lg px-2 py-0.5 text-[11px] ${contract?.customerId ? 'bg-[#e8edff] text-[#3b50d7]' : 'bg-[#eef2f7] text-[#5f6f88]'}`}>
                               {customerName}
                             </span>
                           </td>
-                          <td className="px-3 py-3.5 text-[13px] text-[#1f3048]">{contractRef}</td>
-                          <td className="px-3 py-3.5 text-[13px] text-[#1f3048]">{formatters.formatDate(contract?.startDate) || '-'}</td>
-                          <td className="px-3 py-3.5 text-[13px] text-[#1f3048]">{formatters.formatDate(contract?.endDate) || '-'}</td>
-                          <td className="px-3 py-3.5 text-[13px] font-medium text-[#111827]">{contract ? formatters.formatCurrency(contract.payRate) : '-'}</td>
-                          <td className="px-3 py-3.5 text-[13px] font-medium text-[#111827]">{contract ? formatters.formatCurrency(contract.billRate) : '-'}</td>
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center justify-end gap-3">
+                          <td className="px-2.5 py-2.5 text-[13px] text-[#1f3048]">{contractRef}</td>
+                          <td className="px-2.5 py-2.5 text-[13px] text-[#1f3048]">{formatters.formatDate(contract?.startDate) || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-[13px] text-[#1f3048]">{formatters.formatDate(contract?.endDate) || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-[13px] font-medium text-[#111827]">{contract ? formatters.formatCurrency(contract.payRate) : '-'}</td>
+                          <td className="px-2.5 py-2.5 text-[13px] font-medium text-[#111827]">{contract ? formatters.formatCurrency(contract.billRate) : '-'}</td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center justify-end gap-1.5">
                               {canCreateContracts && (
                                 <button
                                   type="button"
@@ -497,7 +531,7 @@ const ContractorsPage = () => {
                                   className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
                                   title="Add contract"
                                 >
-                                  <Plus className="h-4.5 w-4.5" />
+                                  <Plus className="h-4 w-4" />
                                 </button>
                               )}
                               <button
@@ -506,7 +540,7 @@ const ContractorsPage = () => {
                                 className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
                                 title="View contracts"
                               >
-                                <Eye className="h-4.5 w-4.5" />
+                                <Eye className="h-4 w-4" />
                               </button>
                             </div>
                           </td>
@@ -574,9 +608,6 @@ const ContractorsPage = () => {
             <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={contractorFormData.noticePeriodDays} onChange={(e) => setContractorFormData((p) => ({ ...p, noticePeriodDays: parseInt(e.target.value, 10) || 0 }))} error={contractorFormErrors.noticePeriodDays} />
             <Input label="Customer Manager" name="customerManager" value={contractorFormData.customerManager} onChange={(e) => setContractorFormData((p) => ({ ...p, customerManager: e.target.value }))} error={contractorFormErrors.customerManager} required />
             <Input label="Customer Manager Email" name="customerManagerEmail" type="email" value={contractorFormData.customerManagerEmail} onChange={(e) => setContractorFormData((p) => ({ ...p, customerManagerEmail: e.target.value }))} error={contractorFormErrors.customerManagerEmail} required />
-            <div className="md:col-span-2">
-              <Textarea label="Remarks" name="remarks" value={contractorFormData.remarks} onChange={(e) => setContractorFormData((p) => ({ ...p, remarks: e.target.value }))} error={contractorFormErrors.remarks} required />
-            </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
               <div className="relative">
@@ -606,6 +637,9 @@ const ContractorsPage = () => {
                 </button>
               </div>
               {contractorFormErrors.confirmPassword && <p className="mt-1 text-xs text-red-600">{contractorFormErrors.confirmPassword}</p>}
+            </div>
+            <div className="md:col-span-2">
+              <Textarea label="Remarks" name="remarks" value={contractorFormData.remarks} onChange={(e) => setContractorFormData((p) => ({ ...p, remarks: e.target.value }))} error={contractorFormErrors.remarks} required />
             </div>
           </form>
         </Modal>
