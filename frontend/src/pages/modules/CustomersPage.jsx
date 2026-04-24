@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
   Plus,
   AlertCircle,
@@ -8,7 +9,6 @@ import {
   Globe,
   Search,
   SlidersHorizontal,
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -37,6 +37,7 @@ const createInitialPoFormData = (customerId = '') => ({
 })
 
 const CustomersPage = () => {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
   const [isLoading, setIsLoading] = useState(true)
@@ -64,7 +65,6 @@ const CustomersPage = () => {
   const [poFormErrors, setPoFormErrors] = useState({})
   const [isPoSubmitting, setIsPoSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [actionMenuCustomerId, setActionMenuCustomerId] = useState(null)
   const [page, setPage] = useState(1)
 
   const PAGE_SIZE = 10
@@ -165,11 +165,8 @@ const CustomersPage = () => {
     }
   }
 
-  const openPoModal = (customer) => {
-    setSelectedCustomer(customer)
-    setPoFormData(createInitialPoFormData(customer.id))
-    setPoFormErrors({})
-    setIsPoModalOpen(true)
+  const handleAddPO = (customer) => {
+    navigate(`/pos?create=true&customerId=${customer.id}`)
   }
 
   const handlePoInputChange = (e) => {
@@ -322,7 +319,7 @@ const CustomersPage = () => {
                       <th className="whitespace-nowrap px-2.5 py-2.5 text-center text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ACTIVE POS</th>
                       <th className="whitespace-nowrap px-2.5 py-2.5 text-center text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">INACTIVE POS</th>
                       <th className="whitespace-nowrap px-2.5 py-2.5 text-center text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">STATUS</th>
-                      <th className="whitespace-nowrap px-3 py-2.5 text-right text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ACTIONS</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-center text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ADD PO</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -331,7 +328,7 @@ const CustomersPage = () => {
                       const inactivePos = poCountsByCustomer[customer.id]?.inactive || 0
                       const shortName = String(customer.name || 'CU').split(' ').filter(Boolean).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('')
                       return (
-                        <tr key={customer.id} className="border-b border-[#e5ebf4] bg-white">
+                        <tr key={customer.id} className="border-b border-[#e5ebf4] bg-white cursor-pointer hover:bg-[#f8faff]" onClick={() => { setSelectedCustomer(customer); setIsViewModalOpen(true) }}>
                           <td className="px-3 py-2.5">
                             <div className="flex items-center gap-2">
                               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dee5fb] text-[10px] font-bold text-[#3e53dd]">{shortName}</div>
@@ -341,7 +338,7 @@ const CustomersPage = () => {
                             </div>
                           </td>
                           <td className="px-2.5 py-2.5 text-[13px] text-[#1f3048]">{customer.msaContactPerson || '-'}</td>
-                          <td className="px-2.5 py-2.5"><a href={`mailto:${customer.msaContactEmail}`} className="text-[13px] text-[#2f3f58] hover:text-[#3f51df]">{customer.msaContactEmail || '-'}</a></td>
+                          <td className="px-2.5 py-2.5"><a href={`mailto:${customer.msaContactEmail}`} className="text-[13px] text-[#2f3f58] hover:text-[#3f51df]" onClick={(e) => e.stopPropagation()}>{customer.msaContactEmail || '-'}</a></td>
                           <td className="px-2.5 py-2.5">
                             <div className="flex items-center justify-center gap-1">
                               <span className="h-2 w-2 rounded-full bg-[#1db685]" />
@@ -355,18 +352,14 @@ const CustomersPage = () => {
                             </div>
                           </td>
                           <td className="px-2.5 py-2.5 text-center"><span className="inline-flex rounded-full bg-[#c9f0dd] px-2.5 py-0.5 text-[11px] font-semibold text-[#198657]">Active</span></td>
-                          <td className="px-3 py-2.5 text-right">
-                            <div className="relative inline-block text-left">
-                              <button type="button" onClick={() => setActionMenuCustomerId((prev) => (prev === customer.id ? null : customer.id))} className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb]">
-                                <MoreVertical className="h-4 w-4" />
-                              </button>
-                              {actionMenuCustomerId === customer.id && (
-                                <div className="absolute right-0 z-20 mt-2 w-32 rounded-lg border border-[#dbe4f1] bg-white p-1 shadow-lg">
-                                  <button onClick={() => { setSelectedCustomer(customer); setIsViewModalOpen(true); setActionMenuCustomerId(null) }} className="block w-full rounded-md px-3 py-2 text-left text-sm text-[#243752] hover:bg-[#f3f7fd]">View</button>
-                                  <button onClick={() => { openPoModal(customer); setActionMenuCustomerId(null) }} className="block w-full rounded-md px-3 py-2 text-left text-sm text-[#243752] hover:bg-[#f3f7fd]">Add PO</button>
-                                </div>
-                              )}
-                            </div>
+                          <td className="px-3 py-2.5 text-center">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleAddPO(customer) }}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b4fe8] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#4b4fe8] hover:bg-[#4b4fe8] hover:text-white transition-colors"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Add PO
+                            </button>
                           </td>
                         </tr>
                       )
