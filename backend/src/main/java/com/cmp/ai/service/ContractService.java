@@ -142,18 +142,26 @@ public class ContractService {
     }
 
     public List<ContractResponse> getContractsByContractor(Long contractorId) {
-        // Security check: ensure contractor can only access their own contracts
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = authentication.getName();
-        
-        User currentUser = userRepository.findByEmail(currentUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        
-        Contractor currentContractor = contractorRepository.findByUserId(currentUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Contractor not found for current user"));
-        
-        if (!currentContractor.getId().equals(contractorId)) {
-            throw new BadRequestException("Access denied: Can only access your own contracts");
+        boolean isAdminOrManager = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_MANAGER"));
+
+        if (!isAdminOrManager) {
+            String currentUsername = authentication.getName();
+            User currentUser = userRepository.findByEmail(currentUsername)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+            // In this system, user.id is often used interchangeably with contractorId in the frontend
+            // Let's check both user.id and contractor.id
+            boolean isOwnData = currentUser.getId().equals(contractorId);
+
+            if (!isOwnData) {
+                // If not user.id, maybe it's the Contractor entity ID?
+                Contractor currentContractor = contractorRepository.findByUserId(currentUser.getId()).orElse(null);
+                if (currentContractor == null || !currentContractor.getId().equals(contractorId)) {
+                    throw new BadRequestException("Access denied: Can only access your own contracts");
+                }
+            }
         }
         
         List<Contract> contracts = syncContractStatuses(contractRepository.findByContractorId(contractorId), LocalDate.now());

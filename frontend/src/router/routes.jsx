@@ -79,7 +79,7 @@ export const AppRoutes = () => {
         <Route
           path="/contracts"
           element={
-            <PrivateRoute requiredRoles={['ADMIN', 'MANAGER']}>
+            <PrivateRoute requiredRoles={['ADMIN', 'MANAGER', 'CONTRACTOR']}>
               <ContractsPage />
             </PrivateRoute>
           }

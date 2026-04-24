@@ -49,15 +49,6 @@ const InvoicesPage = () => {
   const [contractsLoading, setContractsLoading] = useState(false)
   const [contractsError, setContractsError] = useState('')
 
-  const [bankDetails, setBankDetails] = useState({
-    accountHolderName: '',
-    bankName: '',
-    accountNumber: '',
-    ifscSwift: '',
-    upiId: '',
-  })
-  const [bankDetailsLoading, setBankDetailsLoading] = useState(false)
-
   const [formData, setFormData] = useState({
     contractorId: user?.id || '',
     invoiceMonth: new Date().toISOString().slice(0, 7),
@@ -100,16 +91,19 @@ const InvoicesPage = () => {
         setContractsLoading(true)
         setContractsError('')
         const data = await contractService.getContractsByContractor(user.id)
-        // Filter for active contracts only
-        const activeContracts = Array.isArray(data) 
-          ? data.filter(contract => contract.status === 'ACTIVE' || contract.status === 'active')
+        // Include ACTIVE and UPCOMING contracts
+        const availableContracts = Array.isArray(data) 
+          ? data.filter(contract => 
+              ['ACTIVE', 'UPCOMING'].includes(String(contract.status).toUpperCase())
+            )
           : []
-        setContracts(activeContracts)
-        if (activeContracts.length === 0) {
-          setContractsError('No active contracts found. Please create a contract first.')
+        setContracts(availableContracts)
+        if (availableContracts.length === 0) {
+          setContractsError('No active or upcoming contracts found.')
         }
       } catch (err) {
         console.error('Failed to load contracts:', err)
+        setContractsError('Failed to load contracts. Please try again.')
         setContracts([])
         setContractsError('Failed to load contracts. Please try again.')
       } finally {
@@ -119,39 +113,15 @@ const InvoicesPage = () => {
     loadContracts()
   }, [isModalOpen, user?.id, user?.role])
 
-  // Load bank details when modal opens
-  useEffect(() => {
-    const loadBankDetails = async () => {
-      if (!isModalOpen || user?.role !== 'CONTRACTOR') return
-      try {
-        setBankDetailsLoading(true)
-        const data = await bankDetailsService.getMyBankDetails()
-        const bd = data?.data || data || {}
-        setBankDetails({
-          accountHolderName: bd.accountHolderName || '',
-          bankName: bd.bankName || '',
-          accountNumber: bd.accountNumber || '',
-          ifscSwift: bd.ifscSwift || '',
-          upiId: bd.upiId || '',
-        })
-      } catch (err) {
-        // non-critical — leave blank
-      } finally {
-        setBankDetailsLoading(false)
-      }
-    }
-    loadBankDetails()
-  }, [isModalOpen, user?.role])
-
   // Auto-fill rate when contract is selected
   useEffect(() => {
     if (selectedContract && contracts.length > 0) {
       const selected = contracts.find(c => String(c.id) === String(selectedContract))
       if (selected) {
-        const contractRate = selected.payRate ?? selected.billRate ?? 0
+        const contractRate = selected.payRate || 0
         setFormData(prev => ({
           ...prev,
-          rate: contractRate ? String(contractRate) : ''
+          rate: contractRate ? String(contractRate) : prev.rate
         }))
       }
     }
