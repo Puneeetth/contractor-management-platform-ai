@@ -26,6 +26,7 @@ import jakarta.persistence.Column;
 @Entity
 @Getter
 @Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -33,6 +34,7 @@ import jakarta.persistence.Column;
     indexes =  {
         @Index(name = "idx_contract_contractor", columnList = "contractor_id")
     }
+
 
 )
 public class Contract {
