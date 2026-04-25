@@ -595,8 +595,8 @@ const POsPage = () => {
                 </button>
               </div>
             </form>
-          </>
-        )}
+          </Modal>
+        </>
       </div>
 
       <Modal
