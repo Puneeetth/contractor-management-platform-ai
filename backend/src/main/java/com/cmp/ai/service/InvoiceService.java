@@ -38,24 +38,31 @@ public class InvoiceService {
         User contractor = userRepository.findById(request.getContractorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
 
+        // ✅ Get specific contract by ID
+        Contract selectedContract = contractRepository.findById(request.getContractId())
+                .orElseThrow(() -> new BadRequestException("Contract not found"));
+
+        // ✅ Validate contract belongs to contractor and is active
+        if (!selectedContract.getContractor().getId().equals(request.getContractorId())) {
+            throw new BadRequestException("Contract does not belong to this contractor");
+        }
+        if (selectedContract.getStatus() != ContractStatus.ACTIVE) {
+            throw new BadRequestException("Selected contract is not active");
+        }
+
+        // ✅ Get contract rate
+        Double contractRate = selectedContract.getPayRate();
+        if (contractRate == null || contractRate <= 0) {
+            throw new BadRequestException("Contract does not have a valid pay rate");
+        }
+
         // ✅ Enforce one invoice per contractor/month.
         // If existing invoice is REJECTED, we allow resubmission by updating the same record.
         Optional<Invoice> existingInvoiceOptional =
                 invoiceRepository.findByContractorIdAndInvoiceMonth(contractor.getId(), request.getInvoiceMonth());
 
-        // ✅ Get active contract rate
-        Double activeContractRate = contractRepository.findByContractorId(contractor.getId()).stream()
-                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
-                .findFirst()
-                .map(c -> c.getPayRate())
-                .orElseThrow(() -> new BadRequestException("No active contract found for this contractor"));
-
-        if (activeContractRate == null || activeContractRate <= 0) {
-            throw new BadRequestException("Active contract does not have a valid pay rate");
-        }
-
         // ✅ Calculate amounts
-        Double baseAmount = request.getTotalHours() * activeContractRate;
+        Double baseAmount = request.getTotalHours() * contractRate;
         Double taxAmount = baseAmount * (request.getTaxPercentage() / 100.0);
         Double totalAmount = baseAmount + taxAmount;
 
@@ -75,6 +82,7 @@ public class InvoiceService {
             }
 
             existingInvoice.setTotalHours(request.getTotalHours());
+            existingInvoice.setContract(selectedContract);
             existingInvoice.setBaseAmount(baseAmount);
             existingInvoice.setTaxAmount(taxAmount);
             existingInvoice.setTotalAmount(totalAmount);
@@ -95,6 +103,7 @@ public class InvoiceService {
         // ✅ Create invoice
         Invoice invoice = Invoice.builder()
                 .contractor(contractor)
+                .contract(selectedContract)
                 .invoiceMonth(request.getInvoiceMonth())
                 .totalHours(request.getTotalHours())
                 .baseAmount(baseAmount)
@@ -201,15 +210,10 @@ public class InvoiceService {
     }
 
     private InvoiceResponse toInvoiceResponseWithRates(Invoice invoice) {
-        Contract activeContract = contractRepository.findByContractorId(invoice.getContractor().getId()).stream()
-                .filter(c -> c.getStatus() == ContractStatus.ACTIVE)
-                .findFirst()
-                .orElse(null);
-
-        Double billRate = activeContract != null
-                ? activeContract.getBillRate()
-                : deriveBillRateFromInvoice(invoice);
-        Double payRate = activeContract != null ? activeContract.getPayRate() : null;
+        Contract contract = invoice.getContract();
+        
+        Double billRate = contract != null ? contract.getBillRate() : deriveBillRateFromInvoice(invoice);
+        Double payRate = contract != null ? contract.getPayRate() : null;
 
         return InvoiceTransformer.invoiceToInvoiceResponse(invoice, billRate, payRate);
     }

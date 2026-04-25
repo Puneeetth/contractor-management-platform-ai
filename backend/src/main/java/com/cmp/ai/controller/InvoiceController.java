@@ -24,6 +24,7 @@ public class InvoiceController {
     @PreAuthorize("hasRole('CONTRACTOR')")
     public InvoiceResponse createInvoice(
             @RequestParam Long contractorId,
+            @RequestParam Long contractId,
             @RequestParam String invoiceMonth,
             @RequestParam Double totalHours,
             @RequestParam Double taxPercentage,
@@ -32,6 +33,7 @@ public class InvoiceController {
 
         InvoiceRequest request = new InvoiceRequest(
                 contractorId,
+                contractId,
                 invoiceMonth,
                 totalHours,
                 taxPercentage

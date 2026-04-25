@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Plus, X } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Card, Button, Table, Loader, Modal, Input, Badge, Textarea } from '../../components/ui'
+import { Card, Button, Table, Loader, Modal, Input, Badge, Textarea, BankDetailsCard } from '../../components/ui'
 import { invoiceService } from '../../services/invoiceService'
 import { API_ORIGIN } from '../../services/apiClient'
 import { formatters } from '../../utils/formatters'
 import { useAuth } from '../../hooks/useAuth'
 import { dedupeBy } from '../../utils/dedupe'
+import { contractService } from '../../services/contractService'
 
 const InvoicesPage = () => {
   const { user } = useAuth()
@@ -44,8 +45,14 @@ const InvoicesPage = () => {
   const [monthFilter, setMonthFilter] = useState('')
   const [canEditTax, setCanEditTax] = useState(false)
 
+  // Contract selection state
+  const [contracts, setContracts] = useState([])
+  const [selectedContract, setSelectedContract] = useState(null)
+  const [loadingContracts, setLoadingContracts] = useState(false)
+
   const [formData, setFormData] = useState({
     contractorId: user?.id || '',
+    contractId: '',
     invoiceMonth: new Date().toISOString().slice(0, 7),
     totalHours: '',
     rate: '',
@@ -77,6 +84,41 @@ const InvoicesPage = () => {
     }
     loadRate()
   }, [user?.id, user?.role])
+
+  // Load active contracts for contractor
+  useEffect(() => {
+    const loadContracts = async () => {
+      if (!user?.id || user?.role !== 'CONTRACTOR') return
+
+      try {
+        setLoadingContracts(true)
+        const contractData = await contractService.getActiveContractsByContractor(user.id)
+        setContracts(contractData || [])
+      } catch (err) {
+        console.error('Failed to load contracts:', err)
+      } finally {
+        setLoadingContracts(false)
+      }
+    }
+    loadContracts()
+  }, [user?.id, user?.role])
+
+  // Update rate when contract is selected
+  useEffect(() => {
+    if (selectedContract) {
+      setFormData(prev => ({
+        ...prev,
+        rate: selectedContract.payRate || '',
+        contractId: selectedContract.id
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        rate: '',
+        contractId: ''
+      }))
+    }
+  }, [selectedContract])
 
   const loadInvoices = async () => {
     try {
@@ -169,10 +211,20 @@ const InvoicesPage = () => {
     }))
   }
 
+  const handleContractChange = (contractId) => {
+    const contract = contracts.find(c => c.id.toString() === contractId.toString())
+    setSelectedContract(contract || null)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     const newErrors = {}
+
+    // Validate contract selection
+    if (!selectedContract) {
+      newErrors.contract = 'Please select a contract'
+    }
 
     const existingMonthInvoice = invoices.find(
       (invoice) => String(invoice.invoiceMonth || '') === String(formData.invoiceMonth || '')
@@ -200,6 +252,7 @@ const InvoicesPage = () => {
     try {
       await invoiceService.createInvoice({
         contractorId: formData.contractorId,
+        contractId: selectedContract?.id,
         invoiceMonth: formData.invoiceMonth,
         totalHours: Number(formData.totalHours),
         taxPercentage: Number(formData.taxPercentage),
@@ -211,6 +264,7 @@ const InvoicesPage = () => {
 
       setFormData({
         contractorId: user?.id || '',
+        contractId: '',
         invoiceMonth: new Date().toISOString().slice(0, 7),
         totalHours: '',
         rate: formData.rate,
@@ -219,6 +273,7 @@ const InvoicesPage = () => {
         timesheetFile: null,
       })
       setCanEditTax(false)
+      setSelectedContract(null)
 
       await loadInvoices()
     } catch (err) {
@@ -240,7 +295,7 @@ const InvoicesPage = () => {
       ...invoice,
       billRate: Number(invoice.billRate ?? 0),
       payRate: Number(invoice.payRate ?? 0),
-      hoursRate: Number(invoice.hoursRate ?? resolvedHours),
+      hoursRate: Number(invoice.hoursRate ?? 0),
       totalHoursForCalc: resolvedHours,
       tax: Number(invoice.tax ?? 0),
       totalAmount: Number(invoice.totalAmount ?? invoice.amount ?? 0),
@@ -540,6 +595,44 @@ const InvoicesPage = () => {
         size="xxl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Section 1: Contract Selection */}
+          <div>
+            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Contract Selection</h2>
+            <Card className="border-[#d8e2ef] px-4 py-3">
+              <div className="w-full">
+                <label className="mb-1.5 block text-[12px] font-semibold text-[#111827]">Select Contract</label>
+                <select
+                  value={selectedContract?.id || ''}
+                  onChange={(e) => handleContractChange(e.target.value)}
+                  disabled={loadingContracts}
+                  className={`h-9 w-full rounded-lg border bg-white px-3 text-[13px] text-[#0f1d33] focus:outline-none ${
+                    formErrors.contract
+                      ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                      : 'border-[#d8e2ef] focus:border-[#4b4fe8] focus:ring-2 focus:ring-[#e9edf4]'
+                  } ${loadingContracts ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                >
+                  <option value="">
+                    {loadingContracts ? 'Loading contracts...' : 'Select a contract'}
+                  </option>
+                  {contracts.map((contract) => (
+                    <option key={contract.id} value={contract.id}>
+                      {contract.poNumber ? `${contract.poNumber} - ${contract.customerName || 'Unknown Customer'}` : `Contract ${contract.id}`}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.contract && <p className="mt-1 text-[11px] text-red-500">{formErrors.contract}</p>}
+                {selectedContract && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
+                    <p className="text-[11px] text-blue-800">
+                      <span className="font-medium">Rate:</span> ${selectedContract.payRate}/hr
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {/* Section 2: Invoice Details */}
           <div>
             <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Invoice Details</h2>
             <Card className="border-[#d8e2ef] px-4 py-3">
@@ -566,6 +659,7 @@ const InvoicesPage = () => {
                     type="number"
                     value={formData.totalHours}
                     onChange={handleInputChange}
+                    placeholder="Enter total hours"
                     className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
                       formErrors.totalHours
                         ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
@@ -573,6 +667,24 @@ const InvoicesPage = () => {
                     }`}
                   />
                   {formErrors.totalHours && <p className="mt-1 text-[10px] text-red-500">{formErrors.totalHours}</p>}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Section 3: Calculation */}
+          <div>
+            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Calculation</h2>
+            <Card className="border-[#d8e2ef] px-4 py-3">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
+                <div className="w-full">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Rate ($/hr)</label>
+                  <input
+                    value={formData.rate ? `$${formData.rate}` : ''}
+                    readOnly
+                    placeholder="Select contract first"
+                    className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
+                  />
                 </div>
                 <div className="w-full">
                   <label className="mb-1 block text-[11px] font-medium text-gray-700">Base Amount</label>
@@ -582,54 +694,75 @@ const InvoicesPage = () => {
                     className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
                   />
                 </div>
-                <div className="w-full">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Total Amount</label>
-                  <input
-                    value={totalAmount.toFixed(2)}
-                    readOnly
-                    className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
-                  />
-                </div>
               </div>
             </Card>
           </div>
 
+          {/* Section 4: Tax */}
           <div>
             <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Tax</h2>
             <Card className="border-[#d8e2ef] px-4 py-3">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="flex items-center gap-2 text-[11px] font-medium text-gray-700">
+              <div className="space-y-3">
+                {/* Tax % and Total Amount on same row */}
+                <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
+                  <div className="w-full">
+                    <label className="mb-1 block text-[11px] font-medium text-gray-700">Tax (%)</label>
                     <input
-                      type="checkbox"
-                      checked={canEditTax}
-                      onChange={(e) => {
-                        const allowed = e.target.checked
-                        setCanEditTax(allowed)
-                        if (!allowed) {
-                          setFormData((prev) => ({ ...prev, taxPercentage: '18' }))
-                        }
-                      }}
+                      name="taxPercentage"
+                      type="number"
+                      value={formData.taxPercentage}
+                      onChange={handleInputChange}
+                      disabled={!canEditTax}
+                      className="h-8 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:bg-[#f3f4f6]"
                     />
+                    {formErrors.taxPercentage && <p className="mt-1 text-[10px] text-red-500">{formErrors.taxPercentage}</p>}
+                  </div>
+                  <div className="w-full">
+                    <label className="mb-1 block text-[11px] font-medium text-gray-700">Total Amount</label>
+                    <input
+                      value={totalAmount.toFixed(2)}
+                      readOnly
+                      className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
+                    />
+                  </div>
+                </div>
+                
+                {/* Allow tax change option */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={canEditTax}
+                    onChange={(e) => {
+                      const allowed = e.target.checked
+                      setCanEditTax(allowed)
+                      if (!allowed) {
+                        setFormData((prev) => ({ ...prev, taxPercentage: '18' }))
+                      }
+                    }}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label className="text-[11px] font-medium text-gray-700">
                     Allow tax change (default 18%)
                   </label>
-                </div>
-                <div className="w-full">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Tax (%)</label>
-                  <input
-                    name="taxPercentage"
-                    type="number"
-                    value={formData.taxPercentage}
-                    onChange={handleInputChange}
-                    disabled={!canEditTax}
-                    className="h-8 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:bg-[#f3f4f6]"
-                  />
-                  {formErrors.taxPercentage && <p className="mt-1 text-[10px] text-red-500">{formErrors.taxPercentage}</p>}
                 </div>
               </div>
             </Card>
           </div>
 
+          {/* Section 5: Bank Account Details */}
+          <div>
+            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Bank Account Details</h2>
+            <BankDetailsCard 
+              userId={user?.id}
+              onEditClick={() => {
+                setIsModalOpen(false)
+                window.location.href = '/bank-account'
+              }}
+              isLoading={isLoading}
+            />
+          </div>
+
+          {/* Section 6: Attachments */}
           <div>
             <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Attachments</h2>
             <Card className="border-[#d8e2ef] px-4 py-3">

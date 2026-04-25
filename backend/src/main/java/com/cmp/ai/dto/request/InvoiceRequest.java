@@ -15,6 +15,9 @@ public class InvoiceRequest {
     @NotNull
     private Long contractorId;
 
+    @NotNull
+    private Long contractId;
+
     @NotBlank
     private String invoiceMonth;
 

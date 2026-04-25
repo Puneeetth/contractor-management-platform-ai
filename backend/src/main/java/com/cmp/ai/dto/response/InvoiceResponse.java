@@ -14,6 +14,9 @@ public class InvoiceResponse {
     private Long id;
     private Long contractorId;
     private String contractorName;
+    private Long contractId;
+    private String contractName;
+    private String poNumber;
     private String invoiceMonth;
     private Double amount;
     private Double billRate;

@@ -48,6 +48,10 @@ public class Invoice {
     @JoinColumn(name = "contractor_id")
     private User contractor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contract_id")
+    private Contract contract;
+
     private String invoiceMonth;
 
     private Double totalHours;

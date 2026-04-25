@@ -17,6 +17,7 @@ public class ContractTransformer {
                 .contractorId(c.getContractor() != null ? c.getContractor().getId() : null)
                 .contractorName(c.getContractor() != null ? c.getContractor().getName() : null)
                 .customerId(c.getCustomer() == null ? null : c.getCustomer().getId())
+                .customerName(c.getCustomer() == null ? null : c.getCustomer().getName())
                 .billRate(c.getBillRate())
                 .payRate(c.getPayRate())
                 .poAllocation(c.getPoAllocation())
