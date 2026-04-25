@@ -11,7 +11,7 @@ import {
   Search,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Badge, Button, Card, Input, Loader, Modal, Textarea } from '../../components/ui'
+import { Badge, Button, Card, Loader, Modal } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
@@ -86,6 +86,7 @@ const ContractorsPage = () => {
   const [contractFormData, setContractFormData] = useState(EMPTY_CONTRACT_FORM)
   const [contractFormErrors, setContractFormErrors] = useState({})
   const [isCreatingContract, setIsCreatingContract] = useState(false)
+  const [isContractorLocked, setIsContractorLocked] = useState(false)
 
   const [viewingContractor, setViewingContractor] = useState(null)
 
@@ -167,6 +168,15 @@ const ContractorsPage = () => {
     [purchaseOrders]
   )
 
+  const contractorById = useMemo(
+    () =>
+      contractors.reduce((lookup, contractor) => {
+        lookup[String(contractor.id)] = contractor
+        return lookup
+      }, {}),
+    [contractors]
+  )
+
   const contractsByContractor = useMemo(
     () =>
       contracts.reduce((lookup, contract) => {
@@ -232,9 +242,16 @@ const ContractorsPage = () => {
     setShowContractorConfirmPassword(false)
   }
 
+  const resetContractForm = () => {
+    setContractFormData(EMPTY_CONTRACT_FORM)
+    setContractFormErrors({})
+    setIsContractorLocked(false)
+  }
+
   const openContractModal = (contractorId = '') => {
     setContractFormData({ ...EMPTY_CONTRACT_FORM, contractorId: contractorId ? String(contractorId) : '' })
     setContractFormErrors({})
+    setIsContractorLocked(Boolean(contractorId))
     setIsContractModalOpen(true)
   }
 
@@ -367,8 +384,7 @@ const ContractorsPage = () => {
         terminationRemarks: String(contractFormData.terminationRemarks || ''),
       })
       setIsContractModalOpen(false)
-      setContractFormData(EMPTY_CONTRACT_FORM)
-      setContractFormErrors({})
+      resetContractForm()
       setSuccess('Contract created successfully')
       await loadPageData()
     } catch (err) {
@@ -598,60 +614,171 @@ const ContractorsPage = () => {
                 <p className="text-sm text-red-700">{contractorFormErrors.submit}</p>
               </div>
             )}
-            <Input label="Contractor ID" name="contractorId" value={contractorFormData.contractorId} onChange={(e) => setContractorFormData((p) => ({ ...p, contractorId: e.target.value }))} error={contractorFormErrors.contractorId} required />
-            <Input label="Name" name="name" value={contractorFormData.name} onChange={(e) => setContractorFormData((p) => ({ ...p, name: e.target.value }))} error={contractorFormErrors.name} required />
-            <Input label="Address" name="address" value={contractorFormData.address} onChange={(e) => setContractorFormData((p) => ({ ...p, address: e.target.value }))} error={contractorFormErrors.address} required />
-            <Input label="Current Location (e.g. US/APAC)" name="currentLocation" value={contractorFormData.currentLocation} onChange={(e) => setContractorFormData((p) => ({ ...p, currentLocation: e.target.value }))} error={contractorFormErrors.currentLocation} required />
-            <Input label="Email" name="email" type="email" value={contractorFormData.email} onChange={(e) => setContractorFormData((p) => ({ ...p, email: e.target.value }))} error={contractorFormErrors.email} required />
-            <Input label="Secondary Email" name="secondaryEmail" type="email" value={contractorFormData.secondaryEmail} onChange={(e) => setContractorFormData((p) => ({ ...p, secondaryEmail: e.target.value }))} error={contractorFormErrors.secondaryEmail} required />
-            <Input label="Phone Number" name="phoneNumber" value={contractorFormData.phoneNumber} onChange={(e) => setContractorFormData((p) => ({ ...p, phoneNumber: e.target.value }))} error={contractorFormErrors.phoneNumber} required />
-            <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={contractorFormData.noticePeriodDays} onChange={(e) => setContractorFormData((p) => ({ ...p, noticePeriodDays: parseInt(e.target.value, 10) || 0 }))} error={contractorFormErrors.noticePeriodDays} />
-            <Input label="Customer Manager" name="customerManager" value={contractorFormData.customerManager} onChange={(e) => setContractorFormData((p) => ({ ...p, customerManager: e.target.value }))} error={contractorFormErrors.customerManager} required />
-            <Input label="Customer Manager Email" name="customerManagerEmail" type="email" value={contractorFormData.customerManagerEmail} onChange={(e) => setContractorFormData((p) => ({ ...p, customerManagerEmail: e.target.value }))} error={contractorFormErrors.customerManagerEmail} required />
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Contractor ID <span className="text-red-500">*</span></label>
+              <input
+                name="contractorId"
+                value={contractorFormData.contractorId}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, contractorId: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.contractorId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.contractorId && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.contractorId}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Name <span className="text-red-500">*</span></label>
+              <input
+                name="name"
+                value={contractorFormData.name}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, name: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.name ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.name && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.name}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Email <span className="text-red-500">*</span></label>
+              <input
+                type="email"
+                name="email"
+                value={contractorFormData.email}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, email: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.email ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.email && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.email}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Phone Number <span className="text-red-500">*</span></label>
+              <input
+                name="phoneNumber"
+                value={contractorFormData.phoneNumber}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, phoneNumber: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.phoneNumber ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.phoneNumber && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.phoneNumber}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Secondary Email <span className="text-red-500">*</span></label>
+              <input
+                type="email"
+                name="secondaryEmail"
+                value={contractorFormData.secondaryEmail}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, secondaryEmail: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.secondaryEmail ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.secondaryEmail && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.secondaryEmail}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Current Location <span className="text-red-500">*</span></label>
+              <input
+                name="currentLocation"
+                value={contractorFormData.currentLocation}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, currentLocation: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.currentLocation ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.currentLocation && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.currentLocation}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Customer Manager <span className="text-red-500">*</span></label>
+              <input
+                name="customerManager"
+                value={contractorFormData.customerManager}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, customerManager: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.customerManager ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.customerManager && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.customerManager}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Manager Email <span className="text-red-500">*</span></label>
+              <input
+                type="email"
+                name="customerManagerEmail"
+                value={contractorFormData.customerManagerEmail}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, customerManagerEmail: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.customerManagerEmail ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.customerManagerEmail && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.customerManagerEmail}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Notice Period (days)</label>
+              <input
+                type="number"
+                name="noticePeriodDays"
+                value={contractorFormData.noticePeriodDays}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, noticePeriodDays: parseInt(e.target.value, 10) || 0 }))}
+                min="0"
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.noticePeriodDays ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.noticePeriodDays && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.noticePeriodDays}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Address <span className="text-red-500">*</span></label>
+              <input
+                name="address"
+                value={contractorFormData.address}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, address: e.target.value }))}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractorFormErrors.address ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.address && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.address}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Password <span className="text-red-500">*</span></label>
               <div className="relative">
                 <input
+                  name="password"
                   type={showContractorPassword ? 'text' : 'password'}
                   value={contractorFormData.password}
                   onChange={(e) => setContractorFormData((p) => ({ ...p, password: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 pr-10 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  className={`h-10 w-full rounded-md border bg-white px-3 pr-10 text-[12px] text-gray-900 outline-none ${contractorFormErrors.password ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
                 />
                 <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" onClick={() => setShowContractorPassword((p) => !p)}>
                   {showContractorPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {contractorFormErrors.password && <p className="mt-1 text-xs text-red-600">{contractorFormErrors.password}</p>}
+              {contractorFormErrors.password && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.password}</p>}
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm Password</label>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Confirm Password <span className="text-red-500">*</span></label>
               <div className="relative">
                 <input
+                  name="confirmPassword"
                   type={showContractorConfirmPassword ? 'text' : 'password'}
                   value={contractorFormData.confirmPassword}
                   onChange={(e) => setContractorFormData((p) => ({ ...p, confirmPassword: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 pr-10 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  className={`h-10 w-full rounded-md border bg-white px-3 pr-10 text-[12px] text-gray-900 outline-none ${contractorFormErrors.confirmPassword ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
                 />
                 <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" onClick={() => setShowContractorConfirmPassword((p) => !p)}>
                   {showContractorConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {contractorFormErrors.confirmPassword && <p className="mt-1 text-xs text-red-600">{contractorFormErrors.confirmPassword}</p>}
+              {contractorFormErrors.confirmPassword && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.confirmPassword}</p>}
             </div>
-            <div className="md:col-span-2">
-              <Textarea label="Remarks" name="remarks" value={contractorFormData.remarks} onChange={(e) => setContractorFormData((p) => ({ ...p, remarks: e.target.value }))} error={contractorFormErrors.remarks} required />
+            <div className="space-y-1 md:col-span-2">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Remarks <span className="text-red-500">*</span></label>
+              <textarea
+                name="remarks"
+                rows={4}
+                value={contractorFormData.remarks}
+                onChange={(e) => setContractorFormData((p) => ({ ...p, remarks: e.target.value }))}
+                className={`w-full rounded-md border bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none ${contractorFormErrors.remarks ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+              />
+              {contractorFormErrors.remarks && <p className="mt-1 text-[10px] text-red-500">{contractorFormErrors.remarks}</p>}
             </div>
           </form>
         </Modal>
 
         <Modal
           isOpen={isContractModalOpen}
-          onClose={() => setIsContractModalOpen(false)}
+          onClose={() => {
+            setIsContractModalOpen(false)
+            resetContractForm()
+          }}
           title="Create Contract"
           size="xxl"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setIsContractModalOpen(false)}>Cancel</Button>
+              <Button variant="secondary" onClick={() => {
+                setIsContractModalOpen(false)
+                resetContractForm()
+              }}>Cancel</Button>
               <Button variant="primary" isLoading={isCreatingContract} onClick={submitContract}>Create Contract</Button>
             </>
           }
@@ -663,58 +790,192 @@ const ContractorsPage = () => {
               </div>
             )}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Contractor</label>
-                <select name="contractorId" value={contractFormData.contractorId} onChange={handleContractInputChange} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500">
-                  <option value="">Select contractor...</option>
-                  {contractors.map((contractor) => (
-                    <option key={contractor.id} value={String(contractor.id)}>{contractor.name} ({contractor.contractorId})</option>
-                  ))}
-                </select>
-                {contractFormErrors.contractorId && <p className="mt-1 text-xs text-red-600">{contractFormErrors.contractorId}</p>}
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Contractor <span className="text-red-500">*</span></label>
+                {isContractorLocked && contractorById[String(contractFormData.contractorId)] ? (
+                  <input
+                    value={`${contractorById[String(contractFormData.contractorId)]?.name || ''} (${contractorById[String(contractFormData.contractorId)]?.contractorId || ''})`}
+                    readOnly
+                    className="h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 text-[12px] text-gray-900 outline-none"
+                  />
+                ) : (
+                  <select
+                    name="contractorId"
+                    value={contractFormData.contractorId}
+                    onChange={handleContractInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.contractorId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  >
+                    <option value="">Select contractor...</option>
+                    {contractors.map((contractor) => (
+                      <option key={contractor.id} value={String(contractor.id)}>{contractor.name} ({contractor.contractorId})</option>
+                    ))}
+                  </select>
+                )}
+                {contractFormErrors.contractorId && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.contractorId}</p>}
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">PO Allocation (Optional)</label>
-                <select name="poAllocation" value={contractFormData.poAllocation} onChange={handleContractInputChange} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500">
-                  <option value="">No PO</option>
-                  {purchaseOrders.filter((po) => po.poNumber).map((po) => (
-                    <option key={po.id || po.poNumber} value={String(po.poNumber).trim()}>
-                      {po.poNumber} ({customerNameById[String(po.customerId)] || `Customer #${po.customerId}`})
-                    </option>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Customer</label>
+                <select
+                  name="customerId"
+                  value={contractFormData.customerId}
+                  onChange={handleContractInputChange}
+                  disabled={Boolean(contractFormData.poAllocation)}
+                  className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none disabled:bg-gray-100 ${contractFormErrors.customerId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                >
+                  <option value="">Select customer...</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
                   ))}
                 </select>
+                {contractFormErrors.customerId && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.customerId}</p>}
               </div>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Customer</label>
-              <select name="customerId" value={contractFormData.customerId} onChange={handleContractInputChange} disabled={Boolean(contractFormData.poAllocation)} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500 disabled:bg-gray-100">
-                <option value="">Select customer...</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Allocation (optional)</label>
+              <select
+                name="poAllocation"
+                value={contractFormData.poAllocation}
+                onChange={handleContractInputChange}
+                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              >
+                <option value="">No PO</option>
+                {purchaseOrders.filter((po) => po.poNumber).map((po) => (
+                  <option key={po.id || po.poNumber} value={String(po.poNumber).trim()}>
+                    {po.poNumber} ({customerNameById[String(po.customerId)] || `Customer #${po.customerId}`})
+                  </option>
                 ))}
               </select>
-              {contractFormErrors.customerId && <p className="mt-1 text-xs text-red-600">{contractFormErrors.customerId}</p>}
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Bill Rate" name="billRate" type="number" step="0.01" value={contractFormData.billRate} onChange={handleContractInputChange} error={contractFormErrors.billRate} />
-              <Input label="Pay Rate" name="payRate" type="number" step="0.01" value={contractFormData.payRate} onChange={handleContractInputChange} error={contractFormErrors.payRate} />
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Bill Rate <span className="text-red-500">*</span></label>
+                <input
+                  name="billRate"
+                  type="number"
+                  step="0.01"
+                  value={contractFormData.billRate}
+                  onChange={handleContractInputChange}
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.billRate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {contractFormErrors.billRate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.billRate}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Pay Rate <span className="text-red-500">*</span></label>
+                <input
+                  name="payRate"
+                  type="number"
+                  step="0.01"
+                  value={contractFormData.payRate}
+                  onChange={handleContractInputChange}
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.payRate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {contractFormErrors.payRate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.payRate}</p>}
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Estimated Hours" name="estimatedHours" type="number" value={contractFormData.estimatedHours} onChange={handleContractInputChange} error={contractFormErrors.estimatedHours} />
-              <Input label="Estimated Budget" name="estimatedBudget" type="number" value={contractFormData.estimatedBudget} onChange={handleContractInputChange} error={contractFormErrors.estimatedBudget} readOnly />
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Estimated Hours <span className="text-red-500">*</span></label>
+                <input
+                  name="estimatedHours"
+                  type="number"
+                  value={contractFormData.estimatedHours}
+                  onChange={handleContractInputChange}
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.estimatedHours ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {contractFormErrors.estimatedHours && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.estimatedHours}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Estimated Budget <span className="text-red-500">*</span></label>
+                <input
+                  name="estimatedBudget"
+                  type="number"
+                  value={contractFormData.estimatedBudget}
+                  readOnly
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.estimatedBudget ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 bg-gray-50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {contractFormErrors.estimatedBudget && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.estimatedBudget}</p>}
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Start Date" name="startDate" type="date" value={contractFormData.startDate} onChange={handleContractInputChange} error={contractFormErrors.startDate} />
-              <Input label="End Date" name="endDate" type="date" value={contractFormData.endDate} onChange={handleContractInputChange} error={contractFormErrors.endDate} />
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Start Date <span className="text-red-500">*</span></label>
+                <input
+                  name="startDate"
+                  type="date"
+                  value={contractFormData.startDate}
+                  onChange={handleContractInputChange}
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.startDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {contractFormErrors.startDate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.startDate}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">End Date <span className="text-red-500">*</span></label>
+                <input
+                  name="endDate"
+                  type="date"
+                  value={contractFormData.endDate}
+                  onChange={handleContractInputChange}
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.endDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {contractFormErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.endDate}</p>}
+              </div>
             </div>
-            <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={contractFormData.noticePeriodDays} onChange={handleContractInputChange} error={contractFormErrors.noticePeriodDays} />
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="throughEor" checked={contractFormData.throughEor} onChange={handleContractInputChange} />
-              Through EOR
-            </label>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Textarea label="Remarks" name="remarks" value={contractFormData.remarks} onChange={handleContractInputChange} />
-              <Textarea label="Termination Remarks" name="terminationRemarks" value={contractFormData.terminationRemarks} onChange={handleContractInputChange} />
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Notice Period</label>
+                <input
+                  name="noticePeriodDays"
+                  type="number"
+                  value={contractFormData.noticePeriodDays}
+                  onChange={handleContractInputChange}
+                  min="0"
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.noticePeriodDays ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {contractFormErrors.noticePeriodDays && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.noticePeriodDays}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Through EOR (Toggle)</label>
+                <label className="flex h-10 items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900">
+                  <span>{contractFormData.throughEor ? 'Enabled' : 'Disabled'}</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={contractFormData.throughEor}
+                    onClick={() =>
+                      handleContractInputChange({
+                        target: {
+                          name: 'throughEor',
+                          type: 'checkbox',
+                          checked: !contractFormData.throughEor,
+                        },
+                      })
+                    }
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${contractFormData.throughEor ? 'bg-[#4b4fe8]' : 'bg-gray-300'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${contractFormData.throughEor ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </button>
+                </label>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Remarks</label>
+              <textarea
+                name="remarks"
+                rows={4}
+                value={contractFormData.remarks}
+                onChange={handleContractInputChange}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Termination Remarks</label>
+              <textarea
+                name="terminationRemarks"
+                rows={4}
+                value={contractFormData.terminationRemarks}
+                onChange={handleContractInputChange}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              />
             </div>
           </form>
         </Modal>
