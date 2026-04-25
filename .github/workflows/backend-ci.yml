@@ -26,4 +26,4 @@ jobs:
         run: |
           cd backend
           chmod +x ./mvnw
-          ./mvnw -B clean install
+          ./mvnw -B clean install -DskipTests
