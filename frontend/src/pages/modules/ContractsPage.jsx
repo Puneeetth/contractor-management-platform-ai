@@ -13,7 +13,7 @@ import {
   User,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Button, Card, Loader, Modal, Input, Select, Textarea } from '../../components/ui'
+import { Button, Card, Loader, Modal } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
@@ -456,53 +456,57 @@ const ContractsPage = () => {
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Customer & PO Selection</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Select
-                  label="Select Customer"
-                  name="customerId"
-                  value={formData.customerId}
-                  onChange={handleInputChange}
-                  error={formErrors.customerId}
-                  required
-                  placeholder="Select customer..."
-                  options={customers.map((customer) => ({
-                    value: String(customer.id),
-                    label: customer.name,
-                  }))}
-                />
-                <Select
-                  label="Select PO"
-                  name="poAllocation"
-                  value={formData.poAllocation}
-                  onChange={handleInputChange}
-                  error={formErrors.poAllocation}
-                  required
-                  disabled={!formData.customerId}
-                  placeholder={formData.customerId ? "Select PO..." : "Select a customer first"}
-                  options={filteredPosForCustomer.map((po) => ({
-                    value: String(po.poNumber).trim(),
-                    label: `${po.poNumber}`,
-                  }))}
-                />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Select Customer <span className="text-red-500">*</span></label>
+                  <select
+                    name="customerId"
+                    value={formData.customerId}
+                    onChange={handleInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${formErrors.customerId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  >
+                    <option value="">Select customer...</option>
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
+                    ))}
+                  </select>
+                  {formErrors.customerId && <p className="mt-1 text-[10px] text-red-500">{formErrors.customerId}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Select PO <span className="text-red-500">*</span></label>
+                  <select
+                    name="poAllocation"
+                    value={formData.poAllocation}
+                    onChange={handleInputChange}
+                    disabled={!formData.customerId}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none disabled:bg-gray-100 ${formErrors.poAllocation ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  >
+                    <option value="">{formData.customerId ? 'Select PO...' : 'Select a customer first'}</option>
+                    {filteredPosForCustomer.map((po) => (
+                      <option key={po.id || po.poNumber} value={String(po.poNumber).trim()}>{po.poNumber}</option>
+                    ))}
+                  </select>
+                  {formErrors.poAllocation && <p className="mt-1 text-[10px] text-red-500">{formErrors.poAllocation}</p>}
+                </div>
               </div>
             </div>
 
             {/* Section 2: Contractor Information */}
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Contractor Information</h3>
-              <div>
-                <Select
-                  label="Contractor"
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Contractor <span className="text-red-500">*</span></label>
+                <select
                   name="contractorId"
                   value={formData.contractorId}
                   onChange={handleInputChange}
-                  error={formErrors.contractorId}
-                  required
-                  placeholder="Select contractor..."
-                  options={contractors.map((contractor) => ({
-                    value: String(contractor.id),
-                    label: `${contractor.name} (${contractor.contractorId})`,
-                  }))}
-                />
+                  className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${formErrors.contractorId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                >
+                  <option value="">Select contractor...</option>
+                  {contractors.map((contractor) => (
+                    <option key={contractor.id} value={String(contractor.id)}>{contractor.name} ({contractor.contractorId})</option>
+                  ))}
+                </select>
+                {formErrors.contractorId && <p className="mt-1 text-[10px] text-red-500">{formErrors.contractorId}</p>}
               </div>
             </div>
 
@@ -510,44 +514,52 @@ const ContractsPage = () => {
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Commercial Details</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
-                  label="Bill Rate ($)"
-                  name="billRate"
-                  type="number"
-                  step="0.01"
-                  value={formData.billRate}
-                  onChange={handleInputChange}
-                  error={formErrors.billRate}
-                  required
-                />
-                <Input
-                  label="Pay Rate ($)"
-                  name="payRate"
-                  type="number"
-                  step="0.01"
-                  value={formData.payRate}
-                  onChange={handleInputChange}
-                  error={formErrors.payRate}
-                  required
-                />
-                <Input
-                  label="Estimated Hours"
-                  name="estimatedHours"
-                  type="number"
-                  value={formData.estimatedHours}
-                  onChange={handleInputChange}
-                  error={formErrors.estimatedHours}
-                  required
-                />
-                <Input
-                  label="Estimated Budget ($)"
-                  name="estimatedBudget"
-                  type="number"
-                  value={formData.estimatedBudget}
-                  readOnly
-                  className="bg-gray-50 cursor-not-allowed"
-                  error={formErrors.estimatedBudget}
-                />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Bill Rate ($) <span className="text-red-500">*</span></label>
+                  <input
+                    name="billRate"
+                    type="number"
+                    step="0.01"
+                    value={formData.billRate}
+                    onChange={handleInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${formErrors.billRate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.billRate && <p className="mt-1 text-[10px] text-red-500">{formErrors.billRate}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Pay Rate ($) <span className="text-red-500">*</span></label>
+                  <input
+                    name="payRate"
+                    type="number"
+                    step="0.01"
+                    value={formData.payRate}
+                    onChange={handleInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${formErrors.payRate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.payRate && <p className="mt-1 text-[10px] text-red-500">{formErrors.payRate}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Estimated Hours <span className="text-red-500">*</span></label>
+                  <input
+                    name="estimatedHours"
+                    type="number"
+                    value={formData.estimatedHours}
+                    onChange={handleInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${formErrors.estimatedHours ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.estimatedHours && <p className="mt-1 text-[10px] text-red-500">{formErrors.estimatedHours}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Estimated Budget ($)</label>
+                  <input
+                    name="estimatedBudget"
+                    type="number"
+                    value={formData.estimatedBudget}
+                    readOnly
+                    className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${formErrors.estimatedBudget ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 bg-gray-50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.estimatedBudget && <p className="mt-1 text-[10px] text-red-500">{formErrors.estimatedBudget}</p>}
+                </div>
               </div>
             </div>
 
@@ -555,26 +567,30 @@ const ContractsPage = () => {
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Duration</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
-                  label="Start Date"
-                  name="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={handleInputChange}
-                  error={formErrors.startDate}
-                  required
-                  min={minStartDate}
-                />
-                <Input
-                  label="End Date"
-                  name="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={handleInputChange}
-                  error={formErrors.endDate}
-                  required
-                  min={formData.startDate || minStartDate}
-                />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Start Date <span className="text-red-500">*</span></label>
+                  <input
+                    name="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={handleInputChange}
+                    min={minStartDate}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${formErrors.startDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.startDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.startDate}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">End Date <span className="text-red-500">*</span></label>
+                  <input
+                    name="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={handleInputChange}
+                    min={formData.startDate || minStartDate}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${formErrors.endDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.endDate}</p>}
+                </div>
               </div>
             </div>
 
@@ -582,16 +598,19 @@ const ContractsPage = () => {
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Contract Terms</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
-                  label="Notice Period (days)"
-                  name="noticePeriodDays"
-                  type="number"
-                  value={formData.noticePeriodDays}
-                  onChange={handleInputChange}
-                  error={formErrors.noticePeriodDays}
-                />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Notice Period (days)</label>
+                  <input
+                    name="noticePeriodDays"
+                    type="number"
+                    value={formData.noticePeriodDays}
+                    onChange={handleInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${formErrors.noticePeriodDays ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.noticePeriodDays && <p className="mt-1 text-[10px] text-red-500">{formErrors.noticePeriodDays}</p>}
+                </div>
                 <div className="flex items-center">
-                  <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 w-full cursor-pointer">
+                  <label className="flex h-10 w-full items-center gap-2 rounded-md border border-gray-300 bg-gray-50 px-3 text-[12px] text-gray-700 cursor-pointer">
                     <input
                       type="checkbox"
                       name="throughEor"
@@ -609,8 +628,26 @@ const ContractsPage = () => {
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Remarks</h3>
               <div className="space-y-4">
-                <Textarea label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} />
-                <Textarea label="Termination Remarks" name="terminationRemarks" value={formData.terminationRemarks} onChange={handleInputChange} />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Remarks</label>
+                  <textarea
+                    name="remarks"
+                    rows={4}
+                    value={formData.remarks}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Termination Remarks</label>
+                  <textarea
+                    name="terminationRemarks"
+                    rows={4}
+                    value={formData.terminationRemarks}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
               </div>
             </div>
           </form>
