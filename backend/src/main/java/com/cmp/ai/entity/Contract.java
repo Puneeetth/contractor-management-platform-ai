@@ -28,11 +28,13 @@ import jakarta.persistence.Column;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+
 @Builder
 @Table(name = "contracts",
     indexes =  {
         @Index(name = "idx_contract_contractor", columnList = "contractor_id")
     }
+
 
 )
 public class Contract {
@@ -71,6 +73,5 @@ public class Contract {
     private List<PurchaseOrder> purchaseOrders;
 
 
-    
     
 }

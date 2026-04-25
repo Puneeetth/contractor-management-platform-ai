@@ -59,13 +59,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
       >
         <div className="flex items-center justify-between px-4 pb-2 pt-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4b4fe8] shadow-[0_6px_10px_rgba(75,79,232,0.2)]">
-              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#e9edf4]">
-                <Sparkles className="h-4 w-4 text-[#3f4cd3]" />
-              </div>
-            </div>
-            <div className="flex min-w-0 flex-col items-start gap-1">
-              <h1 className="whitespace-nowrap text-[15px] font-bold leading-none tracking-[-0.01em] text-[#4b4fe8]">CMP AI</h1>
+            <div className="flex min-w-0 items-center gap-2 pl-1">
+              <h1 className="whitespace-nowrap text-[15px] font-bold leading-none tracking-[-0.01em] text-[#4b4fe8]">Trace</h1>
               {roleLabel && (
                 <span className="rounded-md bg-[#dce6ff] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#3c58c9]">
                   {roleLabel}
@@ -81,7 +76,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <nav className="flex-1 px-2 pt-6 pb-3">
+        <nav className="flex-1 px-2 pt-3 pb-3">
           <div className="space-y-1">
             {filteredMenuItems.map((item) => {
               const active = isActive(item.path)

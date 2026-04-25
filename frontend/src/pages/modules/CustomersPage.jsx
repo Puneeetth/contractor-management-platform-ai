@@ -36,6 +36,38 @@ const createInitialPoFormData = (customerId = '') => ({
   file: null,
 })
 
+const getCurrencyForCustomer = (customer) => {
+  if (!customer?.countriesApplicable) return 'USD'
+  const countries = String(customer.countriesApplicable).toLowerCase().split(',').map((c) => c.trim())
+  const currencyMap = [
+    ['india', 'INR'],
+    ['in', 'INR'],
+    ['united states', 'USD'],
+    ['us', 'USD'],
+    ['usa', 'USD'],
+    ['canada', 'CAD'],
+    ['ca', 'CAD'],
+    ['united kingdom', 'GBP'],
+    ['uk', 'GBP'],
+    ['gb', 'GBP'],
+    ['australia', 'AUD'],
+    ['au', 'AUD'],
+    ['germany', 'EUR'],
+    ['france', 'EUR'],
+    ['spain', 'EUR'],
+    ['europe', 'EUR'],
+    ['eu', 'EUR'],
+  ]
+
+  for (const [key, currency] of currencyMap) {
+    if (countries.some((country) => country.includes(key))) {
+      return currency
+    }
+  }
+
+  return 'USD'
+}
+
 const CustomersPage = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -165,8 +197,16 @@ const CustomersPage = () => {
     }
   }
 
-  const handleAddPO = (customer) => {
-    navigate(`/pos?create=true&customerId=${customer.id}`)
+  const openPoModal = (customer) => {
+    setSelectedCustomer(customer)
+    setPoFormData({
+      ...createInitialPoFormData(customer.id),
+      customerId: customer.id,
+      currency: getCurrencyForCustomer(customer),
+      paymentTermsDays: 30,
+    })
+    setPoFormErrors({})
+    setIsPoModalOpen(true)
   }
 
   const handlePoInputChange = (e) => {
@@ -185,10 +225,18 @@ const CustomersPage = () => {
 
   const validatePoForm = () => {
     const newErrors = {}
+    if (!selectedCustomer) {
+      newErrors.customerId = 'Customer must exist to create a PO'
+    }
     if (!validators.isRequired(poFormData.customerId)) newErrors.customerId = 'Customer is required'
     if (!validators.isRequired(poFormData.poNumber)) newErrors.poNumber = 'PO Number is required'
     if (!validators.isRequired(poFormData.poDate)) newErrors.poDate = 'PO Date is required'
-    if (!validators.isRequired(poFormData.poValue)) newErrors.poValue = 'PO Value is required'
+    if (!validators.isRequired(poFormData.poValue) || Number(poFormData.poValue) <= 0) newErrors.poValue = 'PO Value must be greater than 0'
+    if (poFormData.startDate && poFormData.endDate) {
+      const start = new Date(poFormData.startDate)
+      const end = new Date(poFormData.endDate)
+      if (end <= start) newErrors.endDate = 'End Date must be after Start Date'
+    }
     setPoFormErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -394,17 +442,108 @@ const CustomersPage = () => {
             size="xxl"
             footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create Customer</Button></>}
           >
-            <form className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <form className="space-y-5">
               {formErrors.submit && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
-              <Input label="Customer Name" name="name" value={formData.name} onChange={handleInputChange} error={formErrors.name} placeholder="Acme Corporation" required />
-              <Input label="Address" name="address" value={formData.address} onChange={handleInputChange} error={formErrors.address} placeholder="123 Business St, City, State 12345" required />
-              <Input label="MSA (Master Service Agreement)" name="msa" value={formData.msa} onChange={handleInputChange} error={formErrors.msa} placeholder="MSA agreement details or reference" required />
-              <Input label="Upload MSA PDF" type="file" name="msaFile" onChange={handleFileChange} accept=".pdf" />
-              <Input label="MSA Contact Person" name="msaContactPerson" value={formData.msaContactPerson} onChange={handleInputChange} error={formErrors.msaContactPerson} placeholder="John Doe" required />
-              <Input label="MSA Contact Email" type="email" name="msaContactEmail" value={formData.msaContactEmail} onChange={handleInputChange} error={formErrors.msaContactEmail} placeholder="contact@acme.com" required />
-              <Input label="Countries Applicable" name="countriesApplicable" value={formData.countriesApplicable} onChange={handleInputChange} placeholder="US, Canada, Mexico" />
-              <Input label="Notice Period (days)" type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} min="0" />
-              <Input label="MSA Remarks" name="msaRemark" value={formData.msaRemark} onChange={handleInputChange} placeholder="Additional remarks about MSA" />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Customer Name <span className="text-red-500">*</span></label>
+                  <input
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Acme Corporation"
+                    className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${formErrors.name ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.name && <p className="mt-1 text-[10px] text-red-500">{formErrors.name}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Address <span className="text-red-500">*</span></label>
+                  <input
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    placeholder="123 Business St, City, State 12345"
+                    className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${formErrors.address ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.address && <p className="mt-1 text-[10px] text-red-500">{formErrors.address}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">MSA (Master Service Agreement) <span className="text-red-500">*</span></label>
+                  <input
+                    name="msa"
+                    value={formData.msa}
+                    onChange={handleInputChange}
+                    placeholder="MSA agreement details or reference"
+                    className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${formErrors.msa ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.msa && <p className="mt-1 text-[10px] text-red-500">{formErrors.msa}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Upload MSA PDF</label>
+                  <input
+                    type="file"
+                    name="msaFile"
+                    onChange={handleFileChange}
+                    accept=".pdf"
+                    className="block h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">MSA Contact Person <span className="text-red-500">*</span></label>
+                  <input
+                    name="msaContactPerson"
+                    value={formData.msaContactPerson}
+                    onChange={handleInputChange}
+                    placeholder="John Doe"
+                    className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${formErrors.msaContactPerson ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.msaContactPerson && <p className="mt-1 text-[10px] text-red-500">{formErrors.msaContactPerson}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">MSA Contact Email <span className="text-red-500">*</span></label>
+                  <input
+                    type="email"
+                    name="msaContactEmail"
+                    value={formData.msaContactEmail}
+                    onChange={handleInputChange}
+                    placeholder="contact@acme.com"
+                    className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${formErrors.msaContactEmail ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.msaContactEmail && <p className="mt-1 text-[10px] text-red-500">{formErrors.msaContactEmail}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Countries Applicable</label>
+                  <input
+                    name="countriesApplicable"
+                    value={formData.countriesApplicable}
+                    onChange={handleInputChange}
+                    placeholder="US, Canada, Mexico"
+                    className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Notice Period (days)</label>
+                  <input
+                    type="number"
+                    name="noticePeriodDays"
+                    value={formData.noticePeriodDays}
+                    onChange={handleInputChange}
+                    min="0"
+                    className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${formErrors.noticePeriodDays ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {formErrors.noticePeriodDays && <p className="mt-1 text-[10px] text-red-500">{formErrors.noticePeriodDays}</p>}
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">MSA Remarks</label>
+                  <input
+                    name="msaRemark"
+                    value={formData.msaRemark}
+                    onChange={handleInputChange}
+                    placeholder="Additional remarks about MSA"
+                    className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+              </div>
             </form>
           </Modal>
         )}
@@ -435,30 +574,131 @@ const CustomersPage = () => {
           size="xxl"
           footer={<><Button variant="secondary" onClick={() => setIsPoModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isPoSubmitting} onClick={handlePoSubmit}>Create PO</Button></>}
         >
-          <form className="space-y-4">
+          <form className="space-y-5">
             {poFormErrors.submit && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3"><p className="text-sm text-red-400">{poFormErrors.submit}</p></div>}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="PO Number" name="poNumber" value={poFormData.poNumber} onChange={handlePoInputChange} error={poFormErrors.poNumber} placeholder="Enter PO number" required />
-              <Input label="PO Date" name="poDate" type="date" value={poFormData.poDate} onChange={handlePoInputChange} error={poFormErrors.poDate} required />
+
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Customer</label>
+              <input
+                type="text"
+                value={selectedCustomer?.name || ''}
+                readOnly
+                className="h-10 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-3 text-[12px] text-gray-900 outline-none"
+              />
             </div>
+
+            <hr className="border-gray-300" />
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Start Date" name="startDate" type="date" value={poFormData.startDate} onChange={handlePoInputChange} />
-              <Input label="End Date" name="endDate" type="date" value={poFormData.endDate} onChange={handlePoInputChange} />
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Number <span className="text-red-500">*</span></label>
+                <input
+                  name="poNumber"
+                  value={poFormData.poNumber}
+                  onChange={handlePoInputChange}
+                  placeholder="Enter PO number"
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${poFormErrors.poNumber ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {poFormErrors.poNumber && <p className="mt-1 text-[10px] text-red-500">{poFormErrors.poNumber}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Date <span className="text-red-500">*</span></label>
+                <input
+                  name="poDate"
+                  type="date"
+                  value={poFormData.poDate}
+                  onChange={handlePoInputChange}
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${poFormErrors.poDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {poFormErrors.poDate && <p className="mt-1 text-[10px] text-red-500">{poFormErrors.poDate}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Start Date</label>
+                <input
+                  name="startDate"
+                  type="date"
+                  value={poFormData.startDate}
+                  onChange={handlePoInputChange}
+                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">End Date</label>
+                <input
+                  name="endDate"
+                  type="date"
+                  value={poFormData.endDate}
+                  onChange={handlePoInputChange}
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${poFormErrors.endDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {poFormErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{poFormErrors.endDate}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Value <span className="text-red-500">*</span></label>
+                <input
+                  name="poValue"
+                  type="number"
+                  step="0.01"
+                  value={poFormData.poValue}
+                  onChange={handlePoInputChange}
+                  placeholder="0.00"
+                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${poFormErrors.poValue ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {poFormErrors.poValue && <p className="mt-1 text-[10px] text-red-500">{poFormErrors.poValue}</p>}
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Currency</label>
+                <input
+                  name="currency"
+                  value={poFormData.currency}
+                  onChange={handlePoInputChange}
+                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Payment Terms</label>
+                <input
+                  name="paymentTermsDays"
+                  type="number"
+                  value={poFormData.paymentTermsDays}
+                  onChange={handlePoInputChange}
+                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">No. of Resources</label>
+                <input
+                  name="numberOfResources"
+                  type="number"
+                  value={poFormData.numberOfResources}
+                  onChange={handlePoInputChange}
+                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="PO Value" name="poValue" type="number" step="0.01" value={poFormData.poValue} onChange={handlePoInputChange} error={poFormErrors.poValue} required />
-              <Input label="Currency" name="currency" value={poFormData.currency} onChange={handlePoInputChange} placeholder="USD" />
+
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Upload PO</label>
+              <input
+                name="file"
+                type="file"
+                onChange={handlePoFileChange}
+                accept=".pdf,.doc,.docx"
+                className="block h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
+              />
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Payment Terms (no. of days)" name="paymentTermsDays" type="number" value={poFormData.paymentTermsDays} onChange={handlePoInputChange} />
-              <Input label="Customer" value={selectedCustomer?.name || ''} readOnly disabled required />
+
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Remarks</label>
+              <textarea
+                name="remark"
+                rows={4}
+                value={poFormData.remark}
+                onChange={handlePoInputChange}
+                placeholder="Any notes or additional context"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              />
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="No. of resources - contractors" name="numberOfResources" type="number" value={poFormData.numberOfResources} onChange={handlePoInputChange} />
-              <Input label="PO Upload (File)" type="file" name="file" onChange={handlePoFileChange} accept=".pdf,.doc,.docx" />
-            </div>
-            <Input label="Remark" name="remark" value={poFormData.remark} onChange={handlePoInputChange} />
-            <Input label={<>Remarks <i>(Indicating with whom it&apos;s being shared e.g. co-worker)</i></>} name="sharedWith" value={poFormData.sharedWith} onChange={handlePoInputChange} placeholder="Shared with Finance team" />
           </form>
         </Modal>
       </motion.div>

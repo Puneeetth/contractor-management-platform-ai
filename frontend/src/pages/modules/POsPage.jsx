@@ -587,7 +587,7 @@ const POsPage = () => {
 
               {/* Section 6: Actions */}
               <div className="flex items-center justify-end gap-3 border-t border-[#d8e2ef] pt-5">
-                <button type="button" onClick={handleCancel} className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 text-[13px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
+                <button type="button" onClick={() => setMode('list')} className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 text-[13px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
                   Cancel
                 </button>
                 <button type="submit" disabled={isSubmitting} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db] disabled:opacity-60">
@@ -595,8 +595,8 @@ const POsPage = () => {
                 </button>
               </div>
             </form>
-          </Modal>
-        </>
+          </>
+        )}
       </div>
 
       <Modal
