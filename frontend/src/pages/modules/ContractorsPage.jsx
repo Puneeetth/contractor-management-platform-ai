@@ -825,146 +825,168 @@ const ContractorsPage = () => {
               </div>
             )}
 
-            {/* Section 1: Customer & PO Selection */}
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Customer & PO Selection</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Select
-                  label="Select Customer"
-                  name="customerId"
-                  value={contractFormData.customerId}
-                  onChange={handleContractInputChange}
-                  error={contractFormErrors.customerId}
-                  required
-                  placeholder="Select customer..."
-                  options={customers.map((customer) => ({
-                    value: String(customer.id),
-                    label: customer.name,
-                  }))}
-                />
-                <Select
-                  label="Select PO"
-                  name="poAllocation"
-                  value={contractFormData.poAllocation}
-                  onChange={handleContractInputChange}
-                  error={contractFormErrors.poAllocation}
-                  required
-                  disabled={!contractFormData.customerId}
-                  placeholder={contractFormData.customerId ? "Select PO..." : "Select a customer first"}
-                  options={filteredPosForCustomer.map((po) => ({
-                    value: String(po.poNumber).trim(),
-                    label: `${po.poNumber}`,
-                  }))}
-                />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Select Customer <span className="text-red-500">*</span></label>
+                  <select
+                    name="customerId"
+                    value={contractFormData.customerId}
+                    onChange={handleContractInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.customerId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  >
+                    <option value="">Select customer...</option>
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
+                    ))}
+                  </select>
+                  {contractFormErrors.customerId && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.customerId}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Select PO <span className="text-red-500">*</span></label>
+                  <select
+                    name="poAllocation"
+                    value={contractFormData.poAllocation}
+                    onChange={handleContractInputChange}
+                    disabled={!contractFormData.customerId}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none disabled:bg-gray-100 ${contractFormErrors.poAllocation ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  >
+                    <option value="">{contractFormData.customerId ? 'Select PO...' : 'Select a customer first'}</option>
+                    {filteredPosForCustomer.map((po) => (
+                      <option key={po.id || po.poNumber} value={String(po.poNumber).trim()}>{po.poNumber}</option>
+                    ))}
+                  </select>
+                  {contractFormErrors.poAllocation && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.poAllocation}</p>}
+                </div>
               </div>
             </div>
 
-            {/* Section 2: Contractor Information */}
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Contractor Information</h3>
-              <div>
-                <Select
-                  label="Contractor"
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Contractor <span className="text-red-500">*</span></label>
+                <select
                   name="contractorId"
                   value={contractFormData.contractorId}
                   onChange={handleContractInputChange}
-                  error={contractFormErrors.contractorId}
-                  required
-                  placeholder="Select contractor..."
-                  options={contractors.map((contractor) => ({
-                    value: String(contractor.id),
-                    label: `${contractor.name} (${contractor.contractorId})`,
-                  }))}
-                />
+                  disabled={isContractorLocked}
+                  className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none disabled:cursor-not-allowed disabled:bg-gray-100 ${contractFormErrors.contractorId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                >
+                  <option value="">Select contractor...</option>
+                  {contractors.map((contractor) => (
+                    <option key={contractor.id} value={String(contractor.id)}>{contractor.name} ({contractor.contractorId})</option>
+                  ))}
+                </select>
+                {contractFormErrors.contractorId && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.contractorId}</p>}
               </div>
             </div>
 
-            {/* Section 3: Commercial Details */}
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Commercial Details</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
-                  label="Bill Rate ($)"
-                  name="billRate"
-                  type="number"
-                  step="0.01"
-                  value={contractFormData.billRate}
-                  onChange={handleContractInputChange}
-                  error={contractFormErrors.billRate}
-                  required
-                />
-                <Input
-                  label="Pay Rate ($)"
-                  name="payRate"
-                  type="number"
-                  step="0.01"
-                  value={contractFormData.payRate}
-                  onChange={handleContractInputChange}
-                  error={contractFormErrors.payRate}
-                  required
-                />
-                <Input
-                  label="Estimated Hours"
-                  name="estimatedHours"
-                  type="number"
-                  value={contractFormData.estimatedHours}
-                  onChange={handleContractInputChange}
-                  error={contractFormErrors.estimatedHours}
-                  required
-                />
-                <Input
-                  label="Estimated Budget ($)"
-                  name="estimatedBudget"
-                  type="number"
-                  value={contractFormData.estimatedBudget}
-                  readOnly
-                  className="bg-gray-50 cursor-not-allowed"
-                  error={contractFormErrors.estimatedBudget}
-                />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Bill Rate ($) <span className="text-red-500">*</span></label>
+                  <input
+                    name="billRate"
+                    type="number"
+                    step="0.01"
+                    value={contractFormData.billRate}
+                    onChange={handleContractInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.billRate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {contractFormErrors.billRate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.billRate}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Pay Rate ($) <span className="text-red-500">*</span></label>
+                  <input
+                    name="payRate"
+                    type="number"
+                    step="0.01"
+                    value={contractFormData.payRate}
+                    onChange={handleContractInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.payRate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {contractFormErrors.payRate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.payRate}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Estimated Hours <span className="text-red-500">*</span></label>
+                  <input
+                    name="estimatedHours"
+                    type="number"
+                    value={contractFormData.estimatedHours}
+                    onChange={handleContractInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.estimatedHours ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {contractFormErrors.estimatedHours && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.estimatedHours}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Estimated Budget ($)</label>
+                  <input
+                    name="estimatedBudget"
+                    type="number"
+                    value={contractFormData.estimatedBudget}
+                    readOnly
+                    className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.estimatedBudget ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 bg-gray-50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {contractFormErrors.estimatedBudget && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.estimatedBudget}</p>}
+                </div>
               </div>
             </div>
 
-            {/* Section 4: Duration */}
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Duration</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
-                  label="Start Date"
-                  name="startDate"
-                  type="date"
-                  value={contractFormData.startDate}
-                  onChange={handleContractInputChange}
-                  error={contractFormErrors.startDate}
-                  required
-                  min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
-                />
-                <Input
-                  label="End Date"
-                  name="endDate"
-                  type="date"
-                  value={contractFormData.endDate}
-                  onChange={handleContractInputChange}
-                  error={contractFormErrors.endDate}
-                  required
-                  min={contractFormData.startDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
-                />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Start Date <span className="text-red-500">*</span></label>
+                  <input
+                    name="startDate"
+                    type="date"
+                    value={contractFormData.startDate}
+                    onChange={handleContractInputChange}
+                    min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.startDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {contractFormErrors.startDate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.startDate}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">End Date <span className="text-red-500">*</span></label>
+                  <input
+                    name="endDate"
+                    type="date"
+                    value={contractFormData.endDate}
+                    onChange={handleContractInputChange}
+                    min={contractFormData.startDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.endDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {contractFormErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.endDate}</p>}
+                </div>
               </div>
             </div>
 
-            {/* Section 5: Contract Terms */}
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Contract Terms</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
-                  label="Notice Period (days)"
-                  name="noticePeriodDays"
-                  type="number"
-                  value={contractFormData.noticePeriodDays}
-                  onChange={handleContractInputChange}
-                  error={contractFormErrors.noticePeriodDays}
-                />
-                <div className="flex items-center">
-                  <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 w-full cursor-pointer">
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Notice Period (days)</label>
+                  <input
+                    name="noticePeriodDays"
+                    type="number"
+                    value={contractFormData.noticePeriodDays}
+                    onChange={handleContractInputChange}
+                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.noticePeriodDays ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  />
+                  {contractFormErrors.noticePeriodDays && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.noticePeriodDays}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Through EOR</label>
+                  <label className="flex h-10 items-center gap-2 rounded-md border border-gray-300 bg-[#f8fafc] px-3 text-[12px] text-gray-700">
                     <input
                       type="checkbox"
                       name="throughEor"
@@ -978,12 +1000,30 @@ const ContractorsPage = () => {
               </div>
             </div>
 
-            {/* Section 6: Remarks */}
             <div>
               <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Remarks</h3>
               <div className="space-y-4">
-                <Textarea label="Remarks" name="remarks" value={contractFormData.remarks} onChange={handleContractInputChange} />
-                <Textarea label="Termination Remarks" name="terminationRemarks" value={contractFormData.terminationRemarks} onChange={handleContractInputChange} />
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Remarks</label>
+                  <textarea
+                    name="remarks"
+                    rows={4}
+                    value={contractFormData.remarks}
+                    onChange={handleContractInputChange}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Termination Remarks</label>
+                  <textarea
+                    name="terminationRemarks"
+                    rows={4}
+                    value={contractFormData.terminationRemarks}
+                    onChange={handleContractInputChange}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
               </div>
             </div>
           </form>
