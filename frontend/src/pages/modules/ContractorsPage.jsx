@@ -11,7 +11,7 @@ import {
   Search,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Badge, Button, Card, Loader, Modal } from '../../components/ui'
+import { Badge, Button, Card, Input, Loader, Modal, Select, Textarea } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
@@ -168,13 +168,15 @@ const ContractorsPage = () => {
     [purchaseOrders]
   )
 
-  const contractorById = useMemo(
+  const posByCustomerId = useMemo(
     () =>
-      contractors.reduce((lookup, contractor) => {
-        lookup[String(contractor.id)] = contractor
+      purchaseOrders.reduce((lookup, po) => {
+        const customerId = String(po.customerId || '')
+        if (!lookup[customerId]) lookup[customerId] = []
+        if (po.poNumber) lookup[customerId].push(po)
         return lookup
       }, {}),
-    [contractors]
+    [purchaseOrders]
   )
 
   const contractsByContractor = useMemo(
@@ -323,40 +325,67 @@ const ContractorsPage = () => {
   const handleContractInputChange = (event) => {
     const { name, value, type, checked } = event.target
     setContractFormData((prev) => {
+      let parsedValue = type === 'checkbox' ? checked : value
+
+      // Parse numeric fields
+      if (['billRate', 'payRate'].includes(name)) {
+        parsedValue = parseFloat(value) || ''
+      } else if (['estimatedHours', 'noticePeriodDays'].includes(name)) {
+        parsedValue = parseInt(value, 10) || ''
+      }
+
       let next = {
         ...prev,
-        [name]: type === 'checkbox' ? checked : value,
+        [name]: parsedValue,
       }
-      if (name === 'poAllocation') {
-        const linkedPo = poByNumber[String(value || '').trim()]
+
+      // When customer changes, clear PO selection
+      if (name === 'customerId') {
+        next.poAllocation = ''
+      }
+
+      // When PO is selected, auto-fill customer from PO
+      if (name === 'poAllocation' && parsedValue) {
+        const linkedPo = poByNumber[String(parsedValue).trim()]
         next.customerId = linkedPo?.customerId ? String(linkedPo.customerId) : ''
       }
+
+      // Auto-calculate budget
       if (name === 'billRate' || name === 'estimatedHours') {
         next = updateContractBudget(next)
       }
+
       return next
     })
     if (contractFormErrors[name]) {
       setContractFormErrors((prev) => ({ ...prev, [name]: '' }))
     }
+    if ((name === 'billRate' || name === 'payRate') && contractFormErrors.rateValidation) {
+      setContractFormErrors((prev) => ({ ...prev, rateValidation: '' }))
+    }
   }
+
+  const filteredPosForCustomer = useMemo(() => {
+    if (!contractFormData.customerId) return []
+    return posByCustomerId[String(contractFormData.customerId)] || []
+  }, [contractFormData.customerId, posByCustomerId])
 
   const validateContractForm = () => {
     const errors = {}
+    if (!validators.isRequired(contractFormData.customerId)) errors.customerId = 'Customer is required'
     if (!validators.isRequired(contractFormData.contractorId)) errors.contractorId = 'Contractor is required'
     if (!validators.isRequired(contractFormData.billRate)) errors.billRate = 'Bill rate is required'
     if (!validators.isRequired(contractFormData.payRate)) errors.payRate = 'Pay rate is required'
-    if (Number(contractFormData.payRate) >= Number(contractFormData.billRate)) errors.payRate = 'Pay rate must be less than bill rate'
+    if (Number(contractFormData.payRate) >= Number(contractFormData.billRate)) errors.rateValidation = 'Pay rate must be less than bill rate'
     if (!validators.isRequired(contractFormData.estimatedHours)) errors.estimatedHours = 'Estimated hours is required'
     if (!validators.isRequired(contractFormData.estimatedBudget)) errors.estimatedBudget = 'Estimated budget is required'
     if (!validators.isRequired(contractFormData.startDate)) errors.startDate = 'Start date is required'
     if (!validators.isRequired(contractFormData.endDate)) errors.endDate = 'End date is required'
-    if (contractFormData.endDate && contractFormData.startDate && contractFormData.endDate < contractFormData.startDate) {
-      errors.endDate = 'End date must be after start date'
+    if (contractFormData.startDate && contractFormData.endDate && contractFormData.endDate < contractFormData.startDate) {
+      errors.endDate = 'End date cannot be before start date'
     }
     if (!validators.isRequired(contractFormData.noticePeriodDays) && contractFormData.noticePeriodDays !== 0) errors.noticePeriodDays = 'Notice period is required'
     if (Number(contractFormData.noticePeriodDays) < 0) errors.noticePeriodDays = 'Notice period cannot be negative'
-    if (!contractFormData.poAllocation && !validators.isRequired(contractFormData.customerId)) errors.customerId = 'Customer is required when no PO is selected'
 
     setContractFormErrors(errors)
     return Object.keys(errors).length === 0
@@ -783,199 +812,179 @@ const ContractorsPage = () => {
             </>
           }
         >
-          <form className="space-y-4" onSubmit={submitContract}>
+          <form className="space-y-5" onSubmit={submitContract}>
             {contractFormErrors.submit && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                 <p className="text-sm text-red-700">{contractFormErrors.submit}</p>
               </div>
             )}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Contractor <span className="text-red-500">*</span></label>
-                {isContractorLocked && contractorById[String(contractFormData.contractorId)] ? (
-                  <input
-                    value={`${contractorById[String(contractFormData.contractorId)]?.name || ''} (${contractorById[String(contractFormData.contractorId)]?.contractorId || ''})`}
-                    readOnly
-                    className="h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 text-[12px] text-gray-900 outline-none"
-                  />
-                ) : (
-                  <select
-                    name="contractorId"
-                    value={contractFormData.contractorId}
-                    onChange={handleContractInputChange}
-                    className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.contractorId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
-                  >
-                    <option value="">Select contractor...</option>
-                    {contractors.map((contractor) => (
-                      <option key={contractor.id} value={String(contractor.id)}>{contractor.name} ({contractor.contractorId})</option>
-                    ))}
-                  </select>
-                )}
-                {contractFormErrors.contractorId && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.contractorId}</p>}
+
+            {contractFormErrors.rateValidation && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="text-sm text-red-700">{contractFormErrors.rateValidation}</p>
               </div>
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Customer</label>
-                <select
+            )}
+
+            {/* Section 1: Customer & PO Selection */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Customer & PO Selection</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Select
+                  label="Select Customer"
                   name="customerId"
                   value={contractFormData.customerId}
                   onChange={handleContractInputChange}
-                  disabled={Boolean(contractFormData.poAllocation)}
-                  className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none disabled:bg-gray-100 ${contractFormErrors.customerId ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
-                >
-                  <option value="">Select customer...</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
-                  ))}
-                </select>
-                {contractFormErrors.customerId && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.customerId}</p>}
+                  error={contractFormErrors.customerId}
+                  required
+                  placeholder="Select customer..."
+                  options={customers.map((customer) => ({
+                    value: String(customer.id),
+                    label: customer.name,
+                  }))}
+                />
+                <Select
+                  label="Select PO"
+                  name="poAllocation"
+                  value={contractFormData.poAllocation}
+                  onChange={handleContractInputChange}
+                  error={contractFormErrors.poAllocation}
+                  required
+                  disabled={!contractFormData.customerId}
+                  placeholder={contractFormData.customerId ? "Select PO..." : "Select a customer first"}
+                  options={filteredPosForCustomer.map((po) => ({
+                    value: String(po.poNumber).trim(),
+                    label: `${po.poNumber}`,
+                  }))}
+                />
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Allocation (optional)</label>
-              <select
-                name="poAllocation"
-                value={contractFormData.poAllocation}
-                onChange={handleContractInputChange}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-              >
-                <option value="">No PO</option>
-                {purchaseOrders.filter((po) => po.poNumber).map((po) => (
-                  <option key={po.id || po.poNumber} value={String(po.poNumber).trim()}>
-                    {po.poNumber} ({customerNameById[String(po.customerId)] || `Customer #${po.customerId}`})
-                  </option>
-                ))}
-              </select>
+
+            {/* Section 2: Contractor Information */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Contractor Information</h3>
+              <div>
+                <Select
+                  label="Contractor"
+                  name="contractorId"
+                  value={contractFormData.contractorId}
+                  onChange={handleContractInputChange}
+                  error={contractFormErrors.contractorId}
+                  required
+                  placeholder="Select contractor..."
+                  options={contractors.map((contractor) => ({
+                    value: String(contractor.id),
+                    label: `${contractor.name} (${contractor.contractorId})`,
+                  }))}
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Bill Rate <span className="text-red-500">*</span></label>
-                <input
+
+            {/* Section 3: Commercial Details */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Commercial Details</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label="Bill Rate ($)"
                   name="billRate"
                   type="number"
                   step="0.01"
                   value={contractFormData.billRate}
                   onChange={handleContractInputChange}
-                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.billRate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  error={contractFormErrors.billRate}
+                  required
                 />
-                {contractFormErrors.billRate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.billRate}</p>}
-              </div>
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Pay Rate <span className="text-red-500">*</span></label>
-                <input
+                <Input
+                  label="Pay Rate ($)"
                   name="payRate"
                   type="number"
                   step="0.01"
                   value={contractFormData.payRate}
                   onChange={handleContractInputChange}
-                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.payRate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  error={contractFormErrors.payRate}
+                  required
                 />
-                {contractFormErrors.payRate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.payRate}</p>}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Estimated Hours <span className="text-red-500">*</span></label>
-                <input
+                <Input
+                  label="Estimated Hours"
                   name="estimatedHours"
                   type="number"
                   value={contractFormData.estimatedHours}
                   onChange={handleContractInputChange}
-                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.estimatedHours ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  error={contractFormErrors.estimatedHours}
+                  required
                 />
-                {contractFormErrors.estimatedHours && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.estimatedHours}</p>}
-              </div>
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Estimated Budget <span className="text-red-500">*</span></label>
-                <input
+                <Input
+                  label="Estimated Budget ($)"
                   name="estimatedBudget"
                   type="number"
                   value={contractFormData.estimatedBudget}
                   readOnly
-                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.estimatedBudget ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 bg-gray-50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  className="bg-gray-50 cursor-not-allowed"
+                  error={contractFormErrors.estimatedBudget}
                 />
-                {contractFormErrors.estimatedBudget && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.estimatedBudget}</p>}
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Start Date <span className="text-red-500">*</span></label>
-                <input
+
+            {/* Section 4: Duration */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Duration</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label="Start Date"
                   name="startDate"
                   type="date"
                   value={contractFormData.startDate}
                   onChange={handleContractInputChange}
-                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.startDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  error={contractFormErrors.startDate}
+                  required
+                  min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
                 />
-                {contractFormErrors.startDate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.startDate}</p>}
-              </div>
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">End Date <span className="text-red-500">*</span></label>
-                <input
+                <Input
+                  label="End Date"
                   name="endDate"
                   type="date"
                   value={contractFormData.endDate}
                   onChange={handleContractInputChange}
-                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.endDate ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  error={contractFormErrors.endDate}
+                  required
+                  min={contractFormData.startDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
                 />
-                {contractFormErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.endDate}</p>}
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Notice Period</label>
-                <input
+
+            {/* Section 5: Contract Terms */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Contract Terms</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label="Notice Period (days)"
                   name="noticePeriodDays"
                   type="number"
                   value={contractFormData.noticePeriodDays}
                   onChange={handleContractInputChange}
-                  min="0"
-                  className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${contractFormErrors.noticePeriodDays ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                  error={contractFormErrors.noticePeriodDays}
                 />
-                {contractFormErrors.noticePeriodDays && <p className="mt-1 text-[10px] text-red-500">{contractFormErrors.noticePeriodDays}</p>}
-              </div>
-              <div className="space-y-1">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Through EOR (Toggle)</label>
-                <label className="flex h-10 items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900">
-                  <span>{contractFormData.throughEor ? 'Enabled' : 'Disabled'}</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={contractFormData.throughEor}
-                    onClick={() =>
-                      handleContractInputChange({
-                        target: {
-                          name: 'throughEor',
-                          type: 'checkbox',
-                          checked: !contractFormData.throughEor,
-                        },
-                      })
-                    }
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${contractFormData.throughEor ? 'bg-[#4b4fe8]' : 'bg-gray-300'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${contractFormData.throughEor ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                  </button>
-                </label>
+                <div className="flex items-center">
+                  <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 w-full cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="throughEor"
+                      checked={contractFormData.throughEor}
+                      onChange={handleContractInputChange}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    Through EOR
+                  </label>
+                </div>
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="mb-1 block text-[11px] font-medium text-gray-700">Remarks</label>
-              <textarea
-                name="remarks"
-                rows={4}
-                value={contractFormData.remarks}
-                onChange={handleContractInputChange}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="mb-1 block text-[11px] font-medium text-gray-700">Termination Remarks</label>
-              <textarea
-                name="terminationRemarks"
-                rows={4}
-                value={contractFormData.terminationRemarks}
-                onChange={handleContractInputChange}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-              />
+
+            {/* Section 6: Remarks */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Remarks</h3>
+              <div className="space-y-4">
+                <Textarea label="Remarks" name="remarks" value={contractFormData.remarks} onChange={handleContractInputChange} />
+                <Textarea label="Termination Remarks" name="terminationRemarks" value={contractFormData.terminationRemarks} onChange={handleContractInputChange} />
+              </div>
             </div>
           </form>
         </Modal>

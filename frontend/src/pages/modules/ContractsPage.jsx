@@ -13,7 +13,7 @@ import {
   User,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
-import { Button, Card, Loader, Modal, Input, Textarea } from '../../components/ui'
+import { Button, Card, Loader, Modal, Input, Select, Textarea } from '../../components/ui'
 import { contractService, contractorService } from '../../services/contractorService'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
@@ -134,6 +134,17 @@ const ContractsPage = () => {
     [purchaseOrders]
   )
 
+  const posByCustomerId = useMemo(
+    () =>
+      purchaseOrders.reduce((lookup, po) => {
+        const customerId = String(po.customerId || '')
+        if (!lookup[customerId]) lookup[customerId] = []
+        if (po.poNumber) lookup[customerId].push(po)
+        return lookup
+      }, {}),
+    [purchaseOrders]
+  )
+
   const rows = useMemo(() => {
     return contracts.map((contract) => {
       const contractor = contractorById[String(contract.contractorId)] || null
@@ -177,22 +188,29 @@ const ContractsPage = () => {
     const { name, value, type, checked } = event.target
 
     setFormData((prev) => {
-      const parsedValue =
-        type === 'checkbox'
-          ? checked
-          : ['billRate', 'payRate'].includes(name)
-            ? parseFloat(value) || ''
-            : ['estimatedHours', 'noticePeriodDays'].includes(name)
-              ? parseInt(value, 10) || ''
-              : value
+      let parsedValue = type === 'checkbox' ? checked : value
+
+      // Parse numeric fields
+      if (['billRate', 'payRate'].includes(name)) {
+        parsedValue = parseFloat(value) || ''
+      } else if (['estimatedHours', 'noticePeriodDays'].includes(name)) {
+        parsedValue = parseInt(value, 10) || ''
+      }
 
       let next = { ...prev, [name]: parsedValue }
 
-      if (name === 'poAllocation') {
-        const linkedPo = poByNumber[String(parsedValue || '').trim()]
+      // When customer changes, clear PO selection
+      if (name === 'customerId') {
+        next.poAllocation = ''
+      }
+
+      // When PO is selected, auto-fill customer from PO
+      if (name === 'poAllocation' && parsedValue) {
+        const linkedPo = poByNumber[String(parsedValue).trim()]
         next.customerId = linkedPo?.customerId ? String(linkedPo.customerId) : ''
       }
 
+      // Auto-calculate budget
       if (name === 'billRate' || name === 'estimatedHours') {
         const billRate = Number(name === 'billRate' ? parsedValue : prev.billRate) || 0
         const estimatedHours = Number(name === 'estimatedHours' ? parsedValue : prev.estimatedHours) || 0
@@ -210,19 +228,24 @@ const ContractsPage = () => {
     }
   }
 
+  const filteredPosForCustomer = useMemo(() => {
+    if (!formData.customerId) return []
+    return posByCustomerId[String(formData.customerId)] || []
+  }, [formData.customerId, posByCustomerId])
+
   const validateForm = () => {
     const errors = {}
+    if (!validators.isRequired(formData.customerId)) errors.customerId = 'Customer is required'
     if (!validators.isRequired(formData.contractorId)) errors.contractorId = 'Contractor is required'
     if (!validators.isRequired(formData.billRate)) errors.billRate = 'Bill rate is required'
     if (!validators.isRequired(formData.payRate)) errors.payRate = 'Pay rate is required'
+    if (Number(formData.payRate) >= Number(formData.billRate)) errors.rateValidation = 'Pay rate must be less than bill rate'
     if (!validators.isRequired(formData.estimatedHours)) errors.estimatedHours = 'Estimated hours is required'
     if (!validators.isRequired(formData.estimatedBudget)) errors.estimatedBudget = 'Estimated budget is required'
-    if (Number(formData.payRate) >= Number(formData.billRate)) errors.rateValidation = 'Pay rate must be less than bill rate'
     if (!validators.isRequired(formData.startDate)) errors.startDate = 'Start date is required'
     if (!validators.isRequired(formData.endDate)) errors.endDate = 'End date is required'
     if (formData.startDate && formData.startDate < minStartDate) errors.startDate = 'Start date must be in the future'
     if (formData.startDate && formData.endDate && formData.endDate < formData.startDate) errors.endDate = 'End date cannot be before start date'
-    if (!formData.poAllocation && !validators.isRequired(formData.customerId)) errors.customerId = 'Customer is required when PO is not selected'
     if (Number(formData.noticePeriodDays) < 0) errors.noticePeriodDays = 'Notice period cannot be negative'
     setFormErrors(errors)
     return Object.keys(errors).length === 0
@@ -416,68 +439,12 @@ const ContractsPage = () => {
             </>
           }
         >
-          <form className="space-y-4">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {formErrors.submit && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                 <p className="text-sm text-red-700">{formErrors.submit}</p>
               </div>
             )}
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Contractor</label>
-                <select
-                  name="contractorId"
-                  value={formData.contractorId}
-                  onChange={handleInputChange}
-                  className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500"
-                >
-                  <option value="">Select contractor...</option>
-                  {contractors.map((contractor) => (
-                    <option key={contractor.id} value={String(contractor.id)}>
-                      {contractor.name} ({contractor.contractorId})
-                    </option>
-                  ))}
-                </select>
-                {formErrors.contractorId && <p className="mt-1 text-xs text-red-600">{formErrors.contractorId}</p>}
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">PO Allocation (Optional)</label>
-                <select
-                  name="poAllocation"
-                  value={formData.poAllocation}
-                  onChange={handleInputChange}
-                  className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500"
-                >
-                  <option value="">No PO</option>
-                  {purchaseOrders.filter((po) => po.poNumber).map((po) => (
-                    <option key={po.id || po.poNumber} value={String(po.poNumber).trim()}>
-                      {po.poNumber} ({customerById[String(po.customerId)]?.name || `Customer #${po.customerId}`})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Customer</label>
-              <select
-                name="customerId"
-                value={formData.customerId}
-                onChange={handleInputChange}
-                disabled={Boolean(formData.poAllocation)}
-                className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500 disabled:bg-gray-100"
-              >
-                <option value="">Select customer...</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={String(customer.id)}>
-                    {customer.name}
-                  </option>
-                ))}
-              </select>
-              {formErrors.customerId && <p className="mt-1 text-xs text-red-600">{formErrors.customerId}</p>}
-            </div>
 
             {formErrors.rateValidation && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
@@ -485,32 +452,166 @@ const ContractsPage = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Bill Rate ($)" name="billRate" type="number" step="0.01" value={formData.billRate} onChange={handleInputChange} error={formErrors.billRate} />
-              <Input label="Pay Rate ($)" name="payRate" type="number" step="0.01" value={formData.payRate} onChange={handleInputChange} error={formErrors.payRate} />
+            {/* Section 1: Customer & PO Selection */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Customer & PO Selection</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Select
+                  label="Select Customer"
+                  name="customerId"
+                  value={formData.customerId}
+                  onChange={handleInputChange}
+                  error={formErrors.customerId}
+                  required
+                  placeholder="Select customer..."
+                  options={customers.map((customer) => ({
+                    value: String(customer.id),
+                    label: customer.name,
+                  }))}
+                />
+                <Select
+                  label="Select PO"
+                  name="poAllocation"
+                  value={formData.poAllocation}
+                  onChange={handleInputChange}
+                  error={formErrors.poAllocation}
+                  required
+                  disabled={!formData.customerId}
+                  placeholder={formData.customerId ? "Select PO..." : "Select a customer first"}
+                  options={filteredPosForCustomer.map((po) => ({
+                    value: String(po.poNumber).trim(),
+                    label: `${po.poNumber}`,
+                  }))}
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Estimated Hours" name="estimatedHours" type="number" value={formData.estimatedHours} onChange={handleInputChange} error={formErrors.estimatedHours} />
-              <Input label="Estimated Budget ($)" name="estimatedBudget" type="number" value={formData.estimatedBudget} readOnly error={formErrors.estimatedBudget} />
+            {/* Section 2: Contractor Information */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Contractor Information</h3>
+              <div>
+                <Select
+                  label="Contractor"
+                  name="contractorId"
+                  value={formData.contractorId}
+                  onChange={handleInputChange}
+                  error={formErrors.contractorId}
+                  required
+                  placeholder="Select contractor..."
+                  options={contractors.map((contractor) => ({
+                    value: String(contractor.id),
+                    label: `${contractor.name} (${contractor.contractorId})`,
+                  }))}
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Start Date" name="startDate" type="date" value={formData.startDate} onChange={handleInputChange} error={formErrors.startDate} min={minStartDate} />
-              <Input label="End Date" name="endDate" type="date" value={formData.endDate} onChange={handleInputChange} error={formErrors.endDate} min={formData.startDate || minStartDate} />
+            {/* Section 3: Commercial Details */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Commercial Details</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label="Bill Rate ($)"
+                  name="billRate"
+                  type="number"
+                  step="0.01"
+                  value={formData.billRate}
+                  onChange={handleInputChange}
+                  error={formErrors.billRate}
+                  required
+                />
+                <Input
+                  label="Pay Rate ($)"
+                  name="payRate"
+                  type="number"
+                  step="0.01"
+                  value={formData.payRate}
+                  onChange={handleInputChange}
+                  error={formErrors.payRate}
+                  required
+                />
+                <Input
+                  label="Estimated Hours"
+                  name="estimatedHours"
+                  type="number"
+                  value={formData.estimatedHours}
+                  onChange={handleInputChange}
+                  error={formErrors.estimatedHours}
+                  required
+                />
+                <Input
+                  label="Estimated Budget ($)"
+                  name="estimatedBudget"
+                  type="number"
+                  value={formData.estimatedBudget}
+                  readOnly
+                  className="bg-gray-50 cursor-not-allowed"
+                  error={formErrors.estimatedBudget}
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input label="Notice Period (days)" name="noticePeriodDays" type="number" value={formData.noticePeriodDays} onChange={handleInputChange} error={formErrors.noticePeriodDays} />
-              <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
-                <input type="checkbox" name="throughEor" checked={formData.throughEor} onChange={handleInputChange} />
-                Through EOR
-              </label>
+            {/* Section 4: Duration */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Duration</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label="Start Date"
+                  name="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                  error={formErrors.startDate}
+                  required
+                  min={minStartDate}
+                />
+                <Input
+                  label="End Date"
+                  name="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                  error={formErrors.endDate}
+                  required
+                  min={formData.startDate || minStartDate}
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Textarea label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} />
-              <Textarea label="Termination Remarks" name="terminationRemarks" value={formData.terminationRemarks} onChange={handleInputChange} />
+            {/* Section 5: Contract Terms */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Contract Terms</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label="Notice Period (days)"
+                  name="noticePeriodDays"
+                  type="number"
+                  value={formData.noticePeriodDays}
+                  onChange={handleInputChange}
+                  error={formErrors.noticePeriodDays}
+                />
+                <div className="flex items-center">
+                  <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 w-full cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="throughEor"
+                      checked={formData.throughEor}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    Through EOR
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 6: Remarks */}
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-[#1c2f4b]">Remarks</h3>
+              <div className="space-y-4">
+                <Textarea label="Remarks" name="remarks" value={formData.remarks} onChange={handleInputChange} />
+                <Textarea label="Termination Remarks" name="terminationRemarks" value={formData.terminationRemarks} onChange={handleInputChange} />
+              </div>
             </div>
           </form>
         </Modal>
