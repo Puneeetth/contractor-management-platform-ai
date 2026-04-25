@@ -3,11 +3,10 @@ package com.cmp.ai.dto.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ContractorRequest {
@@ -15,7 +14,7 @@ public class ContractorRequest {
     @NotNull
     private Long userId;
 
-    private String ContractorId;
+    private String contractorId;
 
     @NotBlank
     private String name;
