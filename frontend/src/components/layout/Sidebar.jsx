@@ -29,6 +29,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     { icon: Receipt, label: 'POs', path: '/pos', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
     { icon: Wallet, label: 'Invoices', path: '/invoices', roles: ['ADMIN', 'FINANCE', 'MANAGER', 'CONTRACTOR'] },
     { icon: Wallet, label: 'Expenses', path: '/expenses', roles: ['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE'] },
+    { icon: Receipt, label: 'Bank Account', path: '/bank-account', roles: ['CONTRACTOR'] },
   ]
 
   const systemItems = [

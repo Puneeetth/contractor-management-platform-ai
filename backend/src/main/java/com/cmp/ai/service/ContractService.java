@@ -137,6 +137,16 @@ public class ContractService {
                 .toList();
     }
 
+    /**
+     * Get active contracts for a specific contractor
+     */
+    public List<ContractResponse> getActiveContractsByContractor(Long contractorId) {
+        List<Contract> activeContracts = contractRepository.findByContractorIdAndStatus(contractorId, ContractStatus.ACTIVE);
+        return activeContracts.stream()
+                .map(ContractTransformer::contractToContractResponse)
+                .collect(Collectors.toList());
+    }
+
     private LocalDate parseDateOrThrow(String value, String fieldName) {
         try {
             return LocalDate.parse(value);

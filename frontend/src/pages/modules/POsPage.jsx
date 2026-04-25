@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   AlertCircle,
   ArrowRight,
@@ -37,6 +38,8 @@ const EMPTY_FORM = {
 }
 
 const POsPage = () => {
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [mode, setMode] = useState('list')
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -57,6 +60,21 @@ const POsPage = () => {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Handle URL params for create mode and pre-selected customer
+  useEffect(() => {
+    const shouldCreate = searchParams.get('create') === 'true'
+    const preSelectedCustomerId = searchParams.get('customerId')
+    if (shouldCreate) {
+      setMode('create')
+      setFormData((prev) => ({
+        ...prev,
+        ...(preSelectedCustomerId ? { customerId: preSelectedCustomerId } : {}),
+      }))
+      setFormErrors({})
+      setSuccess('')
+    }
+  }, [searchParams])
 
   const loadData = async () => {
     try {
@@ -185,6 +203,13 @@ const POsPage = () => {
     }
   }
 
+  const handleCancel = () => {
+    setFormData(EMPTY_FORM)
+    setFormErrors({})
+    setMode('list')
+    navigate('/pos', { replace: true })
+  }
+
   const handleExportData = () => {
     downloadPOsPdf({
       title: 'Purchase Orders Export',
@@ -211,129 +236,106 @@ const POsPage = () => {
           </div>
         )}
 
-        {mode === 'list' ? (
-          <>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Purchase Orders</h1>
-                <p className="mt-1 text-[13px] text-[#4a5c77]">Manage and track procurement cycles across the enterprise.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={handleExportData} className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
-                  <Download className="h-4 w-4" /> Export
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('create')
-                    setFormData(EMPTY_FORM)
-                    setFormErrors({})
-                    setSuccess('')
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
-                >
-                  <Plus className="h-4 w-4" /> New PO
-                </button>
-              </div>
+        <>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Purchase Orders</h1>
+              <p className="mt-1 text-[13px] text-[#4a5c77]">Manage and track procurement cycles across the enterprise.</p>
             </div>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={handleExportData} className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
+                <Download className="h-4 w-4" /> Export
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/pos?create=true')}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
+              >
+                <Plus className="h-4 w-4" /> New PO
+              </button>
+            </div>
+          </div>
 
-            <Card className="border-[#d8e2ef] shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
-              <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_88px]">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#95a2b7]" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder="Search orders, customers..."
-                    className="h-9 w-full rounded-xl border border-[#e6ebf3] bg-white pl-10 pr-3 text-[13px] text-[#263448] placeholder:text-[#9aa8bb] outline-none focus:border-[#a9b9d3]"
-                  />
-                </div>
-                <button type="button" onClick={() => setSearchTerm('')} className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-[#f8fbff] px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-white">
-                  Clear
-                </button>
+          <Card className="border-[#d8e2ef] shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
+            <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_88px]">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#95a2b7]" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search orders, customers..."
+                  className="h-9 w-full rounded-xl border border-[#e6ebf3] bg-white pl-10 pr-3 text-[13px] text-[#263448] placeholder:text-[#9aa8bb] outline-none focus:border-[#a9b9d3]"
+                />
               </div>
-            </Card>
+              <button type="button" onClick={() => setSearchTerm('')} className="h-9 w-full rounded-xl border border-[#d8e2ef] bg-[#f8fbff] px-3 text-[13px] font-semibold text-[#4f5f78] hover:bg-white">
+                Clear
+              </button>
+            </div>
+          </Card>
 
-            <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]" isPadded={false}>
-              {isLoading ? (
-                <div className="py-12 flex justify-center"><Loader message="Loading purchase orders..." /></div>
-              ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="border-b border-[#e0e8f3] bg-[#f7f9fc]">
-                          <th className="whitespace-nowrap px-3 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Number</th>
-                          <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">Customer</th>
-                          <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Date</th>
-                          <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Value</th>
-                          <th className="whitespace-nowrap px-3 py-2.5 text-right text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pageRows.map((row) => (
-                          <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
-                            <td className="px-3 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dee5fb] text-[#3e53dd]">
-                                  <Briefcase className="h-3.5 w-3.5" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate whitespace-nowrap text-[13px] font-semibold leading-none text-[#12203a]">{row.poNumber}</p>
-                                  <p className="truncate whitespace-nowrap text-[10px] text-[#8a98ad]">{customerNameById[String(row.customerId)] || `Customer #${row.customerId}`}</p>
-                                </div>
+          <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]" isPadded={false}>
+            {isLoading ? (
+              <div className="py-12 flex justify-center"><Loader message="Loading purchase orders..." /></div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b border-[#e0e8f3] bg-[#f7f9fc]">
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Number</th>
+                        <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">Customer</th>
+                        <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Date</th>
+                        <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PO Value</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageRows.map((row) => (
+                        <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dee5fb] text-[#3e53dd]">
+                                <Briefcase className="h-3.5 w-3.5" />
                               </div>
-                            </td>
-                            <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] font-medium text-[#111827]">{customerNameById[String(row.customerId)] || `Customer #${row.customerId}`}</td>
-                            <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] text-[#374151]">{formatters.formatDate(row.poDate)}</td>
-                            <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] font-semibold text-[#111827]">{formatters.formatCurrency(row.poValue)}</td>
-                            <td className="px-3 py-2.5 text-right">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedPo(row)}
-                                className="inline-flex items-center gap-1 text-[13px] font-medium text-[#3f4fe8] hover:underline"
-                              >
-                                View <ArrowRight className="h-4 w-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate whitespace-nowrap text-[13px] font-semibold leading-none text-[#12203a]">{row.poNumber}</p>
+                                <p className="truncate whitespace-nowrap text-[10px] text-[#8a98ad]">{customerNameById[String(row.customerId)] || `Customer #${row.customerId}`}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] font-medium text-[#111827]">{customerNameById[String(row.customerId)] || `Customer #${row.customerId}`}</td>
+                          <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] text-[#374151]">{formatters.formatDate(row.poDate)}</td>
+                          <td className="whitespace-nowrap px-2.5 py-2.5 text-[13px] font-semibold text-[#111827]">{formatters.formatCurrency(row.poValue)}</td>
+                          <td className="px-3 py-2.5 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPo(row)}
+                              className="inline-flex items-center gap-1 text-[13px] font-medium text-[#3f4fe8] hover:underline"
+                            >
+                              View <ArrowRight className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex items-center justify-between px-5 py-4">
+                  <p className="text-sm text-[#5f6f88]">
+                    Showing {(currentPage - 1) * PAGE_SIZE + (pageRows.length ? 1 : 0)} to {(currentPage - 1) * PAGE_SIZE + pageRows.length} of {filteredRows.length} results
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#d8e2ef] text-[#8aa0bc] disabled:opacity-50">‹</button>
+                    <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-lg bg-[#4b4fe8] px-3 text-sm font-semibold text-white">{currentPage}</span>
+                    <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#d8e2ef] text-[#8aa0bc] disabled:opacity-50">›</button>
                   </div>
-                  <div className="flex items-center justify-between px-5 py-4">
-                    <p className="text-sm text-[#5f6f88]">
-                      Showing {(currentPage - 1) * PAGE_SIZE + (pageRows.length ? 1 : 0)} to {(currentPage - 1) * PAGE_SIZE + pageRows.length} of {filteredRows.length} results
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#d8e2ef] text-[#8aa0bc] disabled:opacity-50">‹</button>
-                      <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-lg bg-[#4b4fe8] px-3 text-sm font-semibold text-white">{currentPage}</span>
-                      <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#d8e2ef] text-[#8aa0bc] disabled:opacity-50">›</button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </Card>
+                </div>
+              </>
+            )}
+          </Card>
 
-          </>
-        ) : (
-          <>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-[22px] leading-none font-bold text-[#0f1d33]">Create New Purchase Order</h1>
-                <p className="mt-1 text-[12px] text-[#4a5c77]">Initiate a new procurement request by filling in the details below.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => setMode('list')} className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-3.5 text-[13px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
-                  Cancel
-                </button>
-                <button type="button" onClick={handleCreatePO} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#4b4fe8] px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]">
-                  Create PO
-                </button>
-              </div>
-            </div>
-
+          <Modal isOpen={mode === 'create'} onClose={handleCancel} title="Create New Purchase Order" size="xxl">
             {formErrors.submit && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                 <p className="text-sm text-red-700">{formErrors.submit}</p>

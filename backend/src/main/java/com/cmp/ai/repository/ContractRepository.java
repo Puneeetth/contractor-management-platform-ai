@@ -9,5 +9,6 @@ import com.cmp.ai.enums.ContractStatus;
 
 public interface ContractRepository extends JpaRepository<Contract, Long> {
     List<Contract> findByContractorId(Long id);
+    List<Contract> findByContractorIdAndStatus(Long contractorId, ContractStatus status);
     List<Contract> findByPoAllocationAndStatus(String poAllocation, ContractStatus status);
 }

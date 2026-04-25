@@ -10,6 +10,7 @@ export const invoiceService = {
     const formData = new FormData()
 
     formData.append('contractorId', invoiceData.contractorId)
+    formData.append('contractId', invoiceData.contractId)
     formData.append('invoiceMonth', invoiceData.invoiceMonth)
     formData.append('totalHours', invoiceData.totalHours)
     formData.append('taxPercentage', invoiceData.taxPercentage)

@@ -16,6 +16,7 @@ import ExpensesPage from '../pages/modules/ExpensesPage'
 import AdminPendingApprovalsPage from '../pages/modules/AdminPendingApprovalsPage'
 import AdministrationPage from '../pages/modules/AdministrationPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
+import BankAccountPage from '../pages/modules/BankAccountPage'
 
 export const AppRoutes = () => {
   return (
@@ -107,6 +108,15 @@ export const AppRoutes = () => {
           element={
             <PrivateRoute requiredRoles={['ADMIN', 'CONTRACTOR', 'MANAGER', 'FINANCE']}>
               <ExpensesPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/bank-account"
+          element={
+            <PrivateRoute requiredRoles={['CONTRACTOR']}>
+              <BankAccountPage />
             </PrivateRoute>
           }
         />
