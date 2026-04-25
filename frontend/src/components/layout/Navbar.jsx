@@ -9,6 +9,10 @@ export const Navbar = ({ onMenuClick }) => {
   const fileInputRef = useRef(null)
   const [profileImage, setProfileImage] = useState('')
   const displayName = user?.name || user?.fullName || user?.username || user?.email?.split('@')[0] || 'User'
+  const profileImageStorageKey =
+    user?.id || user?.userId || user?.email || user?.username
+      ? `cmpai_profile_image_${String(user?.id || user?.userId || user?.email || user?.username).toLowerCase()}`
+      : ''
   const isTopbarPage =
     location.pathname === '/dashboard' ||
     location.pathname === '/customers' ||
@@ -19,9 +23,14 @@ export const Navbar = ({ onMenuClick }) => {
   const isAdminDashboard = location.pathname === '/dashboard' && user?.role === 'ADMIN'
 
   useEffect(() => {
-    const savedImage = localStorage.getItem('cmpai_profile_image')
-    if (savedImage) setProfileImage(savedImage)
-  }, [])
+    if (!profileImageStorageKey) {
+      setProfileImage('')
+      return
+    }
+
+    const savedImage = localStorage.getItem(profileImageStorageKey)
+    setProfileImage(savedImage || '')
+  }, [profileImageStorageKey])
 
   const handleProfileImageChange = (event) => {
     const file = event.target.files?.[0]
@@ -29,9 +38,9 @@ export const Navbar = ({ onMenuClick }) => {
     const reader = new FileReader()
     reader.onloadend = () => {
       const imageData = String(reader.result || '')
-      if (!imageData) return
+      if (!imageData || !profileImageStorageKey) return
       setProfileImage(imageData)
-      localStorage.setItem('cmpai_profile_image', imageData)
+      localStorage.setItem(profileImageStorageKey, imageData)
     }
     reader.readAsDataURL(file)
   }
