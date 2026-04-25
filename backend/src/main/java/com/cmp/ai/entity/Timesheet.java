@@ -14,6 +14,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Column;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -32,7 +33,7 @@ import jakarta.persistence.Index;
 @Table( 
     name = "time_sheet",
     indexes = {
-        @Index(name = "idx_timesheet_contractor_month",columnList = "contractor_id, month")
+        @Index(name = "idx_timesheet_contractor_month", columnList = "contractor_id, timesheet_month")
     }
 )
 public class Timesheet {
@@ -45,6 +46,7 @@ public class Timesheet {
     @JoinColumn(name = "contractor_id")
     private User contractor;
 
+    @Column(name = "timesheet_month")
     private String month;
 
     private Double totalHours;
