@@ -31,6 +31,7 @@ public class InvoiceService {
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
     private final FileService fileService;
+    private final AuditTrailService auditTrailService;
 
     public InvoiceResponse createInvoice(InvoiceRequest request, MultipartFile invoiceFile, MultipartFile timesheetFile) {
 
@@ -97,7 +98,10 @@ public class InvoiceService {
             existingInvoice.setFinanceApprovalStatus(Status.PENDING);
             existingInvoice.setAdminRejectionReason(null);
             existingInvoice.setFinanceRejectionReason(null);
-            return toInvoiceResponseWithRates(invoiceRepository.save(existingInvoice));
+            Invoice savedInvoice = invoiceRepository.save(existingInvoice);
+            auditTrailService.logSystemAction("INVOICE", savedInvoice.getId(), "RESUBMIT_INVOICE", "Resubmitted rejected invoice", savedInvoice.getInvoiceMonth());
+            auditTrailService.logWorkflowAction("INVOICE", savedInvoice.getId(), "INVOICE_SUBMISSION", "RESUBMITTED", savedInvoice.getStatus().name(), null);
+            return toInvoiceResponseWithRates(savedInvoice);
         }
 
         // ✅ Create invoice
@@ -116,7 +120,10 @@ public class InvoiceService {
                 .financeApprovalStatus(Status.PENDING)
                 .build();
 
-        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+        Invoice savedInvoice = invoiceRepository.save(invoice);
+        auditTrailService.logSystemAction("INVOICE", savedInvoice.getId(), "CREATE_INVOICE", "Submitted invoice", savedInvoice.getInvoiceMonth());
+        auditTrailService.logWorkflowAction("INVOICE", savedInvoice.getId(), "INVOICE_SUBMISSION", "SUBMITTED", savedInvoice.getStatus().name(), null);
+        return toInvoiceResponseWithRates(savedInvoice);
     }
 
     public Double getActiveContractRate(@NonNull Long contractorId) {
@@ -154,7 +161,10 @@ public class InvoiceService {
         if (Status.APPROVED.equals(invoice.getAdminApprovalStatus())) {
             invoice.setStatus(Status.APPROVED);
         }
-        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+        Invoice savedInvoice = invoiceRepository.save(invoice);
+        auditTrailService.logSystemAction("INVOICE", savedInvoice.getId(), "APPROVE_INVOICE", "Approved invoice via legacy route", null);
+        auditTrailService.logWorkflowAction("INVOICE", savedInvoice.getId(), "INVOICE_FINANCE_APPROVAL", "APPROVED", savedInvoice.getFinanceApprovalStatus().name(), null);
+        return toInvoiceResponseWithRates(savedInvoice);
     }
 
     public InvoiceResponse approveInvoiceByAdmin(@NonNull Long invoiceId) {
@@ -166,7 +176,10 @@ public class InvoiceService {
         if (Status.APPROVED.equals(invoice.getFinanceApprovalStatus())) {
             invoice.setStatus(Status.APPROVED);
         }
-        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+        Invoice savedInvoice = invoiceRepository.save(invoice);
+        auditTrailService.logSystemAction("INVOICE", savedInvoice.getId(), "ADMIN_APPROVE_INVOICE", "Admin approved invoice", null);
+        auditTrailService.logWorkflowAction("INVOICE", savedInvoice.getId(), "INVOICE_ADMIN_APPROVAL", "APPROVED", savedInvoice.getAdminApprovalStatus().name(), null);
+        return toInvoiceResponseWithRates(savedInvoice);
     }
 
     public InvoiceResponse approveInvoiceByFinance(@NonNull Long invoiceId) {
@@ -178,7 +191,10 @@ public class InvoiceService {
         if (Status.APPROVED.equals(invoice.getAdminApprovalStatus())) {
             invoice.setStatus(Status.APPROVED);
         }
-        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+        Invoice savedInvoice = invoiceRepository.save(invoice);
+        auditTrailService.logSystemAction("INVOICE", savedInvoice.getId(), "FINANCE_APPROVE_INVOICE", "Finance approved invoice", null);
+        auditTrailService.logWorkflowAction("INVOICE", savedInvoice.getId(), "INVOICE_FINANCE_APPROVAL", "APPROVED", savedInvoice.getFinanceApprovalStatus().name(), null);
+        return toInvoiceResponseWithRates(savedInvoice);
     }
 
     public InvoiceResponse rejectInvoiceByAdmin(@NonNull Long invoiceId, String rejectionReason) {
@@ -192,7 +208,10 @@ public class InvoiceService {
         invoice.setAdminApprovalStatus(Status.REJECTED);
         invoice.setAdminRejectionReason(rejectionReason.trim());
         invoice.setStatus(Status.REJECTED);
-        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+        Invoice savedInvoice = invoiceRepository.save(invoice);
+        auditTrailService.logSystemAction("INVOICE", savedInvoice.getId(), "ADMIN_REJECT_INVOICE", "Admin rejected invoice", rejectionReason.trim());
+        auditTrailService.logWorkflowAction("INVOICE", savedInvoice.getId(), "INVOICE_ADMIN_APPROVAL", "REJECTED", savedInvoice.getAdminApprovalStatus().name(), rejectionReason.trim());
+        return toInvoiceResponseWithRates(savedInvoice);
     }
 
     public InvoiceResponse rejectInvoiceByFinance(@NonNull Long invoiceId, String rejectionReason) {
@@ -206,7 +225,10 @@ public class InvoiceService {
         invoice.setFinanceApprovalStatus(Status.REJECTED);
         invoice.setFinanceRejectionReason(rejectionReason.trim());
         invoice.setStatus(Status.REJECTED);
-        return toInvoiceResponseWithRates(invoiceRepository.save(invoice));
+        Invoice savedInvoice = invoiceRepository.save(invoice);
+        auditTrailService.logSystemAction("INVOICE", savedInvoice.getId(), "FINANCE_REJECT_INVOICE", "Finance rejected invoice", rejectionReason.trim());
+        auditTrailService.logWorkflowAction("INVOICE", savedInvoice.getId(), "INVOICE_FINANCE_APPROVAL", "REJECTED", savedInvoice.getFinanceApprovalStatus().name(), rejectionReason.trim());
+        return toInvoiceResponseWithRates(savedInvoice);
     }
 
     private InvoiceResponse toInvoiceResponseWithRates(Invoice invoice) {

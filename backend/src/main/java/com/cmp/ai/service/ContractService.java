@@ -50,6 +50,7 @@ public class ContractService {
     private final ContractorRepository contractorRepository;
     private final CustomerRepository customerRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final AuditTrailService auditTrailService;
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
     public ContractResponse createContract(ContractRequest request) {
@@ -144,7 +145,9 @@ public class ContractService {
         request.setCustomerId(customer.getId());
         Contract contract = ContractTransformer.contractRequestToContract(request, contractor, customer);
         contract.setStatus(ContractStatus.UPCOMING);
-        return ContractTransformer.contractToContractResponse(contractRepository.save(contract));
+        Contract savedContract = contractRepository.save(contract);
+        auditTrailService.logSystemAction("CONTRACT", savedContract.getId(), "CREATE_CONTRACT", "Created contract", savedContract.getPoAllocation());
+        return ContractTransformer.contractToContractResponse(savedContract);
     }
 
     public List<ContractResponse> getAllContracts() {

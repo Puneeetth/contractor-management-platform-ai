@@ -25,6 +25,7 @@ public class TimesheetService {
 
     private final TimesheetRepository timesheetRepository;
     private final UserRepository userRepository;
+    private final AuditTrailService auditTrailService;
 
     public TimesheetResponse createTimesheet(TimesheetRequest request) {
         User contractor = userRepository.findById(request.getContractorId())
@@ -38,7 +39,10 @@ public class TimesheetService {
         Timesheet timesheet = TimesheetTransformer.timesheetRequestToTimesheet(request, contractor);
         timesheet.getEntries().forEach(entry -> entry.setTimesheet(timesheet));
 
-        return TimesheetTransformer.timesheetToTimesheetResponse(timesheetRepository.save(timesheet));
+        Timesheet savedTimesheet = timesheetRepository.save(timesheet);
+        auditTrailService.logSystemAction("TIMESHEET", savedTimesheet.getId(), "CREATE_TIMESHEET", "Submitted timesheet", savedTimesheet.getMonth());
+        auditTrailService.logWorkflowAction("TIMESHEET", savedTimesheet.getId(), "TIMESHEET_APPROVAL", "SUBMITTED", savedTimesheet.getStatus().name(), null);
+        return TimesheetTransformer.timesheetToTimesheetResponse(savedTimesheet);
     }
 
     public List<TimesheetResponse> getAllTimesheets() {
@@ -58,6 +62,9 @@ public class TimesheetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Timesheet not found"));
 
         timesheet.setStatus(Status.APPROVED);
-        return TimesheetTransformer.timesheetToTimesheetResponse(timesheetRepository.save(timesheet));
+        Timesheet savedTimesheet = timesheetRepository.save(timesheet);
+        auditTrailService.logSystemAction("TIMESHEET", savedTimesheet.getId(), "APPROVE_TIMESHEET", "Approved timesheet", savedTimesheet.getMonth());
+        auditTrailService.logWorkflowAction("TIMESHEET", savedTimesheet.getId(), "TIMESHEET_APPROVAL", "APPROVED", savedTimesheet.getStatus().name(), null);
+        return TimesheetTransformer.timesheetToTimesheetResponse(savedTimesheet);
     }
 }

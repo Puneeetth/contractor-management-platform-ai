@@ -8,6 +8,7 @@ import {
   Receipt,
   Wallet,
   ShieldCheck,
+  ClipboardList,
   LogOut,
   X,
   Sparkles,
@@ -34,6 +35,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
   const systemItems = [
     { icon: ShieldCheck, label: 'Administration', path: '/admin/administration', roles: ['ADMIN'] },
+    { icon: ClipboardList, label: 'Audit Trail', path: '/admin/audit-trail', roles: ['ADMIN', 'FINANCE', 'MANAGER'] },
   ]
 
   const isActive = (path) => location.pathname === path

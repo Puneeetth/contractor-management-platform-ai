@@ -42,6 +42,7 @@ public class ContractorService {
     private final ContractorRepository contractorRepository;
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
+    private final AuditTrailService auditTrailService;
 
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
@@ -50,7 +51,9 @@ public class ContractorService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Contractor contractor = ContractorTransformer.contractorRequestToContractor(request, user);
-        return ContractorTransformer.contractorToContractorResponse(contractorRepository.save(contractor));
+        Contractor savedContractor = contractorRepository.save(contractor);
+        auditTrailService.logSystemAction("CONTRACTOR", savedContractor.getId(), "CREATE_CONTRACTOR", "Created contractor profile", savedContractor.getContractorId());
+        return ContractorTransformer.contractorToContractorResponse(savedContractor);
     }
     public ContractorResponse getContractorById(Long id) {
         Contractor contractor = contractorRepository.findById(id)
@@ -91,14 +94,16 @@ public class ContractorService {
         contractor.setCustomerManager(request.getCustomerManager());
         contractor.setCustomerManagerEmail(request.getCustomerManagerEmail());
 
-        return ContractorTransformer.contractorToContractorResponse(contractorRepository.save(contractor));
+        Contractor savedContractor = contractorRepository.save(contractor);
+        auditTrailService.logSystemAction("CONTRACTOR", savedContractor.getId(), "UPDATE_CONTRACTOR", "Updated contractor profile", savedContractor.getName());
+        return ContractorTransformer.contractorToContractorResponse(savedContractor);
     }
 
     public void deleteContractor(@NonNull Long id) {
-        if (!contractorRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Contractor not found");
-        }
+        Contractor contractor = contractorRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contractor not found"));
         contractorRepository.deleteById(id);
+        auditTrailService.logSystemAction("CONTRACTOR", id, "DELETE_CONTRACTOR", "Deleted contractor profile", contractor.getName());
     }
 
     public byte[] exportContractors(String month, Long customerId, String region, String status, boolean includeFinancials) {

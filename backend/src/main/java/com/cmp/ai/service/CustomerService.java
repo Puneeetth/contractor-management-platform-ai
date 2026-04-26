@@ -18,11 +18,12 @@ import lombok.RequiredArgsConstructor;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final AuditTrailService auditTrailService;
 
     public CustomerResponse createCustomer(CustomerRequest request) {
-        return CustomerTransformer.customerToCustomerResponse(
-                customerRepository.save(CustomerTransformer.customerRequestToCustomer(request))
-        );
+        var customer = customerRepository.save(CustomerTransformer.customerRequestToCustomer(request));
+        auditTrailService.logSystemAction("CUSTOMER", customer.getId(), "CREATE_CUSTOMER", "Created customer", customer.getName());
+        return CustomerTransformer.customerToCustomerResponse(customer);
     }
 
     public List<CustomerResponse> getAllCustomers() {
