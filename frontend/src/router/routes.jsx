@@ -15,6 +15,7 @@ import InvoicesPage from '../pages/modules/InvoicesPage'
 import ExpensesPage from '../pages/modules/ExpensesPage'
 import AdminPendingApprovalsPage from '../pages/modules/AdminPendingApprovalsPage'
 import AdministrationPage from '../pages/modules/AdministrationPage'
+import AuditTrailPage from '../pages/modules/AuditTrailPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
 import BankAccountPage from '../pages/modules/BankAccountPage'
 
@@ -136,6 +137,15 @@ export const AppRoutes = () => {
           element={
             <PrivateRoute requiredRoles={['ADMIN']}>
               <AdministrationPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/audit-trail"
+          element={
+            <PrivateRoute requiredRoles={['ADMIN', 'FINANCE', 'MANAGER']}>
+              <AuditTrailPage />
             </PrivateRoute>
           }
         />
