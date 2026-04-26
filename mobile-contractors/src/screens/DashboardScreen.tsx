@@ -9,20 +9,24 @@ export function DashboardScreen() {
   return (
     <ScreenLayout>
       <Text style={styles.heading}>Welcome, {session?.contractor.fullName}</Text>
-      <Text style={styles.subheading}>Contractor mobile dashboard</Text>
+      <Text style={styles.subheading}>Contractor workspace overview</Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Today's Summary</Text>
-        <Text style={styles.cardValue}>3 assigned jobs</Text>
-        <Text style={styles.cardText}>1 site visit pending approval</Text>
-        <Text style={styles.cardText}>2 documents waiting for upload</Text>
+        <Text style={styles.cardTitle}>Operations</Text>
+        <Text style={styles.cardText}>Assigned jobs and approval activity will appear here.</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Quick Notes</Text>
+        <Text style={styles.cardTitle}>Documents</Text>
         <Text style={styles.cardText}>
-          Keep this screen limited to contractor information, approvals, schedules, and work
-          status only.
+          Upload progress, pending submissions, and review comments will be available here.
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Notices</Text>
+        <Text style={styles.cardText}>
+          You do not have any new workspace notifications right now.
         </Text>
       </View>
     </ScreenLayout>
@@ -53,12 +57,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0f4c81",
     marginBottom: 12
-  },
-  cardValue: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#102a43",
-    marginBottom: 8
   },
   cardText: {
     fontSize: 15,

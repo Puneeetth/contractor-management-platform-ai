@@ -196,9 +196,19 @@ const ContractsPage = () => {
 
       // Parse numeric fields
       if (['billRate', 'payRate'].includes(name)) {
-        parsedValue = parseFloat(value) || ''
+        parsedValue = value === '' ? '' : parseFloat(value)
       } else if (['estimatedHours', 'noticePeriodDays'].includes(name)) {
-        parsedValue = parseInt(value, 10) || ''
+        parsedValue = value === '' ? '' : parseInt(value, 10)
+      }
+
+      // Prevent payRate from being >= billRate
+      if (name === 'payRate' && parsedValue !== '' && prev.billRate !== '' && Number(parsedValue) >= Number(prev.billRate)) {
+        setFormErrors((p) => ({ ...p, payRate: 'Pay rate must be less than bill rate' }))
+        return prev
+      }
+      if (name === 'billRate' && parsedValue !== '' && prev.payRate !== '' && Number(parsedValue) <= Number(prev.payRate)) {
+        setFormErrors((p) => ({ ...p, payRate: 'Bill rate must be greater than pay rate' }))
+        return prev
       }
 
       let next = { ...prev, [name]: parsedValue }
@@ -224,13 +234,24 @@ const ContractsPage = () => {
       return next
     })
 
-    if (formErrors[name]) {
-      setFormErrors((prev) => ({ ...prev, [name]: '' }))
-    }
-    if ((name === 'billRate' || name === 'payRate') && formErrors.rateValidation) {
-      setFormErrors((prev) => ({ ...prev, rateValidation: '' }))
+    if (name === 'billRate' || name === 'payRate') {
+      setFormErrors((prev) => ({ ...prev, payRate: '' }))
     }
   }
+
+  useEffect(() => {
+    if (formData.payRate !== '' && formData.billRate !== '' && 
+        Number(formData.payRate) >= Number(formData.billRate)) {
+      setFormErrors(prev => ({ ...prev, payRate: 'Pay rate must be less than bill rate' }))
+    } else {
+      setFormErrors(prev => {
+        if (prev.payRate === 'Pay rate must be less than bill rate') {
+          return { ...prev, payRate: '' }
+        }
+        return prev
+      })
+    }
+  }, [formData.payRate, formData.billRate])
 
   const filteredPosForCustomer = useMemo(() => {
     if (!formData.customerId) return []
@@ -243,7 +264,9 @@ const ContractsPage = () => {
     if (!validators.isRequired(formData.contractorId)) errors.contractorId = 'Contractor is required'
     if (!validators.isRequired(formData.billRate)) errors.billRate = 'Bill rate is required'
     if (!validators.isRequired(formData.payRate)) errors.payRate = 'Pay rate is required'
-    if (Number(formData.payRate) >= Number(formData.billRate)) errors.rateValidation = 'Pay rate must be less than bill rate'
+    if (formData.payRate && formData.billRate && Number(formData.payRate) >= Number(formData.billRate)) {
+      errors.payRate = 'Pay rate must be less than bill rate'
+    }
     if (!validators.isRequired(formData.estimatedHours)) errors.estimatedHours = 'Estimated hours is required'
     if (!validators.isRequired(formData.estimatedBudget)) errors.estimatedBudget = 'Estimated budget is required'
     if (!validators.isRequired(formData.startDate)) errors.startDate = 'Start date is required'
@@ -491,12 +514,6 @@ const ContractsPage = () => {
             {formErrors.submit && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                 <p className="text-sm text-red-700">{formErrors.submit}</p>
-              </div>
-            )}
-
-            {formErrors.rateValidation && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-                <p className="text-sm text-red-700">{formErrors.rateValidation}</p>
               </div>
             )}
 

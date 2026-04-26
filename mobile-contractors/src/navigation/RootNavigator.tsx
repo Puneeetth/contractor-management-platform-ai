@@ -4,12 +4,12 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import { LoginScreen } from "../screens/LoginScreen";
 import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
-import { ContractorTabs } from "./ContractorTabs";
+import { ContractorDrawer } from "./ContractorDrawer";
 
 export type AuthStackParamList = {
   Login: undefined;
   ForgotPassword: undefined;
-  ContractorTabs: undefined;
+  ContractorDrawer: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -28,7 +28,7 @@ export function RootNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {session ? (
-        <Stack.Screen name="ContractorTabs" component={ContractorTabs} />
+        <Stack.Screen name="ContractorDrawer" component={ContractorDrawer} />
       ) : (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
