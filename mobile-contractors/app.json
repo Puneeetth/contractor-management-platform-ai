@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Contractor Mobile",
+    "slug": "mobile-contractors",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.company.contractormobile"
+    },
+    "ios": {
+      "bundleIdentifier": "com.company.contractormobile"
+    }
+  }
+}
