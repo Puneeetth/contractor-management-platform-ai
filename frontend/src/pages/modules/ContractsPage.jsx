@@ -13,8 +13,10 @@ import {
   User,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
+import ContractExportModal from '../../components/contracts/ContractExportModal'
 import { Button, Card, Loader, Modal } from '../../components/ui'
-import { contractService, contractorService } from '../../services/contractorService'
+import { contractorService } from '../../services/contractorService'
+import { contractService } from '../../services/contractService'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
 import { dedupeBy } from '../../utils/dedupe'
@@ -49,6 +51,8 @@ const ContractsPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState(EMPTY_FORM)
   const [formErrors, setFormErrors] = useState({})
@@ -285,6 +289,45 @@ const ContractsPage = () => {
     }
   }
 
+  const handleExportContracts = async (filters, resetModalState) => {
+    setIsExporting(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const blob = await contractService.exportContracts({
+        month: filters.month,
+        customerId: filters.customerId || undefined,
+        contractorId: filters.contractorId || undefined,
+        status: filters.status || undefined,
+        includeFinancialDetails: filters.includeFinancialDetails,
+      })
+
+      const fileUrl = window.URL.createObjectURL(
+        blob instanceof Blob
+          ? blob
+          : new Blob([blob], {
+              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            })
+      )
+      const link = document.createElement('a')
+      link.href = fileUrl
+      link.download = `contracts-export-${filters.month}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(fileUrl)
+
+      setIsExportModalOpen(false)
+      resetModalState()
+      setSuccess('Contracts exported successfully')
+    } catch (err) {
+      setError(err?.message || 'Failed to export contracts')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -296,6 +339,11 @@ const ContractsPage = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
+              onClick={() => {
+                setError('')
+                setSuccess('')
+                setIsExportModalOpen(true)
+              }}
               className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
             >
               <Download className="h-4 w-4" /> Export CSV
@@ -652,6 +700,15 @@ const ContractsPage = () => {
             </div>
           </form>
         </Modal>
+
+        <ContractExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          customers={customers}
+          contractors={contractors}
+          isExporting={isExporting}
+          onExport={handleExportContracts}
+        />
       </div>
     </DashboardLayout>
   )
