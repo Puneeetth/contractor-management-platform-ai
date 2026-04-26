@@ -18,7 +18,6 @@ import { poService } from '../../services/poService'
 import { dedupeBy } from '../../utils/dedupe'
 import { useAuthStore } from '../../hooks/useAuth'
 import { formatters } from '../../utils/formatters'
-import { downloadContractorsPdf } from '../../utils/pdfExport'
 import { validators } from '../../utils/validators'
 
 const EMPTY_CONTRACTOR_FORM = {
@@ -53,6 +52,14 @@ const EMPTY_CONTRACT_FORM = {
   terminationRemarks: '',
 }
 
+const EMPTY_EXPORT_FILTERS = {
+  month: '',
+  customerId: '',
+  region: '',
+  status: '',
+  includeFinancials: false,
+}
+
 const ContractorsPage = () => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -74,6 +81,11 @@ const ContractorsPage = () => {
   const [customerFilter, setCustomerFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [page, setPage] = useState(1)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportFilters, setExportFilters] = useState(EMPTY_EXPORT_FILTERS)
+  const [exportFilterErrors, setExportFilterErrors] = useState({})
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('')
 
   const [isContractorModalOpen, setIsContractorModalOpen] = useState(false)
   const [contractorFormData, setContractorFormData] = useState(EMPTY_CONTRACTOR_FORM)
@@ -157,6 +169,11 @@ const ContractorsPage = () => {
       }, {}),
     [customers]
   )
+
+  const exportCustomerOptions = useMemo(() => {
+    const query = customerSearchTerm.trim().toLowerCase()
+    return customers.filter((customer) => !query || String(customer.name || '').toLowerCase().includes(query))
+  }, [customerSearchTerm, customers])
 
   const poByNumber = useMemo(
     () =>
@@ -242,6 +259,12 @@ const ContractorsPage = () => {
     setContractorFormErrors({})
     setShowContractorPassword(false)
     setShowContractorConfirmPassword(false)
+  }
+
+  const resetExportFilters = () => {
+    setExportFilters(EMPTY_EXPORT_FILTERS)
+    setExportFilterErrors({})
+    setCustomerSearchTerm('')
   }
 
   const resetContractForm = () => {
@@ -425,13 +448,52 @@ const ContractorsPage = () => {
 
   const regionOptions = ['ALL', 'UK', 'US', 'EU', 'APAC', 'MIDDLE EAST']
 
-  const handleExportData = () => {
-    downloadContractorsPdf({
-      title: 'Contractors Export',
-      filename: `contractors-export-${new Date().toISOString().slice(0, 10)}.pdf`,
-      contractors: filteredRows,
-      customerNameById,
-    })
+  const validateExportFilters = () => {
+    const errors = {}
+    if (!validators.isRequired(exportFilters.month)) errors.month = 'Month is required'
+    setExportFilterErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleExportData = async () => {
+    if (!validateExportFilters()) return
+
+    setIsExporting(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const blob = await contractorService.exportContractors({
+        month: exportFilters.month,
+        customerId: exportFilters.customerId || undefined,
+        region: exportFilters.region || undefined,
+        status: exportFilters.status || undefined,
+        includeFinancials: exportFilters.includeFinancials,
+      })
+
+      const fileUrl = window.URL.createObjectURL(
+        blob instanceof Blob
+          ? blob
+          : new Blob([blob], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          })
+      )
+      const link = document.createElement('a')
+      link.href = fileUrl
+      link.download = `contractors-export-${exportFilters.month}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(fileUrl)
+
+      setIsExportModalOpen(false)
+      resetExportFilters()
+      setSuccess('Contractors exported successfully')
+    } catch (err) {
+      setError(err?.message || 'Failed to export contractors')
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -445,10 +507,14 @@ const ContractorsPage = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={handleExportData}
+              onClick={() => {
+                setSuccess('')
+                setError('')
+                setIsExportModalOpen(true)
+              }}
               className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
             >
-              <Download className="h-4 w-4" /> Export Data
+              <Download className="h-4 w-4" /> Export Contractors
             </button>
             {isAdmin && (
               <button
@@ -621,6 +687,108 @@ const ContractorsPage = () => {
             </>
           )}
         </Card>
+
+        <Modal
+          isOpen={isExportModalOpen}
+          onClose={() => {
+            setIsExportModalOpen(false)
+            resetExportFilters()
+          }}
+          title="Export Contractors"
+          size="xxl"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => {
+                setIsExportModalOpen(false)
+                resetExportFilters()
+              }}>Cancel</Button>
+              <Button variant="primary" isLoading={isExporting} onClick={handleExportData}>Export</Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Month <span className="text-red-500">*</span></label>
+                <input
+                  type="month"
+                  value={exportFilters.month}
+                  onChange={(event) => {
+                    setExportFilters((prev) => ({ ...prev, month: event.target.value }))
+                    if (exportFilterErrors.month) {
+                      setExportFilterErrors((prev) => ({ ...prev, month: '' }))
+                    }
+                  }}
+                  className={`h-10 w-full rounded-md border bg-white px-3 text-[12px] text-gray-900 outline-none ${exportFilterErrors.month ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'}`}
+                />
+                {exportFilterErrors.month && <p className="mt-1 text-[10px] text-red-500">{exportFilterErrors.month}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Region</label>
+                <select
+                  value={exportFilters.region}
+                  onChange={(event) => setExportFilters((prev) => ({ ...prev, region: event.target.value }))}
+                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  <option value="">All regions</option>
+                  {regionOptions.filter((option) => option !== 'ALL').map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Customer</label>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_220px]">
+                  <input
+                    type="text"
+                    value={customerSearchTerm}
+                    onChange={(event) => setCustomerSearchTerm(event.target.value)}
+                    placeholder="Search customer..."
+                    className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                  <select
+                    value={exportFilters.customerId}
+                    onChange={(event) => setExportFilters((prev) => ({ ...prev, customerId: event.target.value }))}
+                    className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="">All customers</option>
+                    {exportCustomerOptions.map((customer) => (
+                      <option key={customer.id} value={String(customer.id)}>{customer.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Status</label>
+                <select
+                  value={exportFilters.status}
+                  onChange={(event) => setExportFilters((prev) => ({ ...prev, status: event.target.value }))}
+                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  <option value="">All statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Include Financials</label>
+                <label className="flex h-10 items-center gap-2 rounded-md border border-gray-300 bg-[#f8fafc] px-3 text-[12px] text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={exportFilters.includeFinancials}
+                    onChange={(event) => setExportFilters((prev) => ({ ...prev, includeFinancials: event.target.checked }))}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  Include revenue, cost, and margin
+                </label>
+              </div>
+            </div>
+          </div>
+        </Modal>
 
         <Modal
           isOpen={isContractorModalOpen}
