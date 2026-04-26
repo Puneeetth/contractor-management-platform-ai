@@ -200,14 +200,7 @@ const DashboardPage = () => {
       })
       const contractorsWithoutActiveContract = contractorList.length - activeContractorIds.size
 
-      let healthTip = 'All active contracts are in a healthy state for this month.'
-      if (expiringSoonContracts.length > 0) {
-        healthTip = `${expiringSoonContracts.length} active contract${expiringSoonContracts.length > 1 ? 's are' : ' is'} ending within 30 days. Review renewals and PO continuity before billing cutoff.`
-      } else if (contractorsWithoutActiveContract > 0) {
-        healthTip = `${contractorsWithoutActiveContract} contractor${contractorsWithoutActiveContract > 1 ? 's do' : ' does'} not have an active contract. Check onboarding, contract dates, or PO assignment.`
-      } else if (pendingApprovalCount > 0) {
-        healthTip = `${pendingApprovalCount} invoice${pendingApprovalCount > 1 ? 's are' : ' is'} still pending approval. Clearing approvals will improve billing readiness.`
-      }
+      const healthTip = 'You can always write a review for rejecting an invoice.'
 
       setContractors(contractorList)
       setStats({
