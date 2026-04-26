@@ -10,6 +10,9 @@ export const Modal = ({
   footer = null,
   size = 'md',
   titleClassName = 'text-lg font-semibold text-gray-900',
+  headerClassName = '',
+  contentClassName = '',
+  footerClassName = '',
 }) => {
   if (!isOpen) return null
 
@@ -42,7 +45,7 @@ export const Modal = ({
           ${sizes[size]}
         `}
       >
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+        <div className={`flex justify-between items-center border-b border-gray-200 p-6 ${headerClassName}`}>
           <h2 className={titleClassName}>{title}</h2>
           <button
             onClick={onClose}
@@ -52,12 +55,12 @@ export const Modal = ({
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className={`overflow-y-auto flex-1 p-6 ${contentClassName}`}>
           {children}
         </div>
 
         {footer && (
-          <div className="border-t border-gray-200 p-6 flex justify-end gap-3">
+          <div className={`border-t border-gray-200 p-6 flex justify-end gap-3 ${footerClassName}`}>
             {footer}
           </div>
         )}

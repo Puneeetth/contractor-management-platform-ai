@@ -442,16 +442,15 @@ const CustomersPage = () => {
           </Modal>
         )}
 
-        <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="Customer Details" size="xxl" footer={<Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>Cancel</Button>}>
-          {selectedCustomer && (
-            <div className="space-y-6 p-1">
-              <div className="flex flex-col gap-4 border-b border-[#e5ebf4] pb-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#60728f]">Global Client Profile</p>
-                  <h2 className="mt-1 text-[30px] font-extrabold tracking-[-0.03em] text-[#0f1d33]">{selectedCustomer.name}</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="inline-flex h-10 items-center gap-2 rounded-sm border border-[#d8e2ef] bg-white px-4 text-[12px] font-semibold text-[#1b2c46]">
+        <Modal
+          isOpen={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+          title={
+            selectedCustomer ? (
+              <div className="flex w-full items-center justify-between gap-3 pr-1">
+                <span className="mt-1 text-[18px] font-extrabold tracking-[-0.03em] text-[#3557b8]">Client Profile</span>
+                <div className="flex items-center gap-1.5">
+                  <button className="inline-flex h-8 items-center gap-2 rounded-sm border border-[#d8e2ef] bg-white px-3 text-[10px] font-semibold text-[#1b2c46]">
                     Edit Profile
                   </button>
                   <button
@@ -460,81 +459,84 @@ const CustomersPage = () => {
                       setIsViewModalOpen(false)
                       openPoModal(selectedCustomer)
                     }}
-                    className="inline-flex h-10 items-center gap-2 rounded-sm bg-[#3e57d8] px-4 text-[12px] font-semibold text-white shadow-[0_10px_18px_rgba(62,87,216,0.24)]"
+                    className="inline-flex h-8 items-center gap-2 rounded-sm bg-[#3e57d8] px-3 text-[10px] font-semibold text-white shadow-[0_8px_14px_rgba(62,87,216,0.22)]"
                   >
                     Add New PO
                   </button>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.7fr_0.95fr]">
-                <div className="rounded-[22px] border-l-4 border-l-[#3662cb] border border-[#e2e8f3] bg-white px-6 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_0.95fr]">
-                    <div className="space-y-5">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Corporate Entity</p>
-                        <div className="mt-4 space-y-4">
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Registration Name</p>
-                            <p className="mt-1 text-[22px] font-extrabold tracking-[-0.03em] text-[#10203a]">{selectedCustomer.name}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Tax Identifier</p>
-                            <p className="mt-1 text-[18px] font-bold text-[#1f3048]">{selectedCustomer.taxIdentifier || selectedCustomer.msa || 'Not Provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Headquarters</p>
-                            <p className="mt-1 text-[14px] leading-7 text-[#42536b]">{selectedCustomer.address || 'Not provided'}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
+            ) : ''
+          }
+          titleClassName="flex flex-1 items-center text-lg font-semibold text-gray-900"
+          headerClassName="px-4 py-3"
+          contentClassName="px-4 py-3"
+          footerClassName="px-4 py-3"
+          size="xxl"
+          footer={<Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>Cancel</Button>}
+        >
+          {selectedCustomer && (
+            <div className="space-y-2 px-0.5 py-0.5">
+              <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+                <div className="rounded-[22px] border border-[#e2e8f3] border-l-4 border-l-[#3662cb] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <div className="space-y-2">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Primary Stakeholder</p>
-                      <div className="mt-4 rounded-[18px] bg-[#f6f8fc] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                        <div className="flex gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8edff] text-[16px] font-bold text-[#3e57d8]">
-                            {String(selectedCustomer.msaContactPerson || selectedCustomer.name || 'CU')
-                              .split(' ')
-                              .filter(Boolean)
-                              .slice(0, 2)
-                              .map((part) => part[0]?.toUpperCase())
-                              .join('')}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[18px] font-extrabold tracking-[-0.03em] text-[#10203a]">{selectedCustomer.msaContactPerson || 'Not assigned'}</p>
-                            <p className="text-[12px] font-medium text-[#7587a0]">Chief Procurement Officer</p>
-                            <a href={`mailto:${selectedCustomer.msaContactEmail}`} className="mt-3 block truncate text-[13px] text-[#3e57d8] hover:underline">
-                              {selectedCustomer.msaContactEmail || 'No email'}
-                            </a>
-                            <p className="mt-1 text-[13px] text-[#3e57d8]">{selectedCustomer.phoneNumber || 'No phone available'}</p>
-                          </div>
-                        </div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#a3b1c3]">Registration Name</p>
+                      <p className="mt-1 text-[20px] font-extrabold tracking-[-0.03em] text-[#10203a]">{selectedCustomer.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Tax Identifier</p>
+                      <p className="mt-1 text-[16px] font-bold text-[#1f3048]">{selectedCustomer.taxIdentifier || selectedCustomer.msa || 'Not Provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Headquarters</p>
+                      <p className="mt-1 text-[13px] leading-6 text-[#42536b]">{selectedCustomer.address || 'Not provided'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Primary Stakeholder</p>
+                  <div className="mt-3 rounded-[18px] bg-[#f6f8fc] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                    <div className="flex gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8edff] text-[16px] font-bold text-[#3e57d8]">
+                        {String(selectedCustomer.msaContactPerson || selectedCustomer.name || 'CU')
+                          .split(' ')
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((part) => part[0]?.toUpperCase())
+                          .join('')}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[16px] font-extrabold tracking-[-0.03em] text-[#10203a]">{selectedCustomer.msaContactPerson || 'Not assigned'}</p>
+                        <p className="text-[11px] font-medium text-[#7587a0]">MSA Contact Person</p>
+                        <a href={`mailto:${selectedCustomer.msaContactEmail}`} className="mt-3 block truncate text-[12px] text-[#3e57d8] hover:underline">
+                          {selectedCustomer.msaContactEmail || 'No email'}
+                        </a>
+                        <p className="mt-1 text-[12px] text-[#3e57d8]">{selectedCustomer.phoneNumber || 'No phone available'}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Contractual Foundation</p>
-                  <div className="mt-5 space-y-6">
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Contractual Foundation</p>
+                  <div className="mt-4 space-y-5">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">MSA Reference</p>
-                      <p className="mt-1 text-[20px] font-extrabold tracking-[-0.03em] text-[#3557b8]">{selectedCustomer.msa || 'Not Set'}</p>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">MSA Reference</p>
+                      <p className="mt-1 text-[18px] font-extrabold tracking-[-0.03em] text-[#3557b8]">{selectedCustomer.msa || 'Not Set'}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Created Date</p>
-                      <p className="mt-1 text-[16px] font-semibold text-[#16263e]">{formatters.formatDate(selectedCustomer.createdDate) || 'N/A'}</p>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Created Date</p>
+                      <p className="mt-1 text-[15px] font-semibold text-[#16263e]">{formatters.formatDate(selectedCustomer.createdDate) || 'N/A'}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Renewal Date</p>
-                      <p className={`mt-1 text-[16px] font-semibold ${selectedCustomer.msaRenewalDate ? 'text-[#cf3f32]' : 'text-[#16263e]'}`}>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Renewal Date</p>
+                      <p className={`mt-1 text-[15px] font-semibold ${selectedCustomer.msaRenewalDate ? 'text-[#cf3f32]' : 'text-[#16263e]'}`}>
                         {formatters.formatDate(selectedCustomer.msaRenewalDate) || 'Not Set'}
                       </p>
                     </div>
                     <div className="rounded-xl border border-[#f4d7d5] bg-[#fff6f5] px-4 py-3">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#c33a31]">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#c33a31]">
                         {selectedCustomer.msaRenewalDate ? 'Contract review required within 45 days' : 'Renewal date not configured yet'}
                       </p>
                     </div>
@@ -542,40 +544,41 @@ const CustomersPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1fr]">
-                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Global Parameters</p>
-                  <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-[1.2fr_0.8fr]">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Applicable Regions</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {String(selectedCustomer.countriesApplicable || 'Global')
-                          .split(',')
-                          .map((country) => country.trim())
-                          .filter(Boolean)
-                          .map((country) => (
-                            <span key={country} className="inline-flex rounded-md bg-[#edf3ff] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8ea2c4]">
-                              {country}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Termination Protocol</p>
-                      <div className="mt-3 flex items-start gap-3">
-                        <div>
-                          <p className="text-[38px] font-extrabold leading-none tracking-[-0.05em] text-[#3557b8]">{selectedCustomer.noticePeriodDays ?? 0}</p>
-                          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#6b7d96]">Days Notice</p>
-                        </div>
-                        <p className="max-w-[180px] pt-1 text-[13px] leading-6 text-[#43546b]">Standard institutional exit clause applies</p>
-                      </div>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Global Parameters</p>
+                  <div className="mt-4">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Applicable Regions</p>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {String(selectedCustomer.countriesApplicable || 'Global')
+                        .split(',')
+                        .map((country) => country.trim())
+                        .filter(Boolean)
+                        .map((country) => (
+                          <span key={country} className="inline-flex rounded-md bg-[#edf3ff] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#8ea2c4]">
+                            {country}
+                          </span>
+                        ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Operational Context & Remarks</p>
-                  <div className="mt-5 rounded-[14px] border-l-4 border-l-[#c8d5e8] bg-[#eef3f8] px-4 py-4 text-[14px] italic leading-7 text-[#4b5d75]">
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Termination Protocol</p>
+                  <div className="mt-4">
+                    <div className="mt-2.5 flex items-start gap-3">
+                      <div>
+                        <p className="text-[34px] font-extrabold leading-none tracking-[-0.05em] text-[#3557b8]">{selectedCustomer.noticePeriodDays ?? 0}</p>
+                        <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#6b7d96]">Days Notice</p>
+                      </div>
+                      <p className="max-w-[180px] pt-1 text-[12px] leading-6 text-[#43546b]">Standard institutional exit clause applies</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Operational Context & Remarks</p>
+                  <div className="mt-4 rounded-[14px] border-l-4 border-l-[#c8d5e8] bg-[#eef3f8] px-4 py-4 text-[13px] italic leading-6 text-[#4b5d75]">
                     {selectedCustomer.msaRemark || 'No additional remarks available for this customer.'}
                   </div>
                 </div>

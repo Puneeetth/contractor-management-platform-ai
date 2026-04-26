@@ -198,6 +198,55 @@ const POsPage = () => {
     })
   }
 
+  const getPoStatus = (po) => {
+    if (!po) return 'ACTIVE'
+
+    const startDate = po.startDate ? new Date(po.startDate) : null
+    const endDate = po.endDate ? new Date(po.endDate) : null
+
+    if (endDate && endDate < today) return 'EXPIRED'
+    if (startDate && startDate > today) return 'UPCOMING'
+    return 'ACTIVE'
+  }
+
+  const getPoStatusClasses = (status) => {
+    if (status === 'EXPIRED') return 'bg-red-50 text-red-600 border border-red-200'
+    if (status === 'UPCOMING') return 'bg-amber-50 text-amber-700 border border-amber-200'
+    return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+  }
+
+  const getDurationLabel = (startDate, endDate) => {
+    if (!startDate || !endDate) return '-'
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const diffInMs = end - start
+
+    if (Number.isNaN(diffInMs) || diffInMs < 0) return '-'
+
+    const diffInDays = Math.max(1, Math.ceil(diffInMs / (1000 * 60 * 60 * 24)))
+    if (diffInDays < 30) return `${diffInDays} day${diffInDays === 1 ? '' : 's'}`
+
+    const months = Math.max(1, Math.round(diffInDays / 30))
+    return `${months} month${months === 1 ? '' : 's'}`
+  }
+
+  const handleDownloadSelectedPo = () => {
+    if (!selectedPo) return
+
+    if (selectedPo.fileUrl) {
+      window.open(selectedPo.fileUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    downloadPOsPdf({
+      title: `Purchase Order ${selectedPo.poNumber || ''}`.trim(),
+      filename: `${selectedPo.poNumber || 'purchase-order'}.pdf`,
+      pos: [selectedPo],
+      customerNameById,
+    })
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -355,11 +404,10 @@ const POsPage = () => {
                       name="customerId"
                       value={formData.customerId}
                       onChange={handleInputChange}
-                      className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${
-                        formErrors.customerId
-                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                      }`}
+                      className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.customerId
+                        ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                        : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                        }`}
                     >
                       <option value="">Choose a customer</option>
                       {customers.map((customer) => (
@@ -383,11 +431,10 @@ const POsPage = () => {
                         value={formData.poNumber}
                         onChange={handleInputChange}
                         placeholder="e.g. PO-2023-001"
-                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none ${
-                          formErrors.poNumber
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                        }`}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none ${formErrors.poNumber
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
                       />
                       {formErrors.poNumber && <p className="mt-1 text-[10px] text-red-500">{formErrors.poNumber}</p>}
                     </div>
@@ -398,11 +445,10 @@ const POsPage = () => {
                         type="date"
                         value={formData.poDate}
                         onChange={handleInputChange}
-                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${
-                          formErrors.poDate
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                        }`}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${formErrors.poDate
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
                       />
                       {formErrors.poDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.poDate}</p>}
                     </div>
@@ -413,11 +459,10 @@ const POsPage = () => {
                         type="date"
                         value={formData.startDate}
                         onChange={handleInputChange}
-                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${
-                          formErrors.startDate
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                        }`}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${formErrors.startDate
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
                       />
                       {formErrors.startDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.startDate}</p>}
                     </div>
@@ -428,11 +473,10 @@ const POsPage = () => {
                         type="date"
                         value={formData.endDate}
                         onChange={handleInputChange}
-                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${
-                          formErrors.endDate
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                        }`}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${formErrors.endDate
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
                       />
                       {formErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.endDate}</p>}
                     </div>
@@ -455,11 +499,10 @@ const POsPage = () => {
                         value={formData.poValue}
                         onChange={handleInputChange}
                         placeholder="0.00"
-                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none ${
-                          formErrors.poValue
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                        }`}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none ${formErrors.poValue
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
                       />
                       {formErrors.poValue && <p className="mt-1 text-[10px] text-red-500">{formErrors.poValue}</p>}
                     </div>
@@ -470,11 +513,10 @@ const POsPage = () => {
                           name="country"
                           value={formData.country}
                           onChange={handleInputChange}
-                          className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${
-                            formErrors.country
-                              ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                              : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                          }`}
+                          className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.country
+                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                            }`}
                         >
                           <option value="">Select a country</option>
                           {COUNTRIES.map((country) => (
@@ -489,11 +531,10 @@ const POsPage = () => {
                           name="currency"
                           value={formData.currency}
                           onChange={handleInputChange}
-                          className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${
-                            formErrors.currency
-                              ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                              : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                          }`}
+                          className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.currency
+                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                            }`}
                         >
                           <option value="">-</option>
                           <option value="USD">USD</option>
@@ -531,11 +572,10 @@ const POsPage = () => {
                         min="0"
                         value={formData.paymentTermsDays}
                         onChange={handleInputChange}
-                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${
-                          formErrors.paymentTermsDays
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                        }`}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${formErrors.paymentTermsDays
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
                       />
                       {formErrors.paymentTermsDays && <p className="mt-1 text-[10px] text-red-500">{formErrors.paymentTermsDays}</p>}
                     </div>
@@ -548,11 +588,10 @@ const POsPage = () => {
                         value={formData.numberOfResources}
                         onChange={handleInputChange}
                         placeholder="Contractors"
-                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none ${
-                          formErrors.numberOfResources
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                        }`}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none ${formErrors.numberOfResources
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
                       />
                       {formErrors.numberOfResources && <p className="mt-1 text-[10px] text-red-500">{formErrors.numberOfResources}</p>}
                     </div>
@@ -641,173 +680,195 @@ const POsPage = () => {
         isOpen={Boolean(selectedPo)}
         onClose={() => setSelectedPo(null)}
         title={
-          <div className="flex w-full items-center justify-between gap-4">
-            <span>PO Details</span>
-            <div className="ml-auto flex items-center gap-2 pr-3">
-              <button type="button" className="inline-flex h-8 items-center rounded-sm border border-[#cfd9e7] bg-white px-4 text-[9px] font-bold uppercase tracking-[0.12em] text-[#12203a]">
-                Download PDF
-              </button>
-              <button type="button" className="inline-flex h-8 items-center rounded-sm bg-[#3853a7] px-4 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
-                Revise Contract
-              </button>
+          selectedPo ? (
+            <div className="flex w-full items-center justify-between gap-4 pr-3">
+              <span className="text-[16px] font-bold uppercase tracking-[0.02em] text-[#7a8ca6]">Purchase Order Details</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled
+                  title="Edit is not available yet"
+                  className="inline-flex h-9 items-center rounded-xl border border-[#d8e2ef] bg-[#f8fbff] px-4 text-[12px] font-semibold text-[#8a98ad] disabled:cursor-not-allowed"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadSelectedPo}
+                  className="inline-flex h-9 items-center rounded-xl border border-[#d8e2ef] bg-white px-4 text-[12px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
+                >
+                  Download
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPo(null)}
+                  className="inline-flex h-9 items-center rounded-xl bg-[#4b4fe8] px-4 text-[12px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.18)] hover:bg-[#4347db]"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-          </div>
+          ) : ''
         }
         titleClassName="flex flex-1 items-center text-lg font-semibold text-gray-900"
         size="xxl"
-        footer={
-          <Button variant="secondary" onClick={() => setSelectedPo(null)}>
-            Close
-          </Button>
-        }
       >
         {selectedPo && (
-          <div className="space-y-5 bg-[#f4f7fb] p-1">
-            <div className="space-y-3">
+          <div className="rounded-2xl border border-[#d8e2ef] bg-white">
+            {/* <div className="border-b border-[#e8eef7] px-5 py-5">
+              <div className="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h2 className="text-[20px] font-bold leading-none text-[#0f1d33]">{selectedPo.poNumber || '-'}</h2>
+                <p className="text-[18px] font-semibold leading-none text-[#10203a]">
+                  {selectedPo.customerId ? customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}` : '-'}
+                </p>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${getPoStatusClasses(getPoStatus(selectedPo))}`}>
+                  {getPoStatus(selectedPo)}
+                </span>
+              </div>
+            </div> */}
+
+            {/* <div className="grid grid-cols-1 gap-3 border-b border-[#e8eef7] bg-[#f8fbff] px-5 py-3 sm:grid-cols-3">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex rounded-sm px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${selectedPo.endDate && new Date(selectedPo.endDate) < today ? 'bg-[#eef2f7] text-[#66778f]' : 'bg-[#e7eefc] text-[#3853a7]'}`}>
-                    {selectedPo.endDate && new Date(selectedPo.endDate) < today ? 'Closed' : 'Active Agreement'}
-                  </span>
-                  <span className="text-[12px] text-[#7587a0]">Updated {formatters.formatDate(selectedPo.updatedDate || selectedPo.createdDate) || '-'}</span>
-                </div>
-                <h2 className="mt-2 text-[18px] font-bold tracking-[-0.02em] text-[#0f1d33]">Purchase Order: {selectedPo.poNumber || '-'}</h2>
-                <p className="mt-1 text-[13px] text-[#566983]">
-                  {selectedPo.customerId
-                    ? customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}`
-                    : '-'} Service Agreement
+                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#94a3b8]">Duration</p>
+                <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{getDurationLabel(selectedPo.startDate, selectedPo.endDate)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#94a3b8]">Total Value</p>
+                <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">
+                  {selectedPo.poValue != null ? formatters.formatCurrency(selectedPo.poValue, selectedPo.currency || 'USD') : '-'}
                 </p>
               </div>
-            </div>
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#94a3b8]">Updated</p>
+                <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{formatters.formatDate(selectedPo.updatedDate || selectedPo.createdDate)}</p>
+              </div>
+            </div> */}
 
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.08fr_1.36fr_0.8fr]">
-              <div className="border border-[#dce5f1] bg-white px-4 py-4 shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
-                <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#7a8ca6]">Document Info</p>
-                <div className="mt-5 space-y-5">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-6 px-5 py-5 lg:grid-cols-2">
+              <section className="space-y-4">
+                <div className="border-b border-[#eef3f8] pb-3">
+                  <h3 className="text-[16px] font-bold text-[#10203a]">Core Information</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                   <div>
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#9aabc0]">Customer</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#10203a]">{selectedPo.customerId ? customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}` : '-'}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#9aabc0]">PO Date</p>
-                      <p className="mt-1 text-[13px] text-[#16263e]">{formatters.formatDate(selectedPo.poDate) || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#9aabc0]">Status</p>
-                      <span className={`mt-1 inline-flex rounded-[2px] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] ${selectedPo.endDate && new Date(selectedPo.endDate) < today ? 'bg-[#eef2f7] text-[#66778f]' : 'bg-[#e5f1ff] text-[#3662cb]'}`}>
-                        {selectedPo.endDate && new Date(selectedPo.endDate) < today ? 'Closed' : 'Fulfilled'}
-                      </span>
-                    </div>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">PO Number</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.poNumber || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#9aabc0]">Payment Terms</p>
-                    <p className="mt-1 text-[13px] text-[#16263e]">
+                    <p className="text-[11px] font-bold text-[#94a3b8]">Customer</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">
+                      {selectedPo.customerId ? customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">PO Date</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{formatters.formatDate(selectedPo.poDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">Status</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{getPoStatus(selectedPo)}</p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="border-b border-[#eef3f8] pb-3">
+                  <h3 className="text-[14px] font-bold text-[#10203a]">Timeline</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">Start Date</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{formatters.formatDate(selectedPo.startDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">End Date</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{formatters.formatDate(selectedPo.endDate)}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-[11px] font-bold text-[#94a3b8]">Duration</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{getDurationLabel(selectedPo.startDate, selectedPo.endDate)}</p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="border-b border-[#eef3f8] pb-3">
+                  <h3 className="text-[14px] font-bold text-[#10203a]">Financial Details</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-[#dfe8f8] bg-[#f7faff] px-4 py-3 sm:col-span-2">
+                    <p className="text-[11px] font-bold text-[#94a3b8]">PO Value</p>
+                    <p className="mt-1 text-[24px] font-bold tracking-[-0.02em] text-[#3557b8]">
+                      {selectedPo.poValue != null ? formatters.formatCurrency(selectedPo.poValue, selectedPo.currency || 'USD') : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">Currency</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.currency || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">Payment Terms</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">
                       {selectedPo.paymentTermsDays ?? selectedPo.paymentTerms ?? '-'}
-                      {selectedPo.paymentTermsDays != null ? ' Days' : ''}
+                      {selectedPo.paymentTermsDays != null ? ' days' : ''}
                     </p>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="border border-[#dce5f1] bg-white px-4 py-4 shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
-                <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#7a8ca6]">Financial Summary</p>
-                <div className="mt-5">
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#9aabc0]">Total PO Value</p>
-                  <div className="mt-2 flex items-end gap-2">
-                    <span className="text-[38px] font-extrabold leading-none tracking-[-0.04em] text-[#3557b8]">
-                      {formatters.formatCurrency(selectedPo.poValue).replace(/[A-Z]{3}\s?/g, '').trim() || '0.00'}
-                    </span>
-                    <span className="pb-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[#2f4f9f]">{selectedPo.currency || ''}</span>
-                  </div>
+              <section className="space-y-4">
+                <div className="border-b border-[#eef3f8] pb-3">
+                  <h3 className="text-[14px] font-bold text-[#10203a]">Resource Details</h3>
                 </div>
-                <div className="mt-8 grid grid-cols-2 gap-5 border-t border-[#edf2f8] pt-4">
-                  <div>
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#9aabc0]">Budget Allocation</p>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e9eef7]">
-                      <div
-                        className="h-full bg-[#3557b8]"
-                        style={{
-                          width: `${selectedPo.poValue && selectedPo.numberOfResources
-                            ? Math.min(100, Math.round((Number(selectedPo.numberOfResources) * 100) / Math.max(1, Number(selectedPo.poValue) / 1000)))
-                            : 0}%`,
-                        }}
-                      />
-                    </div>
-                    <p className="mt-1 text-[11px] text-[#6a7d98]">
-                      {selectedPo.poValue && selectedPo.numberOfResources
-                        ? `${Math.min(100, Math.round((Number(selectedPo.numberOfResources) * 100) / Math.max(1, Number(selectedPo.poValue) / 1000)))}% Consumed`
-                        : '0% Consumed'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#9aabc0]">Resource Count</p>
-                    <p className="mt-2 text-[13px] font-bold text-[#10203a]">{selectedPo.numberOfResources || 0} Specialists</p>
-                  </div>
+                <div>
+                  <p className="text-[11px] font-bold text-[#94a3b8]">Number of Resources</p>
+                  <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.numberOfResources ?? '-'}</p>
                 </div>
-              </div>
+              </section>
 
-              <div className="bg-[#314a99] px-4 py-4 text-white shadow-[0_10px_24px_rgba(47,70,152,0.24)]">
-                <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#ced8ff]">Project Timeline</p>
-                <div className="mt-5 space-y-5">
-                  <div className="border-l-2 border-white/35 pl-3">
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#c5d0ff]">Start Date</p>
-                    <p className="mt-1 text-[16px] font-bold">{formatters.formatDate(selectedPo.startDate) || '-'}</p>
+              <section className="space-y-4">
+                <div className="border-b border-[#eef3f8] pb-3">
+                  <h3 className="text-[14px] font-bold text-[#10203a]">Documents</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">PO Document</p>
+                    {selectedPo.fileUrl ? (
+                      <button type="button" onClick={handleDownloadSelectedPo} className="mt-1 text-[14px] font-semibold text-[#3f4fe8] hover:underline">
+                        View / Download
+                      </button>
+                    ) : (
+                      <p className="mt-1 text-[14px] font-bold text-[#0f1d33]">-</p>
+                    )}
                   </div>
                   <div>
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#c5d0ff]">End Date</p>
-                    <p className="mt-1 text-[16px] font-bold">{formatters.formatDate(selectedPo.endDate) || '-'}</p>
-                  </div>
-                  <div className="border-t border-white/20 pt-4">
-                    <p className="text-[10px] italic text-[#dde5ff]">
-                      Duration:{' '}
-                      {selectedPo.startDate && selectedPo.endDate
-                        ? `${Math.max(1, Math.round((new Date(selectedPo.endDate) - new Date(selectedPo.startDate)) / (1000 * 60 * 60 * 24 * 30)))} Months`
-                        : '-'}
-                    </p>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">SOW Document</p>
+                    {selectedPo.sowFileUrl ? (
+                      <a href={selectedPo.sowFileUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[14px] font-semibold text-[#3f4fe8] hover:underline">
+                        View / Download
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-[14px] font-bold text-[#0f1d33]">-</p>
+                    )}
                   </div>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[16px] font-medium text-[#10203a]">Allocated Resources</h3>
-                <p className="text-[12px] text-[#60728f]">{selectedPo.numberOfResources || 0} Active Records</p>
-              </div>
-              <div className="overflow-hidden border border-[#dce5f1] bg-white shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
-                <div className="grid grid-cols-[1.15fr_1.2fr_0.95fr_0.9fr_0.95fr] gap-4 border-b border-[#e5ebf4] bg-[#eef3f9] px-4 py-3 text-[8px] font-bold uppercase tracking-[0.18em] text-[#7385a0]">
-                  <span>Resource Name</span>
-                  <span>Role</span>
-                  <span>Rate (Hourly)</span>
-                  <span>Billable Status</span>
-                  <span className="text-right">Total Invoiced</span>
+              <section className="space-y-4">
+                <div className="border-b border-[#eef3f8] pb-3">
+                  <h3 className="text-[14px] font-bold text-[#10203a]">Notes</h3>
                 </div>
-                <div className="grid grid-cols-[1.15fr_1.2fr_0.95fr_0.9fr_0.95fr] gap-4 border-b border-[#eef3f8] px-4 py-4 text-[13px] text-[#12203a]">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#dce7ff] text-[8px] font-bold text-[#3557b8]">SW</div>
-                    <span className="font-medium">{selectedPo.sharedWith || 'Not shared'}</span>
-                  </div>
-                  <div>{selectedPo.country || 'Regional Stakeholder'}</div>
-                  <div>{formatters.formatCurrency(selectedPo.poValue && selectedPo.numberOfResources ? Number(selectedPo.poValue) / Math.max(1, Number(selectedPo.numberOfResources)) : 0)}</div>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                   <div>
-                    <span className="inline-flex rounded-[2px] bg-[#e5f1ff] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#3662cb]">Billable</span>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">Shared With</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.sharedWith || '-'}</p>
                   </div>
-                  <div className="text-right font-semibold">{formatters.formatCurrency(selectedPo.poValue)}</div>
-                </div>
-                <div className="grid grid-cols-[1.15fr_1.2fr_0.95fr_0.9fr_0.95fr] gap-4 px-4 py-4 text-[13px] text-[#12203a]">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e8f0ff] text-[8px] font-bold text-[#3557b8]">RM</div>
-                    <span className="font-medium">Remarks</span>
-                  </div>
-                  <div className="truncate">{selectedPo.remark || 'No remark added'}</div>
-                  <div>{selectedPo.currency || 'N/A'}</div>
                   <div>
-                    <span className="inline-flex rounded-[2px] bg-[#e5f1ff] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#3662cb]">Active</span>
+                    <p className="text-[11px] font-bold text-[#94a3b8]">Remarks</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.remark || '-'}</p>
                   </div>
-                  <div className="text-right font-semibold">{formatters.formatDate(selectedPo.createdDate) || '-'}</div>
                 </div>
-              </div>
+              </section>
             </div>
           </div>
         )}
