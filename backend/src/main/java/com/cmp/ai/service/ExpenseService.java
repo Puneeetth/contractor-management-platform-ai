@@ -25,6 +25,7 @@ public class ExpenseService {
 
     private final ExpenseRepositoy expenseRepositoy;
     private final UserRepository userRepository;
+    private final AuditTrailService auditTrailService;
 
     public ExpenseResponse createExpense(@NonNull Long contractorId, ExpenseRequest request) {
         User contractor = userRepository.findById(contractorId)
@@ -35,7 +36,10 @@ public class ExpenseService {
         }
 
         Expense expense = ExpenseTransformer.expenseRequestToExpense(request, contractor);
-        return ExpenseTransformer.expenseToExpenseResponse(expenseRepositoy.save(expense));
+        Expense savedExpense = expenseRepositoy.save(expense);
+        auditTrailService.logSystemAction("EXPENSE", savedExpense.getId(), "CREATE_EXPENSE", "Submitted expense", savedExpense.getDescription());
+        auditTrailService.logWorkflowAction("EXPENSE", savedExpense.getId(), "EXPENSE_APPROVAL", "SUBMITTED", savedExpense.getStatus().name(), null);
+        return ExpenseTransformer.expenseToExpenseResponse(savedExpense);
     }
 
     public List<ExpenseResponse> getAllExpenses() {
@@ -55,6 +59,9 @@ public class ExpenseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
         expense.setStatus(Status.APPROVED);
-        return ExpenseTransformer.expenseToExpenseResponse(expenseRepositoy.save(expense));
+        Expense savedExpense = expenseRepositoy.save(expense);
+        auditTrailService.logSystemAction("EXPENSE", savedExpense.getId(), "APPROVE_EXPENSE", "Approved expense", null);
+        auditTrailService.logWorkflowAction("EXPENSE", savedExpense.getId(), "EXPENSE_APPROVAL", "APPROVED", savedExpense.getStatus().name(), null);
+        return ExpenseTransformer.expenseToExpenseResponse(savedExpense);
     }
 }

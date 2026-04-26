@@ -34,7 +34,7 @@ const SystemIntegrity = () => {
       <div className="bg-[#f0f3ff] rounded-2xl p-4 mt-2">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-loose">
           <span className="text-[#3a57e8] mr-2">PRO TIP:</span>
-          High contractor churn detected in Structural Team. Consider reviewing PO processing lead times.
+          You can always write a review for rejecting a invoice
         </p>
       </div>
     </div>

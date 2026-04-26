@@ -30,6 +30,7 @@ public class PurchaseOrderService {
     private final ContractRepository contractRepository;
     private final CustomerRepository customerRepository;
     private final FileService fileService;
+    private final AuditTrailService auditTrailService;
 
 
     @Transactional
@@ -56,7 +57,15 @@ public class PurchaseOrderService {
         //set file URL
 
         purchaseOrder.setFileUrl(fileUrl);
-        return POTransformer.pOToPOResponse(purchaseOrderRepository.save(purchaseOrder));
+        PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        auditTrailService.logSystemAction(
+                "PURCHASE_ORDER",
+                savedPurchaseOrder.getId(),
+                "CREATE_PURCHASE_ORDER",
+                "Created purchase order",
+                savedPurchaseOrder.getPoNumber()
+        );
+        return POTransformer.pOToPOResponse(savedPurchaseOrder);
     }
 
     public List<POResponse> getAllPurchaseOrders() {

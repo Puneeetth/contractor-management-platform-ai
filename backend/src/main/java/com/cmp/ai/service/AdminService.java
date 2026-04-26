@@ -29,6 +29,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final CountryRepository countryRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditTrailService auditTrailService;
 
     private static final Set<Role> ADMIN_MANAGED_ROLES = Set.of(
             Role.FINANCE,
@@ -67,7 +68,10 @@ public class AdminService {
         user.setApprovedBy(approver);
         user.setApprovalDate(LocalDateTime.now());
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        auditTrailService.logSystemAction("USER", savedUser.getId(), "APPROVE_USER", "Approved pending user", approvalReason);
+        auditTrailService.logWorkflowAction("USER", savedUser.getId(), "USER_APPROVAL", "APPROVED", savedUser.getStatus().name(), approvalReason);
+        return savedUser;
     }
 
     /**
@@ -86,7 +90,10 @@ public class AdminService {
         user.setApprovedBy(approver);
         user.setApprovalDate(LocalDateTime.now());
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        auditTrailService.logSystemAction("USER", savedUser.getId(), "REJECT_USER", "Rejected pending user", rejectionReason);
+        auditTrailService.logWorkflowAction("USER", savedUser.getId(), "USER_APPROVAL", "REJECTED", savedUser.getStatus().name(), rejectionReason);
+        return savedUser;
     }
 
     /**
@@ -148,7 +155,8 @@ public class AdminService {
         contractor.setCustomerManagerEmail(request.getCustomerManagerEmail());
 
         contractorRepository.save(contractor);
-
+        auditTrailService.logSystemAction("USER", savedUser.getId(), "CREATE_USER", "Created contractor user", "Role=CONTRACTOR");
+        auditTrailService.logSystemAction("CONTRACTOR", contractor.getId(), "CREATE_CONTRACTOR", "Created contractor profile", contractor.getContractorId());
         return savedUser;
     }
 
@@ -222,7 +230,9 @@ public class AdminService {
                 .registeredDate(LocalDateTime.now())
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        auditTrailService.logSystemAction("USER", savedUser.getId(), "CREATE_USER", "Created admin-managed user", "Role=" + requestedRole.name());
+        return savedUser;
     }
 
     /**
@@ -235,7 +245,10 @@ public class AdminService {
         user.setStatus(Status.INACTIVE);
         user.setApprovalReason(reason != null ? reason : "Account deactivated");
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        auditTrailService.logSystemAction("USER", savedUser.getId(), "DEACTIVATE_USER", "Deactivated user account", reason);
+        auditTrailService.logWorkflowAction("USER", savedUser.getId(), "USER_STATUS", "DEACTIVATED", savedUser.getStatus().name(), reason);
+        return savedUser;
     }
 
     /**
@@ -252,7 +265,10 @@ public class AdminService {
         user.setStatus(Status.APPROVED);
         user.setApprovalDate(LocalDateTime.now());
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        auditTrailService.logSystemAction("USER", savedUser.getId(), "REACTIVATE_USER", "Reactivated user account", null);
+        auditTrailService.logWorkflowAction("USER", savedUser.getId(), "USER_STATUS", "REACTIVATED", savedUser.getStatus().name(), null);
+        return savedUser;
     }
 
     /**
