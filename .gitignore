@@ -24,6 +24,7 @@ hs_err_pid*
 replay_pid*
 frontend/node_modules/
 node_modules/
+.expo/
 .env
 *.env
 !.env.example
