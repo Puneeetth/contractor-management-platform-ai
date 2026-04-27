@@ -26,6 +26,7 @@ public class POTransformer {
                 .numberOfResources(po.getNumberOfResources())
                 .sharedWith(po.getSharedWith())
                 .fileUrl(po.getFileUrl())
+                .sowFileUrl(po.getSowFileUrl())
                 .totalHoursLimit(po.getTotalHoursLimit())
                 .build();
     }
@@ -45,6 +46,7 @@ public class POTransformer {
                 .numberOfResources(req.getNumberOfResources())
                 .sharedWith(req.getSharedWith())
                 .fileUrl(req.getFileUrl())
+                .sowFileUrl(req.getSowFileUrl())
                 .totalHoursLimit(req.getTotalHoursLimit())
                 .build();
     }

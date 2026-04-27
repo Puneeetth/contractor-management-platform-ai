@@ -22,8 +22,11 @@ public class PurchaseOrderController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public POResponse createPurchaseOrder(@ModelAttribute @Valid @RequestBody PORequest request, @RequestParam("file")MultipartFile file) {
-        return purchaseOrderService.createPurchaseOrder(request,file);
+    public POResponse createPurchaseOrder(
+            @ModelAttribute @Valid @RequestBody PORequest request, 
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "sowFile", required = false) MultipartFile sowFile) {
+        return purchaseOrderService.createPurchaseOrder(request, file, sowFile);
     }
 
     @GetMapping

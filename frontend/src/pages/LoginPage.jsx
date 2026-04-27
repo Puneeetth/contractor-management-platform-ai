@@ -238,14 +238,14 @@ const LoginPage = () => {
           <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-4 mb-6 shadow-2xl">
             <img
               src="/images/Mindteck_office.jpg"
-              alt="Seamless work experience"
+              alt="Mindteck Logo"
               className="w-full h-auto rounded-xl"
             />
           </div>
 
-          {/* Text */}
-          <h2 className="text-2xl font-bold text-white mb-2">Seamless work experience</h2>
-          <p className="text-indigo-100 text-sm">Everything you need in an easily customizable dashboard</p>
+          {/*/!* Text *!/*/}
+          {/*<h2 className="text-2xl font-bold text-white mb-2">Seamless work experience</h2>*/}
+          {/*<p className="text-indigo-100 text-sm">Everything you need in an easily customizable dashboard</p>*/}
 
           {/* Pagination dots */}
           <div className="flex items-center justify-center gap-2 mt-6">

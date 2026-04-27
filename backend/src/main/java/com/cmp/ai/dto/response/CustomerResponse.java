@@ -24,4 +24,5 @@ public class CustomerResponse {
     private String msaContactPerson;
     private String msaContactEmail;
     private Integer noticePeriodDays;
+    private String msaFileUrl;
 }

@@ -208,10 +208,9 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
           </div>
         )}
 
-        {!preSelectedCustomer && (
-          <div>
-            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Customer</h2>
-            <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+        <Card className="border-[#d8e2ef] px-4 py-6 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <div className="space-y-6">
+            {!preSelectedCustomer && (
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">
                   Select Customer <span className="text-red-500">*</span>
@@ -234,14 +233,10 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
                 </select>
                 {formErrors.customerId && <p className="mt-1 text-[10px] text-red-500">{formErrors.customerId}</p>}
               </div>
-            </Card>
-          </div>
-        )}
+            )}
 
-        <div>
-          <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Order Identification</h2>
-          <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-            <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
+              {/* Row 1: PO Number & PO Date */}
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">
                   PO Number <span className="text-red-500">*</span>
@@ -276,6 +271,7 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
                 {formErrors.poDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.poDate}</p>}
               </div>
 
+              {/* Row 2: Start Date & End Date */}
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">
                   Start Date <span className="text-red-500">*</span>
@@ -310,14 +306,10 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
                 {formErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.endDate}</p>}
               </div>
             </div>
-          </Card>
-        </div>
 
-        <div>
-          <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Financial Details</h2>
-          <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-            <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
-              <div className="w-full">
+            {/* Row 3: PO Value (50%), Country (30%), Currency (20%) */}
+            <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-10">
+              <div className="w-full md:col-span-5">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">
                   PO Value <span className="text-red-500">*</span>
                 </label>
@@ -337,70 +329,55 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
                 {formErrors.poValue && <p className="mt-1 text-[10px] text-red-500">{formErrors.poValue}</p>}
               </div>
 
-              <div className="flex gap-2">
-                <div className="w-[70%]">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">
-                    Country <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="country"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.country
-                        ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
-                        : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                      }`}
-                  >
-                    <option value="">Select a country</option>
-                    {COUNTRIES.map((country) => (
-                      <option key={country} value={country}>
-                        {country}
-                      </option>
-                    ))}
-                  </select>
-                  {formErrors.country && <p className="mt-1 text-[10px] text-red-500">{formErrors.country}</p>}
-                </div>
-
-                <div className="w-[30%]">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">
-                    Currency <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="currency"
-                    value={formData.currency}
-                    onChange={handleInputChange}
-                    className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.currency
-                        ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
-                        : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                      }`}
-                  >
-                    <option value="">-</option>
-                    {['USD', 'EUR', 'GBP', 'INR', 'AUD', 'CAD', 'JPY', 'SGD', 'AED', 'SAR', 'CNY', 'BRL', 'MXN', 'KRW', 'IDR', 'MYR', 'THB', 'ZAR', 'NGN', 'EGP', 'PLN', 'SEK', 'CHF'].map((currency) => (
-                      <option key={currency} value={currency}>
-                        {currency}
-                      </option>
-                    ))}
-                  </select>
-                  {formErrors.currency && <p className="mt-1 text-[10px] text-red-500">{formErrors.currency}</p>}
-                </div>
-              </div>
-
-              <div className="w-full">
-                <label className="mb-1 block text-[11px] font-medium text-gray-700">Payment Terms (Days)</label>
-                <input
-                  name="paymentTermsDays"
-                  type="number"
-                  min="0"
-                  value={formData.paymentTermsDays}
+              <div className="w-full md:col-span-3">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="country"
+                  value={formData.country}
                   onChange={handleInputChange}
-                  className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${formErrors.paymentTermsDays
+                  className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.country
                       ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
                       : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
                     }`}
-                />
-                {formErrors.paymentTermsDays && <p className="mt-1 text-[10px] text-red-500">{formErrors.paymentTermsDays}</p>}
+                >
+                  <option value="">Select a country</option>
+                  {COUNTRIES.map((country) => (
+                    <option key={country} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.country && <p className="mt-1 text-[10px] text-red-500">{formErrors.country}</p>}
               </div>
 
+              <div className="w-full md:col-span-2">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">
+                  Currency <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleInputChange}
+                  className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.currency
+                      ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                      : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                    }`}
+                >
+                  <option value="">-</option>
+                  {['USD', 'EUR', 'GBP', 'INR', 'AUD', 'CAD', 'JPY', 'SGD', 'AED', 'SAR', 'CNY', 'BRL', 'MXN', 'KRW', 'IDR', 'MYR', 'THB', 'ZAR', 'NGN', 'EGP', 'PLN', 'SEK', 'CHF'].map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.currency && <p className="mt-1 text-[10px] text-red-500">{formErrors.currency}</p>}
+              </div>
+            </div>
+
+            {/* Row 4: Number of Resources & Payment Terms */}
+            <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">
                   Number of Resources <span className="text-red-500">*</span>
@@ -419,21 +396,33 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
                 />
                 {formErrors.numberOfResources && <p className="mt-1 text-[10px] text-red-500">{formErrors.numberOfResources}</p>}
               </div>
-            </div>
-          </Card>
-        </div>
 
-        <div>
-          <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Resources & Notes</h2>
-          <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-            <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+              <div className="w-full">
+                <label className="mb-1 block text-[11px] font-medium text-gray-700">Payment Terms (Days)</label>
+                <input
+                  name="paymentTermsDays"
+                  type="number"
+                  min="0"
+                  value={formData.paymentTermsDays}
+                  onChange={handleInputChange}
+                  className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${formErrors.paymentTermsDays
+                      ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                      : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                    }`}
+                />
+                {formErrors.paymentTermsDays && <p className="mt-1 text-[10px] text-red-500">{formErrors.paymentTermsDays}</p>}
+              </div>
+            </div>
+
+            {/* Row 5: Shared With & Remarks */}
+            <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">Shared With</label>
                 <input
                   name="sharedWith"
                   value={formData.sharedWith}
                   onChange={handleInputChange}
-                  placeholder="Team, manager, or stakeholder names"
+                  placeholder="Team, stakeholders..."
                   className="h-9 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
@@ -444,18 +433,14 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
                   name="remark"
                   value={formData.remark}
                   onChange={handleInputChange}
-                  placeholder="Any PO-specific notes"
+                  placeholder="PO notes"
                   className="h-9 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
             </div>
-          </Card>
-        </div>
 
-        <div>
-          <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Documents</h2>
-          <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-            <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+            {/* Row 6: Documents */}
+            <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Upload</label>
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-[#d5deec] bg-[#f9fbff] p-4 hover:bg-[#f0f5ff]">
@@ -486,8 +471,8 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
                 </label>
               </div>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
       </form>
     </Modal>
   )

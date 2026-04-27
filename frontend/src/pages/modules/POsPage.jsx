@@ -13,6 +13,7 @@ import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Loader, Modal } from '../../components/ui'
 import { poService } from '../../services/poService'
 import { customerService } from '../../services/customerService'
+import { API_ORIGIN } from '../../services/apiClient'
 import { dedupeBy } from '../../utils/dedupe'
 import { formatters } from '../../utils/formatters'
 import { downloadPOsPdf } from '../../utils/pdfExport'
@@ -235,7 +236,8 @@ const POsPage = () => {
     if (!selectedPo) return
 
     if (selectedPo.fileUrl) {
-      window.open(selectedPo.fileUrl, '_blank', 'noopener,noreferrer')
+      const url = selectedPo.fileUrl.startsWith('http') ? selectedPo.fileUrl : `${API_ORIGIN}${selectedPo.fileUrl}`
+      window.open(url, '_blank', 'noopener,noreferrer')
       return
     }
 
@@ -272,20 +274,12 @@ const POsPage = () => {
                 <p className="mt-1 text-[13px] text-[#4a5c77]">Manage and track procurement cycles across the enterprise.</p>
               </div>
               <div className="flex items-center gap-3">
-                <button type="button" onClick={handleExportData} className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]">
-                  <Download className="h-4 w-4" /> Export
-                </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setMode('create')
-                    setFormData(EMPTY_FORM)
-                    setFormErrors({})
-                    setSuccess('')
-                  }}
+                  onClick={handleExportData}
                   className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
                 >
-                  <Plus className="h-4 w-4" /> New PO
+                  <Download className="h-4 w-4" /> Export PO's
                 </button>
               </div>
             </div>
@@ -394,10 +388,9 @@ const POsPage = () => {
             )}
 
             <form onSubmit={handleCreatePO} className="space-y-5">
-              {/* Section 1: Customer */}
-              <div>
-                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Customer</h2>
-                <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+              <Card className="border-[#d8e2ef] px-4 py-6 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+                <div className="space-y-6">
+                  {/* Customer Selection */}
                   <div className="w-full">
                     <label className="mb-1 block text-[11px] font-medium text-gray-700">Select Customer <span className="text-red-500">*</span></label>
                     <select
@@ -416,14 +409,9 @@ const POsPage = () => {
                     </select>
                     {formErrors.customerId && <p className="mt-1 text-[10px] text-red-500">{formErrors.customerId}</p>}
                   </div>
-                </Card>
-              </div>
 
-              {/* Section 2: Order Identification */}
-              <div>
-                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Order Identification</h2>
-                <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-                  <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
+                    {/* Row 1: PO Number & PO Date */}
                     <div className="w-full">
                       <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Number <span className="text-red-500">*</span></label>
                       <input
@@ -452,6 +440,8 @@ const POsPage = () => {
                       />
                       {formErrors.poDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.poDate}</p>}
                     </div>
+
+                    {/* Row 2: Start Date & End Date */}
                     <div className="w-full">
                       <label className="mb-1 block text-[11px] font-medium text-gray-700">Start Date <span className="text-red-500">*</span></label>
                       <input
@@ -481,15 +471,10 @@ const POsPage = () => {
                       {formErrors.endDate && <p className="mt-1 text-[10px] text-red-500">{formErrors.endDate}</p>}
                     </div>
                   </div>
-                </Card>
-              </div>
 
-              {/* Section 3: Financial Details */}
-              <div>
-                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Financial Details</h2>
-                <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-                  <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
-                    <div className="w-full">
+                  {/* Row 3: PO Value (50%), Country (30%), Currency (20%) */}
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-10">
+                    <div className="w-full md:col-span-5">
                       <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Value <span className="text-red-500">*</span></label>
                       <input
                         name="poValue"
@@ -506,79 +491,46 @@ const POsPage = () => {
                       />
                       {formErrors.poValue && <p className="mt-1 text-[10px] text-red-500">{formErrors.poValue}</p>}
                     </div>
-                    <div className="flex gap-2">
-                      <div className="w-[70%]">
-                        <label className="mb-1 block text-[11px] font-medium text-gray-700">Country <span className="text-red-500">*</span></label>
-                        <select
-                          name="country"
-                          value={formData.country}
-                          onChange={handleInputChange}
-                          className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.country
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                            }`}
-                        >
-                          <option value="">Select a country</option>
-                          {COUNTRIES.map((country) => (
-                            <option key={country} value={country}>{country}</option>
-                          ))}
-                        </select>
-                        {formErrors.country && <p className="mt-1 text-[10px] text-red-500">{formErrors.country}</p>}
-                      </div>
-                      <div className="w-[30%]">
-                        <label className="mb-1 block text-[11px] font-medium text-gray-700">Currency</label>
-                        <select
-                          name="currency"
-                          value={formData.currency}
-                          onChange={handleInputChange}
-                          className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.currency
-                            ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                            }`}
-                        >
-                          <option value="">-</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                          <option value="INR">INR</option>
-                          <option value="AUD">AUD</option>
-                          <option value="CAD">CAD</option>
-                          <option value="JPY">JPY</option>
-                          <option value="SGD">SGD</option>
-                          <option value="AED">AED</option>
-                          <option value="SAR">SAR</option>
-                          <option value="CNY">CNY</option>
-                          <option value="BRL">BRL</option>
-                          <option value="MXN">MXN</option>
-                          <option value="KRW">KRW</option>
-                          <option value="IDR">IDR</option>
-                          <option value="MYR">MYR</option>
-                          <option value="THB">THB</option>
-                          <option value="ZAR">ZAR</option>
-                          <option value="NGN">NGN</option>
-                          <option value="EGP">EGP</option>
-                          <option value="PLN">PLN</option>
-                          <option value="SEK">SEK</option>
-                          <option value="CHF">CHF</option>
-                        </select>
-                        {formErrors.currency && <p className="mt-1 text-[10px] text-red-500">{formErrors.currency}</p>}
-                      </div>
-                    </div>
-                    <div className="w-full">
-                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Payment Terms (Days)</label>
-                      <input
-                        name="paymentTermsDays"
-                        type="number"
-                        min="0"
-                        value={formData.paymentTermsDays}
+                    <div className="w-full md:col-span-3">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Country <span className="text-red-500">*</span></label>
+                      <select
+                        name="country"
+                        value={formData.country}
                         onChange={handleInputChange}
-                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${formErrors.paymentTermsDays
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.country
                           ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
                           : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
                           }`}
-                      />
-                      {formErrors.paymentTermsDays && <p className="mt-1 text-[10px] text-red-500">{formErrors.paymentTermsDays}</p>}
+                      >
+                        <option value="">Select a country</option>
+                        {COUNTRIES.map((country) => (
+                          <option key={country} value={country}>{country}</option>
+                        ))}
+                      </select>
+                      {formErrors.country && <p className="mt-1 text-[10px] text-red-500">{formErrors.country}</p>}
                     </div>
+                    <div className="w-full md:col-span-2">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Currency <span className="text-red-500">*</span></label>
+                      <select
+                        name="currency"
+                        value={formData.currency}
+                        onChange={handleInputChange}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 outline-none ${formErrors.currency
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
+                      >
+                        <option value="">-</option>
+                        {['USD', 'EUR', 'GBP', 'INR', 'AUD', 'CAD', 'JPY', 'SGD', 'AED', 'SAR', 'CNY', 'BRL', 'MXN', 'KRW', 'IDR', 'MYR', 'THB', 'ZAR', 'NGN', 'EGP', 'PLN', 'SEK', 'CHF'].map((currency) => (
+                          <option key={currency} value={currency}>{currency}</option>
+                        ))}
+                      </select>
+                      {formErrors.currency && <p className="mt-1 text-[10px] text-red-500">{formErrors.currency}</p>}
+                    </div>
+                  </div>
+
+                  {/* Row 4: Number of Resources & Payment Terms */}
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
                     <div className="w-full">
                       <label className="mb-1 block text-[11px] font-medium text-gray-700">Number of Resources <span className="text-red-500">*</span></label>
                       <input
@@ -595,21 +547,32 @@ const POsPage = () => {
                       />
                       {formErrors.numberOfResources && <p className="mt-1 text-[10px] text-red-500">{formErrors.numberOfResources}</p>}
                     </div>
+                    <div className="w-full">
+                      <label className="mb-1 block text-[11px] font-medium text-gray-700">Payment Terms (Days)</label>
+                      <input
+                        name="paymentTermsDays"
+                        type="number"
+                        min="0"
+                        value={formData.paymentTermsDays}
+                        onChange={handleInputChange}
+                        className={`h-9 w-full rounded-md border bg-white px-2.5 text-[13px] text-gray-900 focus:outline-none ${formErrors.paymentTermsDays
+                          ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                          }`}
+                      />
+                      {formErrors.paymentTermsDays && <p className="mt-1 text-[10px] text-red-500">{formErrors.paymentTermsDays}</p>}
+                    </div>
                   </div>
-                </Card>
-              </div>
 
-              <div>
-                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Resources & Notes</h2>
-                <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-                  <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+                  {/* Row 5: Shared With & Remarks */}
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
                     <div className="w-full">
                       <label className="mb-1 block text-[11px] font-medium text-gray-700">Shared With</label>
                       <input
                         name="sharedWith"
                         value={formData.sharedWith}
                         onChange={handleInputChange}
-                        placeholder="Team, manager, or stakeholder names"
+                        placeholder="Team, stakeholders..."
                         className="h-9 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                       />
                     </div>
@@ -619,19 +582,14 @@ const POsPage = () => {
                         name="remark"
                         value={formData.remark}
                         onChange={handleInputChange}
-                        placeholder="Any PO-specific notes"
+                        placeholder="PO notes"
                         className="h-9 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                       />
                     </div>
                   </div>
-                </Card>
-              </div>
 
-              {/* Section 4: Documents */}
-              <div>
-                <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Documents</h2>
-                <Card className="border-[#d8e2ef] px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-                  <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+                  {/* Row 6: Documents */}
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
                     <div className="w-full">
                       <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Upload</label>
                       <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-[#d5deec] bg-[#f9fbff] p-4 hover:bg-[#f0f5ff]">
@@ -651,8 +609,8 @@ const POsPage = () => {
                       </label>
                     </div>
                   </div>
-                </Card>
-              </div>
+                </div>
+              </Card>
 
               {/* Section 6: Actions */}
               <div className="flex items-center justify-end gap-3 border-t border-[#d8e2ef] pt-5">
@@ -681,194 +639,139 @@ const POsPage = () => {
         onClose={() => setSelectedPo(null)}
         title={
           selectedPo ? (
-            <div className="flex w-full items-center justify-between gap-4 pr-3">
-              <span className="text-[16px] font-bold uppercase tracking-[0.02em] text-[#7a8ca6]">Purchase Order Details</span>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  disabled
-                  title="Edit is not available yet"
-                  className="inline-flex h-9 items-center rounded-xl border border-[#d8e2ef] bg-[#f8fbff] px-4 text-[12px] font-semibold text-[#8a98ad] disabled:cursor-not-allowed"
-                >
-                  Edit
-                </button>
+            <div className="flex w-full items-center justify-between gap-3 pr-1 py-4">
+              <span className="text-[22px] font-bold text-[#3557b8]">Purchase Order Profile</span>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleDownloadSelectedPo}
-                  className="inline-flex h-9 items-center rounded-xl border border-[#d8e2ef] bg-white px-4 text-[12px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
+                  className="inline-flex h-9 items-center gap-2 rounded-md bg-[#3e57d8] px-4 text-[12px] font-bold text-white shadow-md hover:bg-[#354bc4] transition-colors"
                 >
-                  Download
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPo(null)}
-                  className="inline-flex h-9 items-center rounded-xl bg-[#4b4fe8] px-4 text-[12px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.18)] hover:bg-[#4347db]"
-                >
-                  Close
+                  <Download className="h-4 w-4" /> Download PO
                 </button>
               </div>
             </div>
           ) : ''
         }
-        titleClassName="flex flex-1 items-center text-lg font-semibold text-gray-900"
+        titleClassName="flex flex-1 items-center"
+        headerClassName="px-6 border-b border-gray-100"
+        contentClassName="px-6 py-6"
         size="xxl"
       >
         {selectedPo && (
-          <div className="rounded-2xl border border-[#d8e2ef] bg-white">
-            {/* <div className="border-b border-[#e8eef7] px-5 py-5">
-              <div className="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <h2 className="text-[20px] font-bold leading-none text-[#0f1d33]">{selectedPo.poNumber || '-'}</h2>
-                <p className="text-[18px] font-semibold leading-none text-[#10203a]">
-                  {selectedPo.customerId ? customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}` : '-'}
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Number</label>
+                <p className="mt-1 text-[16px] font-semibold text-gray-900">{selectedPo.poNumber}</p>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Customer Name</label>
+                <p className="mt-1 text-[16px] font-semibold text-[#3557b8]">
+                  {customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}`}
                 </p>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${getPoStatusClasses(getPoStatus(selectedPo))}`}>
-                  {getPoStatus(selectedPo)}
-                </span>
-              </div>
-            </div> */}
-
-            {/* <div className="grid grid-cols-1 gap-3 border-b border-[#e8eef7] bg-[#f8fbff] px-5 py-3 sm:grid-cols-3">
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#94a3b8]">Duration</p>
-                <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{getDurationLabel(selectedPo.startDate, selectedPo.endDate)}</p>
               </div>
               <div>
-                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#94a3b8]">Total Value</p>
-                <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Date</label>
+                <p className="mt-1 text-[15px] text-gray-900">{formatters.formatDate(selectedPo.poDate)}</p>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Status</label>
+                <div className="mt-1">
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getPoStatusClasses(getPoStatus(selectedPo))}`}>
+                    {getPoStatus(selectedPo)}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Start Date</label>
+                <p className="mt-1 text-[15px] text-gray-900">{formatters.formatDate(selectedPo.startDate)}</p>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">End Date</label>
+                <p className="mt-1 text-[15px] text-gray-900">{formatters.formatDate(selectedPo.endDate)}</p>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Value</label>
+                <p className="mt-1 text-[20px] font-bold text-[#3557b8]">
                   {selectedPo.poValue != null ? formatters.formatCurrency(selectedPo.poValue, selectedPo.currency || 'USD') : '-'}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#94a3b8]">Updated</p>
-                <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{formatters.formatDate(selectedPo.updatedDate || selectedPo.createdDate)}</p>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Number of Resources</label>
+                <p className="mt-1 text-[15px] text-gray-900">{selectedPo.numberOfResources ?? '-'}</p>
               </div>
-            </div> */}
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Payment Terms</label>
+                <p className="mt-1 text-[15px] text-gray-900">{selectedPo.paymentTermsDays ?? selectedPo.paymentTerms ?? '-'} days</p>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Countries Applicable</label>
+                <p className="mt-1 text-[15px] text-gray-900">{selectedPo.country || '-'}</p>
+              </div>
 
-            <div className="grid grid-cols-1 gap-x-8 gap-y-6 px-5 py-5 lg:grid-cols-2">
-              <section className="space-y-4">
-                <div className="border-b border-[#eef3f8] pb-3">
-                  <h3 className="text-[16px] font-bold text-[#10203a]">Core Information</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+              <div className="md:col-span-2 pt-2 border-t border-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">PO Number</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.poNumber || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">Customer</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">
-                      {selectedPo.customerId ? customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}` : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">PO Date</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{formatters.formatDate(selectedPo.poDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">Status</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{getPoStatus(selectedPo)}</p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="border-b border-[#eef3f8] pb-3">
-                  <h3 className="text-[14px] font-bold text-[#10203a]">Timeline</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">Start Date</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{formatters.formatDate(selectedPo.startDate)}</p>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Document Actions</label>
+                    <div className="mt-1 flex gap-4">
+                      {selectedPo.fileUrl ? (
+                        <>
+                          <a
+                            href={`${API_ORIGIN}${selectedPo.fileUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#3e57d8] hover:underline"
+                          >
+                            <Search className="h-3.5 w-3.5" /> View PO
+                          </a>
+                          <a
+                            href={`${API_ORIGIN}${selectedPo.fileUrl}`}
+                            download
+                            className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#3e57d8] hover:underline"
+                          >
+                            <Download className="h-3.5 w-3.5" /> Download PO
+                          </a>
+                        </>
+                      ) : (
+                        <p className="text-[13px] text-gray-400">No PO uploaded</p>
+                      )}
+                    </div>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">End Date</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{formatters.formatDate(selectedPo.endDate)}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-[11px] font-bold text-[#94a3b8]">Duration</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{getDurationLabel(selectedPo.startDate, selectedPo.endDate)}</p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="border-b border-[#eef3f8] pb-3">
-                  <h3 className="text-[14px] font-bold text-[#10203a]">Financial Details</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-[#dfe8f8] bg-[#f7faff] px-4 py-3 sm:col-span-2">
-                    <p className="text-[11px] font-bold text-[#94a3b8]">PO Value</p>
-                    <p className="mt-1 text-[24px] font-bold tracking-[-0.02em] text-[#3557b8]">
-                      {selectedPo.poValue != null ? formatters.formatCurrency(selectedPo.poValue, selectedPo.currency || 'USD') : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">Currency</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.currency || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">Payment Terms</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">
-                      {selectedPo.paymentTermsDays ?? selectedPo.paymentTerms ?? '-'}
-                      {selectedPo.paymentTermsDays != null ? ' days' : ''}
-                    </p>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">SOW Document Actions</label>
+                    <div className="mt-1 flex gap-4">
+                      {selectedPo.sowFileUrl ? (
+                        <>
+                          <a
+                            href={`${API_ORIGIN}${selectedPo.sowFileUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#3e57d8] hover:underline"
+                          >
+                            <Search className="h-3.5 w-3.5" /> View SOW
+                          </a>
+                          <a
+                            href={`${API_ORIGIN}${selectedPo.sowFileUrl}`}
+                            download
+                            className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#3e57d8] hover:underline"
+                          >
+                            <Download className="h-3.5 w-3.5" /> Download SOW
+                          </a>
+                        </>
+                      ) : (
+                        <p className="text-[13px] text-gray-400">No SOW uploaded</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="border-b border-[#eef3f8] pb-3">
-                  <h3 className="text-[14px] font-bold text-[#10203a]">Resource Details</h3>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-[#94a3b8]">Number of Resources</p>
-                  <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.numberOfResources ?? '-'}</p>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="border-b border-[#eef3f8] pb-3">
-                  <h3 className="text-[14px] font-bold text-[#10203a]">Documents</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">PO Document</p>
-                    {selectedPo.fileUrl ? (
-                      <button type="button" onClick={handleDownloadSelectedPo} className="mt-1 text-[14px] font-semibold text-[#3f4fe8] hover:underline">
-                        View / Download
-                      </button>
-                    ) : (
-                      <p className="mt-1 text-[14px] font-bold text-[#0f1d33]">-</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">SOW Document</p>
-                    {selectedPo.sowFileUrl ? (
-                      <a href={selectedPo.sowFileUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[14px] font-semibold text-[#3f4fe8] hover:underline">
-                        View / Download
-                      </a>
-                    ) : (
-                      <p className="mt-1 text-[14px] font-bold text-[#0f1d33]">-</p>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="border-b border-[#eef3f8] pb-3">
-                  <h3 className="text-[14px] font-bold text-[#10203a]">Notes</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">Shared With</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.sharedWith || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-[#94a3b8]">Remarks</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#0f1d33]">{selectedPo.remark || '-'}</p>
-                  </div>
-                </div>
-              </section>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-gray-50">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Remarks</label>
+              <div className="mt-2 p-4 bg-gray-50 rounded-lg text-[14px] text-gray-600 italic">
+                {selectedPo.remark || 'No additional remarks.'}
+              </div>
             </div>
           </div>
         )}

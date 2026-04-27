@@ -41,6 +41,7 @@ public class CustomerTransformer {
                 .msaContactPerson(customer.getMsaContactPerson())
                 .msaContactEmail(customer.getMsaContactEmail())
                 .noticePeriodDays(customer.getNoticePeriodDays())
+                .msaFileUrl(customer.getMsaFileUrl())
                 .build();
     }
 
