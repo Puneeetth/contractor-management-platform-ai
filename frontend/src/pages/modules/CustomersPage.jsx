@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   Plus,
   AlertCircle,
-  CheckCircle2,
   Users,
   Building2,
   Globe,
@@ -31,7 +30,6 @@ const CustomersPage = () => {
   const isAdmin = user?.role === 'ADMIN'
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [success, setSuccess] = useState('')
   const [customers, setCustomers] = useState([])
   const [pos, setPos] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -72,18 +70,13 @@ const CustomersPage = () => {
   const [poPreSelectedCustomer, setPoPreSelectedCustomer] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
-  const PAGE_SIZE = 10
+  const PAGE_SIZE_OPTIONS = [10, 25, 50]
 
   useEffect(() => {
     loadCustomers()
   }, [])
-
-  useEffect(() => {
-    if (!success) return undefined
-    const timeoutId = setTimeout(() => setSuccess(''), 5000)
-    return () => clearTimeout(timeoutId)
-  }, [success])
 
   const loadCustomers = async () => {
     try {
@@ -155,7 +148,6 @@ const CustomersPage = () => {
     if (!validateForm()) return
 
     setIsSubmitting(true)
-    setSuccess('')
     try {
       if (formData.id) {
         await customerService.updateCustomer(formData.id, formData)
@@ -176,7 +168,6 @@ const CustomersPage = () => {
         msaFile: null,
       })
       await loadCustomers()
-      setSuccess(formData.id ? 'Customer updated successfully' : 'Customer created successfully')
     } catch (err) {
       setFormErrors({ submit: err?.message || `Failed to ${formData.id ? 'update' : 'create'} customer` })
     } finally {
@@ -199,14 +190,35 @@ const CustomersPage = () => {
     )
   })
 
-  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / pageSize))
   const currentPage = Math.min(page, totalPages)
-  const pageStart = (currentPage - 1) * PAGE_SIZE
-  const pageData = filteredCustomers.slice(pageStart, pageStart + PAGE_SIZE)
+  const pageStart = (currentPage - 1) * pageSize
+  const pageData = filteredCustomers.slice(pageStart, pageStart + pageSize)
+  const pageEnd = filteredCustomers.length === 0 ? 0 : Math.min(pageStart + pageSize, filteredCustomers.length)
+
+  const paginationItems = React.useMemo(() => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+
+    const items = [1]
+    let start = Math.max(2, currentPage - 1)
+    let end = Math.min(totalPages - 1, currentPage + 1)
+
+    if (currentPage <= 4) end = 5
+    if (currentPage >= totalPages - 3) start = totalPages - 4
+
+    if (start > 2) items.push('ellipsis-left')
+    for (let pageNumber = start; pageNumber <= end; pageNumber += 1) {
+      items.push(pageNumber)
+    }
+    if (end < totalPages - 1) items.push('ellipsis-right')
+
+    items.push(totalPages)
+    return items
+  }, [currentPage, totalPages])
 
   useEffect(() => {
     setPage(1)
-  }, [searchTerm, customers.length])
+  }, [searchTerm, customers.length, pageSize])
 
   const summaryStats = [
     { icon: Users, label: 'TOTAL CUSTOMERS', value: customers.length, color: 'text-[#4b54e6]', bg: 'bg-[#e9edff]' },
@@ -227,7 +239,7 @@ const CustomersPage = () => {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-3.5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-baseline gap-3">
-            <h1 className="shrink-0 text-[24px] leading-none font-extrabold tracking-[-0.02em] text-[#0f1d33]">Customers</h1>
+            <h1 className="shrink-0 text-[24px] leading-none font-bold tracking-[-0.02em] text-[#0f1d33]">Customers</h1>
             <p className="truncate text-[13px] font-medium text-[#4a5c77]">Manage your global customer directory and master service agreements.</p>
           </div>
           {isAdmin && (
@@ -296,13 +308,6 @@ const CustomersPage = () => {
           </motion.div>
         )}
 
-        {success && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-500" />
-            <p className="text-sm text-emerald-700">{success}</p>
-          </motion.div>
-        )}
-
         <Card className="border-[#d8e2ef] shadow-[0_8px_24px_rgba(15,23,42,0.05)]" isPadded={false}>
           {isLoading ? (
             <div className="flex justify-center py-12"><Loader message="Loading customers..." /></div>
@@ -367,18 +372,45 @@ const CustomersPage = () => {
                 </table>
               </div>
 
-              {pageData.length > 0 && filteredCustomers.length <= PAGE_SIZE && (
-                <div className="border-b border-[#e6ecf5] py-5 text-center text-lg italic text-[#d0d7e2]">No additional customers found in current view</div>
-              )}
-
-              <div className="flex items-center justify-between px-5 py-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
                 <p className="text-sm text-[#5f6f88]">
-                  Showing {filteredCustomers.length === 0 ? 0 : pageStart + 1} to {Math.min(pageStart + PAGE_SIZE, filteredCustomers.length)} of {filteredCustomers.length} customers
+                  Showing {filteredCustomers.length === 0 ? 0 : pageStart + 1} to {pageEnd} of {filteredCustomers.length} customers
                 </p>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} className="rounded-lg p-1.5 text-[#8394ad] hover:bg-[#edf2f9]" disabled={currentPage === 1}><ChevronLeft className="h-5 w-5" /></button>
-                  <span className="inline-flex min-w-8 justify-center rounded-lg border border-[#d5deec] bg-white px-2 py-1 text-sm font-semibold text-[#3b52d8]">{currentPage}</span>
-                  <button type="button" onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} className="rounded-lg p-1.5 text-[#8394ad] hover:bg-[#edf2f9]" disabled={currentPage === totalPages}><ChevronRight className="h-5 w-5" /></button>
+                  <select
+                    value={pageSize}
+                    onChange={(event) => setPageSize(Number(event.target.value))}
+                    className="h-9 rounded-lg border border-[#d5deec] bg-white px-2 text-[12px] font-medium text-[#334155] outline-none focus:border-[#4b4fe8]"
+                    aria-label="Rows per page"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <option key={size} value={size}>
+                        {size}/page
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setPage(1)} className="rounded-lg border border-[#d8e2ef] px-2 py-1.5 text-[12px] text-[#64748b] disabled:opacity-50" disabled={currentPage === 1}>First</button>
+                  <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} className="rounded-lg p-1.5 text-[#8394ad] hover:bg-[#edf2f9] disabled:opacity-50" disabled={currentPage === 1}><ChevronLeft className="h-5 w-5" /></button>
+                  {paginationItems.map((item) =>
+                    typeof item === 'number' ? (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setPage(item)}
+                        className={`inline-flex min-w-8 justify-center rounded-lg border px-2 py-1 text-sm font-semibold ${
+                          item === currentPage
+                            ? 'border-[#4b4fe8] bg-[#4b4fe8] text-white'
+                            : 'border-[#d5deec] bg-white text-[#3b52d8]'
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    ) : (
+                      <span key={item} className="px-1 text-[#94a3b8]">...</span>
+                    )
+                  )}
+                  <button type="button" onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} className="rounded-lg p-1.5 text-[#8394ad] hover:bg-[#edf2f9] disabled:opacity-50" disabled={currentPage === totalPages}><ChevronRight className="h-5 w-5" /></button>
+                  <button type="button" onClick={() => setPage(totalPages)} className="rounded-lg border border-[#d8e2ef] px-2 py-1.5 text-[12px] text-[#64748b] disabled:opacity-50" disabled={currentPage === totalPages}>Last</button>
                 </div>
               </div>
             </>
@@ -390,6 +422,9 @@ const CustomersPage = () => {
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             title={formData.id ? "Edit Customer" : "Add New Customer"}
+            titleClassName="text-[20px] font-black text-[#111827]"
+            headerClassName="px-5 py-2 border-b border-gray-100"
+            contentClassName="px-5 py-3"
             size="xxl"
             footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>{formData.id ? "Update Customer" : "Create Customer"}</Button></>}
           >
@@ -431,13 +466,21 @@ const CustomersPage = () => {
                 </div>
                 <div className="space-y-1">
                   <label className="mb-1 block text-[11px] font-medium text-gray-700">Upload MSA PDF</label>
-                  <input
-                    type="file"
-                    name="msaFile"
-                    onChange={handleFileChange}
-                    accept=".pdf"
-                    className="block h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
-                  />
+                  <div className="flex h-10 items-center rounded-md border border-gray-300 bg-white px-2.5">
+                    <label className="inline-flex h-7 cursor-pointer items-center rounded-md bg-[#eef1ff] px-2.5 text-[11px] font-medium text-[#3e57d8]">
+                      Choose File
+                      <input
+                        type="file"
+                        name="msaFile"
+                        onChange={handleFileChange}
+                        accept=".pdf"
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="ml-2 block min-w-0 flex-1 truncate text-[12px] text-gray-500">
+                      {formData.msaFile ? formData.msaFile.name : 'No file chosen'}
+                    </span>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="mb-1 block text-[11px] font-medium text-gray-700">MSA Contact Person <span className="text-red-500">*</span></label>
@@ -504,8 +547,8 @@ const CustomersPage = () => {
           onClose={() => setIsViewModalOpen(false)}
           title={
             selectedCustomer ? (
-              <div className="flex w-full items-center justify-between gap-3 pr-1 py-4">
-                <span className="text-[22px] font-bold text-[#3557b8]">Client Profile</span>
+              <div className="flex w-full items-center justify-between gap-3 pr-1 py-1">
+                <span className="text-[20px] font-black text-[#111827]">Customer Profile</span>
                 <div className="flex items-center gap-2">
                   {isAdmin && (
                     <button
@@ -531,24 +574,24 @@ const CustomersPage = () => {
             ) : ''
           }
           titleClassName="flex flex-1 items-center"
-          headerClassName="px-6 border-b border-gray-100"
-          contentClassName="px-6 py-6"
+          headerClassName="px-5 py-2 border-b border-gray-100"
+          contentClassName="px-5 py-3"
           size="xxl"
         >
           {selectedCustomer && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Customer Name</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">Customer Name</label>
                   <p className="mt-1 text-[16px] font-semibold text-gray-900">{selectedCustomer.name}</p>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Address</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">Address</label>
                   <p className="mt-1 text-[14px] text-gray-700 leading-relaxed">{selectedCustomer.address || 'Not provided'}</p>
                 </div>
 
                 <div className="pt-2 border-t border-gray-50">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA (Master Service Agreement)</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">MSA (Master Service Agreement)</label>
                   <p className="mt-1 text-[15px] font-medium text-[#3557b8]">{selectedCustomer.msa || 'Not Provided'}</p>
                 </div>
 
@@ -556,7 +599,7 @@ const CustomersPage = () => {
                   {selectedCustomer.msaFileUrl ? (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Document View</label>
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">MSA Document View</label>
                         <div className="mt-1">
                           <a
                             href={`${API_ORIGIN}${selectedCustomer.msaFileUrl}`}
@@ -569,7 +612,7 @@ const CustomersPage = () => {
                         </div>
                       </div>
                       <div>
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Download</label>
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">MSA Download</label>
                         <div className="mt-1">
                           <a
                             href={`${API_ORIGIN}${selectedCustomer.msaFileUrl}`}
@@ -583,35 +626,35 @@ const CustomersPage = () => {
                     </div>
                   ) : (
                     <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Document</label>
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">MSA Document</label>
                       <p className="mt-1 text-[13px] text-gray-400">No file uploaded</p>
                     </div>
                   )}
                 </div>
 
                 <div className="pt-2 border-t border-gray-50">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Contact Person</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">MSA Contact Person</label>
                   <p className="mt-1 text-[15px] text-gray-900">{selectedCustomer.msaContactPerson || 'Not assigned'}</p>
                 </div>
                 <div className="pt-2 border-t border-gray-50">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Contact Email</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">MSA Contact Email</label>
                   <p className="mt-1 text-[15px] text-[#3e57d8] hover:underline cursor-pointer">
                     {selectedCustomer.msaContactEmail || 'No email'}
                   </p>
                 </div>
 
                 <div className="pt-2 border-t border-gray-50">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Countries Applicable</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">Countries Applicable</label>
                   <p className="mt-1 text-[14px] text-gray-700">{selectedCustomer.countriesApplicable || 'Global'}</p>
                 </div>
                 <div className="pt-2 border-t border-gray-50">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Notice Period (days)</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">Notice Period (days)</label>
                   <p className="mt-1 text-[14px] text-gray-700">{selectedCustomer.noticePeriodDays ?? 0} days</p>
                 </div>
               </div>
               <div className="pt-4 border-t border-gray-50">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Remarks</label>
-                <div className="mt-2 p-4 bg-gray-50 rounded-lg text-[14px] text-gray-600 italic">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700">MSA Remarks</label>
+                <div className="mt-2 p-4 bg-gray-50 rounded-lg text-[14px] text-gray-700">
                   {selectedCustomer.msaRemark || 'No additional remarks.'}
                 </div>
               </div>

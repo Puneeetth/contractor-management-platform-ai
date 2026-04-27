@@ -180,16 +180,18 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
       isOpen={isOpen}
       onClose={onClose}
       title={
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span>Create New Purchase Order For</span>
           {selectedCustomer && preSelectedCustomer && (
-            <div className="inline-flex min-h-9 items-center rounded-lg border border-[#c7d7ff] bg-[#eef4ff] px-3 text-[12px] font-semibold text-[#2f56c8] shadow-[0_4px_12px_rgba(59,91,219,0.10)]">
+            <div className="inline-flex items-center rounded-md border border-[#d3dbff] bg-[#e8edff] px-2.5 py-1 text-[15px] font-black text-[#111827]">
               {selectedCustomer.name}
             </div>
           )}
         </div>
       }
       size="xxl"
+      titleClassName="text-[15px] font-black text-[#111827]"
+      headerClassName="px-4 py-3"
       contentClassName="px-4 pt-2 pb-3"
       footerClassName="px-4 py-3"
       footer={
