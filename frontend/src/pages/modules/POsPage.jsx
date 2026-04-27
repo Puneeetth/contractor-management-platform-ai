@@ -48,11 +48,12 @@ const POsPage = () => {
   const [customers, setCustomers] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [selectedPo, setSelectedPo] = useState(null)
   const [formData, setFormData] = useState(EMPTY_FORM)
   const [formErrors, setFormErrors] = useState({})
 
-  const PAGE_SIZE = 10
+  const PAGE_SIZE_OPTIONS = [10, 25, 50]
 
   useEffect(() => {
     loadData()
@@ -105,13 +106,34 @@ const POsPage = () => {
     })
   }, [pos, searchTerm, customerNameById])
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
   const currentPage = Math.min(page, totalPages)
-  const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const pageRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const pageStart = (currentPage - 1) * pageSize
+  const pageEnd = filteredRows.length === 0 ? 0 : Math.min(pageStart + pageSize, filteredRows.length)
+
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+
+    const items = [1]
+    let start = Math.max(2, currentPage - 1)
+    let end = Math.min(totalPages - 1, currentPage + 1)
+
+    if (currentPage <= 4) end = 5
+    if (currentPage >= totalPages - 3) start = totalPages - 4
+
+    if (start > 2) items.push('ellipsis-left')
+    for (let pageNumber = start; pageNumber <= end; pageNumber += 1) {
+      items.push(pageNumber)
+    }
+    if (end < totalPages - 1) items.push('ellipsis-right')
+    items.push(totalPages)
+    return items
+  }, [currentPage, totalPages])
 
   useEffect(() => {
     setPage(1)
-  }, [searchTerm, pos.length])
+  }, [searchTerm, pos.length, pageSize])
 
   useEffect(() => {
     if (!success) return undefined
@@ -355,14 +377,45 @@ const POsPage = () => {
                       </tbody>
                     </table>
                   </div>
-                  <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                     <p className="text-sm text-[#5f6f88]">
-                      Showing {(currentPage - 1) * PAGE_SIZE + (pageRows.length ? 1 : 0)} to {(currentPage - 1) * PAGE_SIZE + pageRows.length} of {filteredRows.length} results
+                      Showing {filteredRows.length === 0 ? 0 : pageStart + 1} to {pageEnd} of {filteredRows.length} results
                     </p>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#d8e2ef] text-[#8aa0bc] disabled:opacity-50">‹</button>
-                      <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-lg bg-[#4b4fe8] px-3 text-sm font-semibold text-white">{currentPage}</span>
-                      <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#d8e2ef] text-[#8aa0bc] disabled:opacity-50">›</button>
+                      <select
+                        value={pageSize}
+                        onChange={(event) => setPageSize(Number(event.target.value))}
+                        className="h-9 rounded-lg border border-[#d5deec] bg-white px-2 text-[12px] font-medium text-[#334155] outline-none focus:border-[#4b4fe8]"
+                        aria-label="Rows per page"
+                      >
+                        {PAGE_SIZE_OPTIONS.map((size) => (
+                          <option key={size} value={size}>
+                            {size}/page
+                          </option>
+                        ))}
+                      </select>
+                      <button type="button" onClick={() => setPage(1)} disabled={currentPage === 1} className="rounded-lg border border-[#d8e2ef] px-2 py-1.5 text-[12px] text-[#64748b] disabled:opacity-50">First</button>
+                      <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg border border-[#d8e2ef] px-2 py-1.5 text-[12px] text-[#64748b] disabled:opacity-50">Prev</button>
+                      {paginationItems.map((item) =>
+                        typeof item === 'number' ? (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setPage(item)}
+                            className={`inline-flex min-w-8 justify-center rounded-lg border px-2 py-1 text-sm font-semibold ${
+                              item === currentPage
+                                ? 'border-[#4b4fe8] bg-[#4b4fe8] text-white'
+                                : 'border-[#d5deec] bg-white text-[#3b52d8]'
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        ) : (
+                          <span key={item} className="px-1 text-[#94a3b8]">...</span>
+                        )
+                      )}
+                      <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg border border-[#d8e2ef] px-2 py-1.5 text-[12px] text-[#64748b] disabled:opacity-50">Next</button>
+                      <button type="button" onClick={() => setPage(totalPages)} disabled={currentPage === totalPages} className="rounded-lg border border-[#d8e2ef] px-2 py-1.5 text-[12px] text-[#64748b] disabled:opacity-50">Last</button>
                     </div>
                   </div>
                 </>
@@ -645,8 +698,8 @@ const POsPage = () => {
         onClose={() => setSelectedPo(null)}
         title={
           selectedPo ? (
-            <div className="flex w-full items-center justify-between gap-3 pr-1 py-4">
-              <span className="text-[22px] font-bold text-[#3557b8]">Purchase Order Profile</span>
+            <div className="flex w-full items-center justify-between gap-3 pr-1 py-1">
+              <span className="text-[20px] font-black text-[#111827]">Purchase Order Details</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -660,29 +713,29 @@ const POsPage = () => {
           ) : ''
         }
         titleClassName="flex flex-1 items-center"
-        headerClassName="px-6 border-b border-gray-100"
-        contentClassName="px-6 py-6"
+        headerClassName="px-5 py-2 border-b border-gray-100"
+        contentClassName="px-5 py-3"
         size="xxl"
       >
         {selectedPo && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Number</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">PO Number</label>
                 <p className="mt-1 text-[16px] font-semibold text-gray-900">{selectedPo.poNumber}</p>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Customer Name</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">Customer Name</label>
                 <p className="mt-1 text-[16px] font-semibold text-[#3557b8]">
                   {customerNameById[String(selectedPo.customerId)] || `Customer #${selectedPo.customerId}`}
                 </p>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Date</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">PO Date</label>
                 <p className="mt-1 text-[15px] text-gray-900">{formatters.formatDate(selectedPo.poDate)}</p>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Status</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">PO Status</label>
                 <div className="mt-1">
                   <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getPoStatusClasses(getPoStatus(selectedPo))}`}>
                     {getPoStatus(selectedPo)}
@@ -690,36 +743,36 @@ const POsPage = () => {
                 </div>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Start Date</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">Start Date</label>
                 <p className="mt-1 text-[15px] text-gray-900">{formatters.formatDate(selectedPo.startDate)}</p>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">End Date</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">End Date</label>
                 <p className="mt-1 text-[15px] text-gray-900">{formatters.formatDate(selectedPo.endDate)}</p>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Value</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">PO Value</label>
                 <p className="mt-1 text-[20px] font-bold text-[#3557b8]">
                   {selectedPo.poValue != null ? formatters.formatCurrency(selectedPo.poValue, selectedPo.currency || 'USD') : '-'}
                 </p>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Number of Resources</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">Number of Resources</label>
                 <p className="mt-1 text-[15px] text-gray-900">{selectedPo.numberOfResources ?? '-'}</p>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Payment Terms</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">Payment Terms</label>
                 <p className="mt-1 text-[15px] text-gray-900">{selectedPo.paymentTermsDays ?? selectedPo.paymentTerms ?? '-'} days</p>
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Countries Applicable</label>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">Countries Applicable</label>
                 <p className="mt-1 text-[15px] text-gray-900">{selectedPo.country || '-'}</p>
               </div>
 
               <div className="md:col-span-2 pt-2 border-t border-gray-50">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">PO Document Actions</label>
+                    <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">PO Document Actions</label>
                     <div className="mt-1 flex gap-4">
                       {selectedPo.fileUrl ? (
                         <>
@@ -745,7 +798,7 @@ const POsPage = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">SOW Document Actions</label>
+                    <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">SOW Document Actions</label>
                     <div className="mt-1 flex gap-4">
                       {selectedPo.sowFileUrl ? (
                         <>
@@ -773,9 +826,9 @@ const POsPage = () => {
                 </div>
               </div>
             </div>
-            <div className="pt-4 border-t border-gray-50">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Remarks</label>
-              <div className="mt-2 p-4 bg-gray-50 rounded-lg text-[14px] text-gray-600 italic">
+            <div className="pt-3 border-t border-gray-50">
+              <label className="text-[12px] font-bold uppercase tracking-wider text-gray-800">Remarks</label>
+              <div className="mt-2 rounded-lg bg-gray-50 p-4 text-[14px] text-gray-700">
                 {selectedPo.remark || 'No additional remarks.'}
               </div>
             </div>
