@@ -103,6 +103,13 @@ const InvoicesPage = () => {
     loadContracts()
   }, [user?.id, user?.role])
 
+  // Auto-select first contract when modal opens
+  useEffect(() => {
+    if (isModalOpen && contracts.length > 0 && !selectedContract) {
+      setSelectedContract(contracts[0])
+    }
+  }, [isModalOpen, contracts])
+
   // Update rate when contract is selected
   useEffect(() => {
     if (selectedContract) {
@@ -563,7 +570,12 @@ const InvoicesPage = () => {
           {user?.role === 'CONTRACTOR' && (
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                if (contracts.length > 0 && !selectedContract) {
+                  setSelectedContract(contracts[0])
+                }
+                setIsModalOpen(true)
+              }}
               className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#4b4fe8] px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
             >
               <Plus className="h-4 w-4" /> Create Invoice
@@ -593,165 +605,153 @@ const InvoicesPage = () => {
         onClose={() => setIsModalOpen(false)}
         title="Create Invoice"
         size="xxl"
+        footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Submit Invoice</Button></>}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Section 1: Contract Selection */}
-          <div>
-            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Contract Selection</h2>
-            <Card className="border-[#d8e2ef] px-4 py-3">
-              <div className="w-full">
-                <label className="mb-1.5 block text-[12px] font-semibold text-[#111827]">Select Contract</label>
-                <select
-                  value={selectedContract?.id || ''}
-                  onChange={(e) => handleContractChange(e.target.value)}
-                  disabled={loadingContracts}
-                  className={`h-9 w-full rounded-lg border bg-white px-3 text-[13px] text-[#0f1d33] focus:outline-none ${
-                    formErrors.contract
-                      ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                      : 'border-[#d8e2ef] focus:border-[#4b4fe8] focus:ring-2 focus:ring-[#e9edf4]'
-                  } ${loadingContracts ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                >
-                  <option value="">
-                    {loadingContracts ? 'Loading contracts...' : 'Select a contract'}
+        <form className="space-y-5">
+          {formErrors.submit && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
+          
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-1 md:col-span-2">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Contract <span className="text-red-500">*</span></label>
+              <select
+                value={selectedContract?.id || ''}
+                onChange={(e) => handleContractChange(e.target.value)}
+                disabled={loadingContracts}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${
+                  formErrors.contract
+                    ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                    : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                } ${loadingContracts ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+              >
+                <option value="">
+                  {loadingContracts ? 'Loading contracts...' : 'Select a contract'}
+                </option>
+                {contracts.map((contract) => (
+                  <option key={contract.id} value={contract.id}>
+                    {contract.poNumber ? `${contract.poNumber} - ${contract.customerName || 'Unknown Customer'}` : `Contract ${contract.id}`}
                   </option>
-                  {contracts.map((contract) => (
-                    <option key={contract.id} value={contract.id}>
-                      {contract.poNumber ? `${contract.poNumber} - ${contract.customerName || 'Unknown Customer'}` : `Contract ${contract.id}`}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.contract && <p className="mt-1 text-[11px] text-red-500">{formErrors.contract}</p>}
-                {selectedContract && (
-                  <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
-                    <p className="text-[11px] text-blue-800">
-                      <span className="font-medium">Rate:</span> ${selectedContract.payRate}/hr
-                    </p>
-                  </div>
-                )}
+                ))}
+              </select>
+              {formErrors.contract && <p className="mt-1 text-[10px] text-red-500">{formErrors.contract}</p>}
+              {selectedContract && (
+                <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
+                  <p className="text-[11px] text-blue-800">
+                    <span className="font-medium">Rate:</span> ${selectedContract.payRate}/hr
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Month <span className="text-red-500">*</span></label>
+              <input
+                type="month"
+                name="invoiceMonth"
+                value={formData.invoiceMonth}
+                onChange={handleInputChange}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${
+                  formErrors.invoiceMonth
+                    ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                    : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                }`}
+              />
+              {formErrors.invoiceMonth && <p className="mt-1 text-[10px] text-red-500">{formErrors.invoiceMonth}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Total Hours <span className="text-red-500">*</span></label>
+              <input
+                name="totalHours"
+                type="number"
+                value={formData.totalHours}
+                onChange={handleInputChange}
+                placeholder="Enter total hours"
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none ${
+                  formErrors.totalHours
+                    ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+                    : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
+                }`}
+              />
+              {formErrors.totalHours && <p className="mt-1 text-[10px] text-red-500">{formErrors.totalHours}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Rate ($/hr)</label>
+              <input
+                value={formData.rate ? `$${formData.rate}` : ''}
+                readOnly
+                placeholder="Select contract first"
+                className="h-10 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-3 text-[12px] text-gray-900 outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Base Amount</label>
+              <input
+                value={baseAmount.toFixed(2)}
+                readOnly
+                className="h-10 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-3 text-[12px] text-gray-900 outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Tax (%)</label>
+              <input
+                name="taxPercentage"
+                type="number"
+                value={formData.taxPercentage}
+                onChange={handleInputChange}
+                disabled={!canEditTax}
+                className={`h-10 w-full rounded-md border px-3 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:bg-[#f3f4f6] ${formErrors.taxPercentage ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100' : ''}`}
+              />
+              {formErrors.taxPercentage && <p className="mt-1 text-[10px] text-red-500">{formErrors.taxPercentage}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Total Amount</label>
+              <input
+                value={totalAmount.toFixed(2)}
+                readOnly
+                className="h-10 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-3 text-[12px] text-gray-900 outline-none"
+              />
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={canEditTax}
+                  onChange={(e) => {
+                    const allowed = e.target.checked
+                    setCanEditTax(allowed)
+                    if (!allowed) {
+                      setFormData((prev) => ({ ...prev, taxPercentage: '18' }))
+                    }
+                  }}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label className="text-[11px] font-medium text-gray-700">
+                  Allow tax change (default 18%)
+                </label>
               </div>
-            </Card>
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Invoice File <span className="text-red-500">*</span></label>
+              <input
+                type="file"
+                name="invoiceFile"
+                onChange={handleInputChange}
+                className="block h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
+              />
+              {formErrors.invoiceFile && <p className="mt-1 text-[10px] text-red-500">{formErrors.invoiceFile}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-700">Timesheet File <span className="text-red-500">*</span></label>
+              <input
+                type="file"
+                name="timesheetFile"
+                onChange={handleInputChange}
+                className="block h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-[12px] text-gray-900 outline-none file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
+              />
+              {formErrors.timesheetFile && <p className="mt-1 text-[10px] text-red-500">{formErrors.timesheetFile}</p>}
+            </div>
           </div>
 
-          {/* Section 2: Invoice Details */}
-          <div>
-            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Invoice Details</h2>
-            <Card className="border-[#d8e2ef] px-4 py-3">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
-                <div className="w-full">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Month</label>
-                  <input
-                    type="month"
-                    name="invoiceMonth"
-                    value={formData.invoiceMonth}
-                    onChange={handleInputChange}
-                    className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
-                      formErrors.invoiceMonth
-                        ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                        : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                    }`}
-                  />
-                  {formErrors.invoiceMonth && <p className="mt-1 text-[10px] text-red-500">{formErrors.invoiceMonth}</p>}
-                </div>
-                <div className="w-full">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Total Hours</label>
-                  <input
-                    name="totalHours"
-                    type="number"
-                    value={formData.totalHours}
-                    onChange={handleInputChange}
-                    placeholder="Enter total hours"
-                    className={`h-8 w-full rounded-md border bg-white px-2.5 text-[12px] text-gray-900 focus:outline-none ${
-                      formErrors.totalHours
-                        ? 'border-red-400 focus:ring-2 focus:ring-red-100 focus:border-red-500'
-                        : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
-                    }`}
-                  />
-                  {formErrors.totalHours && <p className="mt-1 text-[10px] text-red-500">{formErrors.totalHours}</p>}
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Section 3: Calculation */}
-          <div>
-            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Calculation</h2>
-            <Card className="border-[#d8e2ef] px-4 py-3">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
-                <div className="w-full">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Rate ($/hr)</label>
-                  <input
-                    value={formData.rate ? `$${formData.rate}` : ''}
-                    readOnly
-                    placeholder="Select contract first"
-                    className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
-                  />
-                </div>
-                <div className="w-full">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Base Amount</label>
-                  <input
-                    value={baseAmount.toFixed(2)}
-                    readOnly
-                    className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
-                  />
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Section 4: Tax */}
-          <div>
-            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Tax</h2>
-            <Card className="border-[#d8e2ef] px-4 py-3">
-              <div className="space-y-3">
-                {/* Tax % and Total Amount on same row */}
-                <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
-                  <div className="w-full">
-                    <label className="mb-1 block text-[11px] font-medium text-gray-700">Tax (%)</label>
-                    <input
-                      name="taxPercentage"
-                      type="number"
-                      value={formData.taxPercentage}
-                      onChange={handleInputChange}
-                      disabled={!canEditTax}
-                      className="h-8 w-full rounded-md border border-gray-300 bg-white px-2.5 text-[12px] text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:bg-[#f3f4f6]"
-                    />
-                    {formErrors.taxPercentage && <p className="mt-1 text-[10px] text-red-500">{formErrors.taxPercentage}</p>}
-                  </div>
-                  <div className="w-full">
-                    <label className="mb-1 block text-[11px] font-medium text-gray-700">Total Amount</label>
-                    <input
-                      value={totalAmount.toFixed(2)}
-                      readOnly
-                      className="h-8 w-full rounded-md border border-gray-300 bg-[#f8fafc] px-2.5 text-[12px] text-gray-900 outline-none"
-                    />
-                  </div>
-                </div>
-                
-                {/* Allow tax change option */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={canEditTax}
-                    onChange={(e) => {
-                      const allowed = e.target.checked
-                      setCanEditTax(allowed)
-                      if (!allowed) {
-                        setFormData((prev) => ({ ...prev, taxPercentage: '18' }))
-                      }
-                    }}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <label className="text-[11px] font-medium text-gray-700">
-                    Allow tax change (default 18%)
-                  </label>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Section 5: Bank Account Details */}
-          <div>
-            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Bank Account Details</h2>
+          <div className="rounded-xl border border-[#e3e9f2] bg-[#f7f9fc] p-4">
+            <p className="mb-2 text-[11px] font-bold tracking-[0.05em] text-[#5c6e89]">BANK ACCOUNT DETAILS</p>
             <BankDetailsCard 
               userId={user?.id}
               onEditClick={() => {
@@ -760,58 +760,6 @@ const InvoicesPage = () => {
               }}
               isLoading={isLoading}
             />
-          </div>
-
-          {/* Section 6: Attachments */}
-          <div>
-            <h2 className="mb-1.5 text-[13px] font-semibold text-[#111827]">Attachments</h2>
-            <Card className="border-[#d8e2ef] px-4 py-3">
-              <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2">
-                <div className="w-full">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Invoice File</label>
-                  <input
-                    type="file"
-                    name="invoiceFile"
-                    onChange={handleInputChange}
-                    className="block h-8 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700 file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
-                  />
-                  {formErrors.invoiceFile && <p className="mt-1 text-[10px] text-red-500">{formErrors.invoiceFile}</p>}
-                </div>
-                <div className="w-full">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Timesheet File</label>
-                  <input
-                    type="file"
-                    name="timesheetFile"
-                    onChange={handleInputChange}
-                    className="block h-8 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700 file:mr-2 file:rounded file:border-0 file:bg-[#eef1ff] file:px-2 file:py-1 file:text-[11px] file:font-medium file:text-[#3e57d8]"
-                  />
-                  {formErrors.timesheetFile && <p className="mt-1 text-[10px] text-red-500">{formErrors.timesheetFile}</p>}
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {formErrors.submit && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-              <p className="text-sm text-red-700">{formErrors.submit}</p>
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3 border-t border-[#d8e2ef] pt-4">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-3.5 text-[13px] font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#4b4fe8] px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db] disabled:opacity-60"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit'}
-            </button>
           </div>
         </form>
       </Modal>

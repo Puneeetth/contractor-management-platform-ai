@@ -637,7 +637,7 @@ const ContractorsPage = () => {
                       <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">END DATE</th>
                       <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">PAY RATE</th>
                       <th className="whitespace-nowrap px-2.5 py-2.5 text-left text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">BILL RATE</th>
-                      <th className="whitespace-nowrap px-3 py-2.5 text-right text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ACTIONS</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 text-center text-[9px] font-bold tracking-[0.05em] text-[#5c6e89]">ADD CONTRACT</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -667,27 +667,18 @@ const ContractorsPage = () => {
                           <td className="px-2.5 py-2.5 text-[13px] text-[#1f3048]">{formatters.formatDate(contract?.endDate) || '-'}</td>
                           <td className="px-2.5 py-2.5 text-[13px] font-medium text-[#111827]">{contract ? formatters.formatCurrency(contract.payRate) : '-'}</td>
                           <td className="px-2.5 py-2.5 text-[13px] font-medium text-[#111827]">{contract ? formatters.formatCurrency(contract.billRate) : '-'}</td>
-                          <td className="px-3 py-2.5">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {canCreateContracts && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); openContractModal(row.id) }}
-                                  className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
-                                  title="Add contract"
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </button>
-                              )}
+                          <td className="px-3 py-2.5 text-center">
+                            {canCreateContracts ? (
                               <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); setViewingContractor(row) }}
-                                className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
-                                title="View contracts"
+                                onClick={(e) => { e.stopPropagation(); openContractModal(row.id) }}
+                                className="inline-flex items-center justify-center gap-1 w-[57px] rounded-md border border-[#4b4fe8] bg-white py-1 text-[11px] font-semibold text-[#4b4fe8] hover:bg-[#4b4fe8] hover:text-white transition-colors"
                               >
-                                <Eye className="h-4 w-4" />
+                                <Plus className="h-3 w-3" /> Contract
                               </button>
-                            </div>
+                            ) : (
+                              <span className="text-[11px] text-[#8a98ad]">-</span>
+                            )}
                           </td>
                         </tr>
                       )
@@ -696,25 +687,17 @@ const ContractorsPage = () => {
                 </table>
               </div>
 
-              <div className="flex items-center justify-between px-6 py-5">
-                <p className="text-base text-[#5f6f88]">Showing <span className="font-semibold text-[#1e2d45]">{filteredRows.length}</span> of <span className="font-semibold text-[#1e2d45]">{rows.length}</span> results</p>
+              <div className="flex items-center justify-between px-5 py-3.5">
+                <p className="text-sm text-[#5f6f88]">
+                  Showing {filteredRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1} to {Math.min(currentPage * PAGE_SIZE, filteredRows.length)} of {filteredRows.length} contractors
+                </p>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8e2ef] text-[#94a1b6] disabled:opacity-50"
-                  >
-                    ‹
+                  <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} className="rounded-lg p-1.5 text-[#8394ad] hover:bg-[#edf2f9]" disabled={currentPage === 1}>
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                   </button>
-                  <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl bg-[#4b4fe8] px-3 text-sm font-semibold text-white">{currentPage}</span>
-                  <button
-                    type="button"
-                    onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8e2ef] text-[#94a1b6] disabled:opacity-50"
-                  >
-                    ›
+                  <span className="inline-flex min-w-8 justify-center rounded-lg border border-[#d5deec] bg-white px-2 py-1 text-sm font-semibold text-[#3b52d8]">{currentPage}</span>
+                  <button type="button" onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} className="rounded-lg p-1.5 text-[#8394ad] hover:bg-[#edf2f9]" disabled={currentPage === totalPages}>
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                   </button>
                 </div>
               </div>

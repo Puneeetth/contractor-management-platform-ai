@@ -468,24 +468,17 @@ const ContractsPage = () => {
                 </table>
               </div>
 
-              <div className="flex items-center justify-between px-5 py-4">
-                <p className="text-[13px] text-[#5f6f88]">SHOWING <span className="font-semibold text-[#1e2d45]">{filteredRows.length}</span> OF <span className="font-semibold text-[#1e2d45]">{rows.length}</span> CONTRACT RECORDS</p>
+              <div className="flex items-center justify-between px-5 py-3.5">
+                <p className="text-sm text-[#5f6f88]">
+                  Showing {filteredRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1} to {Math.min(currentPage * PAGE_SIZE, filteredRows.length)} of {filteredRows.length} contracts
+                </p>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="inline-flex h-9 min-w-12 items-center justify-center rounded-lg border border-[#d8e2ef] px-3 text-[13px] font-semibold text-[#8aa0bc] disabled:opacity-50"
-                  >
-                    Prev
+                  <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} className="rounded-lg p-1.5 text-[#8394ad] hover:bg-[#edf2f9]" disabled={currentPage === 1}>
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="inline-flex h-9 min-w-12 items-center justify-center rounded-lg border border-[#d8e2ef] px-3 text-[13px] font-semibold text-[#23395b] disabled:opacity-50"
-                  >
-                    Next
+                  <span className="inline-flex min-w-8 justify-center rounded-lg border border-[#d5deec] bg-white px-2 py-1 text-sm font-semibold text-[#3b52d8]">{currentPage}</span>
+                  <button type="button" onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} className="rounded-lg p-1.5 text-[#8394ad] hover:bg-[#edf2f9]" disabled={currentPage === totalPages}>
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                   </button>
                 </div>
               </div>
