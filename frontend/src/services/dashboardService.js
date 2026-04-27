@@ -21,10 +21,10 @@ export const dashboardService = {
       apiClient.get('/admin/purchase-orders').catch(() => ({ data: [] })),
     ])
 
-    const contractList = contracts.status === 'fulfilled' ? (contracts.value.data || []) : []
-    const invoiceList = invoices.status === 'fulfilled' ? (invoices.value.data || []) : []
-    const timesheetList = timesheets.status === 'fulfilled' ? (timesheets.value.data || []) : []
-    const poList = pos.status === 'fulfilled' ? (pos.value.data || []) : []
+    const contractList = contracts.status === 'fulfilled' ? (contracts.value || []) : []
+    const invoiceList = invoices.status === 'fulfilled' ? (invoices.value || []) : []
+    const timesheetList = timesheets.status === 'fulfilled' ? (timesheets.value || []) : []
+    const poList = pos.status === 'fulfilled' ? (pos.value || []) : []
 
     const now = new Date()
     const currentMonth = now.getMonth()
