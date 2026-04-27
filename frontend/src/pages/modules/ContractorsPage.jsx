@@ -639,7 +639,11 @@ const ContractorsPage = () => {
                       const customerName = contract?.customerId ? customerNameById[String(contract.customerId)] || `Customer #${contract.customerId}` : 'Not assigned'
                       const contractRef = contract?.poAllocation || (contract?.id ? `Contract #${contract.id}` : '-')
                       return (
-                        <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
+                        <tr 
+                          key={row.id} 
+                          className="border-b border-[#e5ebf4] bg-white cursor-pointer hover:bg-[#f8faff]"
+                          onClick={() => setViewingContractor(row)}
+                        >
                           <td className="px-3 py-2.5">
                             <div className="flex items-center gap-2">
                               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dee5fb] text-[10px] font-bold text-[#3e53dd]">{initials}</div>
@@ -664,7 +668,7 @@ const ContractorsPage = () => {
                               {canCreateContracts && (
                                 <button
                                   type="button"
-                                  onClick={() => openContractModal(row.id)}
+                                  onClick={(e) => { e.stopPropagation(); openContractModal(row.id) }}
                                   className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
                                   title="Add contract"
                                 >
@@ -673,9 +677,9 @@ const ContractorsPage = () => {
                               )}
                               <button
                                 type="button"
-                                onClick={() => setViewingContractor(row)}
+                                onClick={(e) => { e.stopPropagation(); setViewingContractor(row) }}
                                 className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
-                                title="View contracts"
+                                title="View details"
                               >
                                 <Eye className="h-4 w-4" />
                               </button>
@@ -1220,31 +1224,207 @@ const ContractorsPage = () => {
         <Modal
           isOpen={Boolean(viewingContractor)}
           onClose={() => setViewingContractor(null)}
-          title={`${viewingContractor?.name || 'Contractor'} - Contracts`}
+          title={
+            viewingContractor ? (
+              <div className="flex w-full items-center justify-between gap-3 pr-1">
+                <span className="mt-1 text-[18px] font-extrabold tracking-[-0.03em] text-[#3557b8]">Contractor Profile</span>
+                <div className="flex items-center gap-1.5">
+                  {canCreateContracts && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewingContractor(null)
+                        openContractModal(viewingContractor.id)
+                      }}
+                      className="inline-flex h-8 items-center gap-2 rounded-sm bg-[#3e57d8] px-3 text-[10px] font-semibold text-white shadow-[0_8px_14px_rgba(62,87,216,0.22)]"
+                    >
+                      Add New Contract
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : ''
+          }
+          titleClassName="flex flex-1 items-center text-lg font-semibold text-gray-900"
+          headerClassName="px-4 py-3"
+          contentClassName="px-4 py-3"
+          footerClassName="px-4 py-3"
           size="xxl"
+          footer={<Button variant="secondary" onClick={() => setViewingContractor(null)}>Cancel</Button>}
         >
-          {!viewingContractor || viewingContractor.contracts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center">
-              <p className="font-medium text-gray-700">No contracts assigned yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {viewingContractor.contracts.map((contract) => (
-                <div key={contract.id} className="rounded-xl border border-gray-200 bg-white p-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <p className="text-sm font-semibold text-gray-900">Contract #{contract.id}</p>
-                    <Badge variant={String(contract.status).toUpperCase() === 'ACTIVE' ? 'approved' : 'default'}>{contract.status}</Badge>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <p className="text-sm text-gray-700">Customer: <span className="font-medium text-gray-900">{customerNameById[String(contract.customerId)] || '-'}</span></p>
-                    <p className="text-sm text-gray-700">PO: <span className="font-medium text-gray-900">{contract.poAllocation || '-'}</span></p>
-                    <p className="text-sm text-gray-700">Duration: <span className="font-medium text-gray-900">{formatters.formatDate(contract.startDate)} - {formatters.formatDate(contract.endDate)}</span></p>
-                    <p className="text-sm text-gray-700">Pay Rate: <span className="font-medium text-gray-900">{formatters.formatCurrency(contract.payRate)}</span></p>
-                    <p className="text-sm text-gray-700">Bill Rate: <span className="font-medium text-gray-900">{formatters.formatCurrency(contract.billRate)}</span></p>
-                    <p className="text-sm text-gray-700">Hours: <span className="font-medium text-gray-900">{contract.estimatedHours || 0}</span></p>
+          {viewingContractor && (
+            <div className="space-y-2 px-0.5 py-0.5">
+              <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+                <div className="rounded-[22px] border border-[#e2e8f3] border-l-4 border-l-[#3662cb] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#a3b1c3]">Contractor Name</p>
+                      <p className="mt-1 text-[20px] font-extrabold tracking-[-0.03em] text-[#10203a]">{viewingContractor.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Contractor ID</p>
+                      <p className="mt-1 text-[16px] font-bold text-[#1f3048]">{viewingContractor.contractorId || 'Not Provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Location</p>
+                      <p className="mt-1 text-[13px] leading-6 text-[#42536b]">{viewingContractor.currentLocation || 'Not provided'}</p>
+                    </div>
                   </div>
                 </div>
-              ))}
+
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Contact Information</p>
+                  <div className="mt-3 rounded-[18px] bg-[#f6f8fc] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                    <div className="flex gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8edff] text-[16px] font-bold text-[#3e57d8]">
+                        {String(viewingContractor.name || 'CT')
+                          .split(' ')
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((part) => part[0]?.toUpperCase())
+                          .join('')}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[16px] font-extrabold tracking-[-0.03em] text-[#10203a]">{viewingContractor.name || 'Not assigned'}</p>
+                        <p className="text-[11px] font-medium text-[#7587a0]">Contractor</p>
+                        <a href={`mailto:${viewingContractor.email}`} className="mt-3 block truncate text-[12px] text-[#3e57d8] hover:underline">
+                          {viewingContractor.email || 'No email'}
+                        </a>
+                        <p className="mt-1 text-[12px] text-[#3e57d8]">{viewingContractor.phoneNumber || 'No phone available'}</p>
+                        {viewingContractor.secondaryEmail && (
+                          <a href={`mailto:${viewingContractor.secondaryEmail}`} className="mt-1 block truncate text-[12px] text-[#3e57d8] hover:underline">
+                            {viewingContractor.secondaryEmail}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Contract Summary</p>
+                  <div className="mt-4 space-y-5">
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Active Contracts</p>
+                      <p className="mt-1 text-[18px] font-extrabold tracking-[-0.03em] text-[#3557b8]">
+                        {viewingContractor.contracts?.filter(c => String(c.status || '').toUpperCase() === 'ACTIVE').length || 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Total Contracts</p>
+                      <p className="mt-1 text-[15px] font-semibold text-[#16263e]">{viewingContractor.contracts?.length || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Latest Contract</p>
+                      <p className="mt-1 text-[15px] font-semibold text-[#16263e]">
+                        {viewingContractor.latestContract ? `#${viewingContractor.latestContract.id}` : 'None'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Address Details</p>
+                  <div className="mt-4">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Full Address</p>
+                    <p className="mt-2 text-[13px] leading-6 text-[#42536b]">{viewingContractor.address || 'Not provided'}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Exit Protocol</p>
+                  <div className="mt-4">
+                    <div className="mt-2.5 flex items-start gap-3">
+                      <div>
+                        <p className="text-[34px] font-extrabold leading-none tracking-[-0.05em] text-[#3557b8]">{viewingContractor.noticePeriodDays ?? 0}</p>
+                        <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#6b7d96]">Days Notice</p>
+                      </div>
+                      <p className="max-w-[180px] pt-1 text-[12px] leading-6 text-[#43546b]">Standard institutional exit clause applies</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Customer Manager & Remarks</p>
+                  <div className="mt-4 space-y-2">
+                    {viewingContractor.customerManager && (
+                      <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Customer Manager</p>
+                        <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{viewingContractor.customerManager}</p>
+                        {viewingContractor.customerManagerEmail && (
+                          <a href={`mailto:${viewingContractor.customerManagerEmail}`} className="text-[12px] text-[#3e57d8] hover:underline">
+                            {viewingContractor.customerManagerEmail}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    <div className="rounded-[14px] border-l-4 border-l-[#c8d5e8] bg-[#eef3f8] px-4 py-4 text-[13px] italic leading-6 text-[#4b5d75]">
+                      {viewingContractor.remarks || 'No additional remarks available for this contractor.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {viewingContractor.contracts && viewingContractor.contracts.length > 0 && (
+                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Contract History</p>
+                  <div className="mt-4 space-y-3">
+                    {viewingContractor.contracts.map((contract) => {
+                      const customerName = customerNameById[String(contract.customerId)] || `Customer #${contract.customerId}`
+                      return (
+                        <div key={contract.id} className="rounded-xl border border-[#e5ebf4] bg-[#f9fafb] p-4">
+                          <div className="mb-2 flex items-center justify-between">
+                            <p className="text-[14px] font-bold text-[#1f3048]">Contract #{contract.id}</p>
+                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                              String(contract.status).toUpperCase() === 'ACTIVE' 
+                                ? 'bg-[#c9f0dd] text-[#198657]' 
+                                : 'bg-[#e5e7eb] text-[#6b7280]'
+                            }`}>
+                              {contract.status || 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Customer</p>
+                              <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{customerName}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">PO Number</p>
+                              <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{contract.poAllocation || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Bill Rate</p>
+                              <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{formatters.formatCurrency(contract.billRate)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Pay Rate</p>
+                              <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{formatters.formatCurrency(contract.payRate)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Start Date</p>
+                              <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{formatters.formatDate(contract.startDate)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">End Date</p>
+                              <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{formatters.formatDate(contract.endDate)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Hours</p>
+                              <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{contract.estimatedHours || 0}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Budget</p>
+                              <p className="mt-1 text-[13px] font-semibold text-[#1f3048]">{formatters.formatCurrency(contract.estimatedBudget)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Modal>
