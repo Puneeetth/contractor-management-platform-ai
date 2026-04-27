@@ -73,7 +73,7 @@ export const Navbar = ({ onMenuClick }) => {
         </div>
       )}
 
-      {isTopbarPage && !isContractorDashboard && (
+      {isTopbarPage && (
         <div className="flex items-center gap-3">
           <button className="p-2 hover:bg-gray-100 rounded-xl relative transition-colors">
             <Bell className="w-5 h-5 text-gray-600" />
@@ -82,7 +82,7 @@ export const Navbar = ({ onMenuClick }) => {
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-[#1f2937]">{displayName}</span>
             <span className="rounded-md bg-[#dce6ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#3c58c9]">
-              {user?.role || 'ADMIN'}
+              {user?.role || 'USER'}
             </span>
           </div>
           <button
