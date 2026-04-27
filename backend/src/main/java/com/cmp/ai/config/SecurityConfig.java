@@ -76,6 +76,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/expenses/**").hasAnyRole("ADMIN","FINANCE","CONTRACTOR")
                 .requestMatchers("/api/invoices/**").hasAnyRole("ADMIN","FINANCE","MANAGER","CONTRACTOR")
                 .requestMatchers("/api/timesheets/**").authenticated()
+                .requestMatchers("/api/dashboard/**").authenticated()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )

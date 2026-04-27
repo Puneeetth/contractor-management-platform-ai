@@ -24,7 +24,7 @@ public class InvoiceTransformer {
                 .tax(i.getTaxAmount())
                 .invoiceFileUrl(i.getInvoiceFileUrl())
                 .timesheetFileUrl(i.getTimesheetFileUrl())
-                .status(i.getStatus().name())
+                .status(i.getStatus() != null ? i.getStatus().name() : null)
                 .adminApprovalStatus(i.getAdminApprovalStatus() != null ? i.getAdminApprovalStatus().name() : null)
                 .financeApprovalStatus(i.getFinanceApprovalStatus() != null ? i.getFinanceApprovalStatus().name() : null)
                 .adminRejectionReason(i.getAdminRejectionReason())
