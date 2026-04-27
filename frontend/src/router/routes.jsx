@@ -1,12 +1,14 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { PrivateRoute, PublicRoute } from './PrivateRoute'
+import { useAuth } from '../hooks/useAuth'
 
 // Pages
 import LoginPage from '../pages/LoginPage'
 import SignupPage from '../pages/SignupPage'
 import PendingApprovalPage from '../pages/PendingApprovalPage'
 import DashboardPage from '../pages/DashboardPage'
+import ContractorDashboardPage from '../pages/ContractorDashboardPage'
 import CustomersPage from '../pages/modules/CustomersPage'
 import ContractorsPage from '../pages/modules/ContractorsPage'
 import ContractsPage from '../pages/modules/ContractsPage'
@@ -18,6 +20,15 @@ import AdministrationPage from '../pages/modules/AdministrationPage'
 import AuditTrailPage from '../pages/modules/AuditTrailPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
 import BankAccountPage from '../pages/modules/BankAccountPage'
+
+// Role-aware dashboard wrapper
+const DashboardRouter = () => {
+  const { user } = useAuth()
+  if (user?.role === 'CONTRACTOR') {
+    return <ContractorDashboardPage />
+  }
+  return <DashboardPage />
+}
 
 export const AppRoutes = () => {
   return (
@@ -54,7 +65,7 @@ export const AppRoutes = () => {
           path="/dashboard"
           element={
             <PrivateRoute>
-              <DashboardPage />
+              <DashboardRouter />
             </PrivateRoute>
           }
         />
