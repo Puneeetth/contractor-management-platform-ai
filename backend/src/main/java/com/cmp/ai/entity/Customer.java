@@ -39,6 +39,7 @@ public class Customer {
     private String msaContactPerson;
     private String msaContactEmail;
     private Integer noticePeriodDays;
+    private String msaFileUrl;
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
     private List<PurchaseOrder> purchaseOrders;

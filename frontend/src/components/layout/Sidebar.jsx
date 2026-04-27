@@ -59,23 +59,32 @@ export const Sidebar = ({ isOpen, onClose }) => {
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        <div className="flex items-center justify-between px-4 pb-2 pt-8">
-          <div className="flex items-center gap-3">
-            <div className="flex min-w-0 items-center gap-2 pl-1">
-              <h1 className="whitespace-nowrap text-[15px] font-bold leading-none tracking-[-0.01em] text-[#4b4fe8]">Trace</h1>
-              {roleLabel && (
-                <span className="rounded-md bg-[#dce6ff] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#3c58c9]">
-                  {roleLabel}
-                </span>
-              )}
-            </div>
+        <div className="flex flex-col px-4 pb-2 pt-10">
+          <div className="mb-6 flex justify-start pl-1">
+            <img 
+              src="/images/mindteck.png" 
+              alt="Mindteck Logo" 
+              className="h-8 w-50 object-contain brightness-110 contrast-125"
+            />
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-[#64748b] hover:bg-[#e4e9f2] lg:hidden"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-2 pl-1">
+                <h1 className="whitespace-nowrap text-[15px] font-bold leading-none tracking-[-0.01em] text-[#4b4fe8]">Trace</h1>
+                {roleLabel && (
+                  <span className="rounded-md bg-[#dce6ff] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#3c58c9]">
+                    {roleLabel}
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-[#64748b] hover:bg-[#e4e9f2] lg:hidden"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <nav className="flex-1 px-2 pt-3 pb-3">
@@ -94,13 +103,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
                 >
                   <item.icon className={`h-4.5 w-4.5 ${active ? 'text-[#4b4fe8]' : 'text-[#6f7d91]'}`} />
                   <span className="text-[13px] font-medium">{item.label}</span>
-                  {item.path === '/pos' && (
-                    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-[#4b4fe8] px-1.5 text-[9px] font-semibold text-white">
-                      12
-                    </span>
-                  )}
-                </Link>
-              )
+                  </Link>              )
             })}
           </div>
 

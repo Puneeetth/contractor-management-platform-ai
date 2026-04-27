@@ -34,7 +34,7 @@ public class PurchaseOrderService {
 
 
     @Transactional
-    public POResponse createPurchaseOrder(PORequest request, MultipartFile file) {
+    public POResponse createPurchaseOrder(PORequest request, MultipartFile file, MultipartFile sowFile) {
 
         Contract contract = null;
         if (request.getContractId() != null) {
@@ -48,15 +48,18 @@ public class PurchaseOrderService {
         if (contract != null && contract.getCustomer() != null && !request.getCustomerId().equals(contract.getCustomer().getId())) {
             throw new BadRequestException("Contract is not linked to the requested customer");
         }
-        //upload file
-        String fileUrl = null;
-        if(file != null && !file.isEmpty()){
-            fileUrl = fileService.uploadFile(file);
-        }
+        
         PurchaseOrder purchaseOrder = POTransformer.pORequestToPO(request, contract, customer);
-        //set file URL
 
-        purchaseOrder.setFileUrl(fileUrl);
+        //upload files
+        if(file != null && !file.isEmpty()){
+            purchaseOrder.setFileUrl(fileService.uploadFile(file));
+        }
+        
+        if(sowFile != null && !sowFile.isEmpty()){
+            purchaseOrder.setSowFileUrl(fileService.uploadFile(sowFile));
+        }
+
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
         auditTrailService.logSystemAction(
                 "PURCHASE_ORDER",

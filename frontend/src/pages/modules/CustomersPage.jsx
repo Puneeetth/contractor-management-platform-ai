@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from 'lucide-react'
 import { DashboardLayout } from '../../components/layout'
 import { Card, Button, Modal, Input, Badge, Loader } from '../../components/ui'
@@ -18,6 +19,7 @@ import { PoCreationModal } from '../../components/modals/PoCreationModal'
 import { customerService } from '../../services/customerService'
 import { poService } from '../../services/poService'
 import { useAuth } from '../../hooks/useAuth'
+import { API_ORIGIN } from '../../services/apiClient'
 import { dedupeBy } from '../../utils/dedupe'
 import { formatters } from '../../utils/formatters'
 import { validators } from '../../utils/validators'
@@ -32,6 +34,7 @@ const CustomersPage = () => {
   const [pos, setPos] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
+    id: null,
     name: '',
     address: '',
     msa: '',
@@ -42,6 +45,23 @@ const CustomersPage = () => {
     noticePeriodDays: 30,
     msaFile: null,
   })
+
+  const handleEditClick = (customer) => {
+    setFormData({
+      id: customer.id,
+      name: customer.name || '',
+      address: customer.address || '',
+      msa: customer.msa || '',
+      msaContactPerson: customer.msaContactPerson || '',
+      msaContactEmail: customer.msaContactEmail || '',
+      countriesApplicable: customer.countriesApplicable || '',
+      msaRemark: customer.msaRemark || '',
+      noticePeriodDays: customer.noticePeriodDays || 30,
+      msaFile: null,
+    })
+    setIsViewModalOpen(false)
+    setIsModalOpen(true)
+  }
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
@@ -121,16 +141,21 @@ const CustomersPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!isAdmin) {
-      setFormErrors({ submit: 'Only admins can create customers.' })
+      setFormErrors({ submit: 'Only admins can manage customers.' })
       return
     }
     if (!validateForm()) return
 
     setIsSubmitting(true)
     try {
-      await customerService.createCustomer(formData)
+      if (formData.id) {
+        await customerService.updateCustomer(formData.id, formData)
+      } else {
+        await customerService.createCustomer(formData)
+      }
       setIsModalOpen(false)
       setFormData({
+        id: null,
         name: '',
         address: '',
         msa: '',
@@ -143,7 +168,7 @@ const CustomersPage = () => {
       })
       await loadCustomers()
     } catch (err) {
-      setFormErrors({ submit: err?.message || 'Failed to create customer' })
+      setFormErrors({ submit: err?.message || `Failed to ${formData.id ? 'update' : 'create'} customer` })
     } finally {
       setIsSubmitting(false)
     }
@@ -197,7 +222,22 @@ const CustomersPage = () => {
           </div>
           {isAdmin && (
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setFormData({
+                  id: null,
+                  name: '',
+                  address: '',
+                  msa: '',
+                  msaContactPerson: '',
+                  msaContactEmail: '',
+                  countriesApplicable: '',
+                  msaRemark: '',
+                  noticePeriodDays: 30,
+                  msaFile: null,
+                })
+                setFormErrors({})
+                setIsModalOpen(true)
+              }}
               className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
             >
               <Plus className="h-4 w-4" /> Add Customer
@@ -332,9 +372,9 @@ const CustomersPage = () => {
           <Modal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            title="Add New Customer"
+            title={formData.id ? "Edit Customer" : "Add New Customer"}
             size="xxl"
-            footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>Create Customer</Button></>}
+            footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="primary" isLoading={isSubmitting} onClick={handleSubmit}>{formData.id ? "Update Customer" : "Create Customer"}</Button></>}
           >
             <form className="space-y-5">
               {formErrors.submit && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3"><p className="text-sm text-red-400">{formErrors.submit}</p></div>}
@@ -447,19 +487,25 @@ const CustomersPage = () => {
           onClose={() => setIsViewModalOpen(false)}
           title={
             selectedCustomer ? (
-              <div className="flex w-full items-center justify-between gap-3 pr-1">
-                <span className="mt-1 text-[18px] font-extrabold tracking-[-0.03em] text-[#3557b8]">Client Profile</span>
-                <div className="flex items-center gap-1.5">
-                  <button className="inline-flex h-8 items-center gap-2 rounded-sm border border-[#d8e2ef] bg-white px-3 text-[10px] font-semibold text-[#1b2c46]">
-                    Edit Profile
-                  </button>
+              <div className="flex w-full items-center justify-between gap-3 pr-1 py-4">
+                <span className="text-[22px] font-bold text-[#3557b8]">Client Profile</span>
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleEditClick(selectedCustomer)}
+                      className="inline-flex h-9 items-center gap-2 rounded-md border border-[#d8e2ef] bg-white px-4 text-[12px] font-bold text-[#1b2c46] hover:bg-gray-50 transition-colors"
+                    >
+                      Edit Profile
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
                       setIsViewModalOpen(false)
-                      openPoModal(selectedCustomer)
+                      setPoPreSelectedCustomer(selectedCustomer)
+                      setIsPoModalOpen(true)
                     }}
-                    className="inline-flex h-8 items-center gap-2 rounded-sm bg-[#3e57d8] px-3 text-[10px] font-semibold text-white shadow-[0_8px_14px_rgba(62,87,216,0.22)]"
+                    className="inline-flex h-9 items-center gap-2 rounded-md bg-[#3e57d8] px-4 text-[12px] font-bold text-white shadow-md hover:bg-[#354bc4] transition-colors"
                   >
                     Add New PO
                   </button>
@@ -467,120 +513,89 @@ const CustomersPage = () => {
               </div>
             ) : ''
           }
-          titleClassName="flex flex-1 items-center text-lg font-semibold text-gray-900"
-          headerClassName="px-4 py-3"
-          contentClassName="px-4 py-3"
-          footerClassName="px-4 py-3"
+          titleClassName="flex flex-1 items-center"
+          headerClassName="px-6 border-b border-gray-100"
+          contentClassName="px-6 py-6"
           size="xxl"
-          footer={<Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>Cancel</Button>}
         >
           {selectedCustomer && (
-            <div className="space-y-2 px-0.5 py-0.5">
-              <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
-                <div className="rounded-[22px] border border-[#e2e8f3] border-l-4 border-l-[#3662cb] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#a3b1c3]">Registration Name</p>
-                      <p className="mt-1 text-[20px] font-extrabold tracking-[-0.03em] text-[#10203a]">{selectedCustomer.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Tax Identifier</p>
-                      <p className="mt-1 text-[16px] font-bold text-[#1f3048]">{selectedCustomer.taxIdentifier || selectedCustomer.msa || 'Not Provided'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Headquarters</p>
-                      <p className="mt-1 text-[13px] leading-6 text-[#42536b]">{selectedCustomer.address || 'Not provided'}</p>
-                    </div>
-                  </div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Customer Name</label>
+                  <p className="mt-1 text-[16px] font-semibold text-gray-900">{selectedCustomer.name}</p>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Address</label>
+                  <p className="mt-1 text-[14px] text-gray-700 leading-relaxed">{selectedCustomer.address || 'Not provided'}</p>
                 </div>
 
-                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Primary Stakeholder</p>
-                  <div className="mt-3 rounded-[18px] bg-[#f6f8fc] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                    <div className="flex gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8edff] text-[16px] font-bold text-[#3e57d8]">
-                        {String(selectedCustomer.msaContactPerson || selectedCustomer.name || 'CU')
-                          .split(' ')
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .map((part) => part[0]?.toUpperCase())
-                          .join('')}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[16px] font-extrabold tracking-[-0.03em] text-[#10203a]">{selectedCustomer.msaContactPerson || 'Not assigned'}</p>
-                        <p className="text-[11px] font-medium text-[#7587a0]">MSA Contact Person</p>
-                        <a href={`mailto:${selectedCustomer.msaContactEmail}`} className="mt-3 block truncate text-[12px] text-[#3e57d8] hover:underline">
-                          {selectedCustomer.msaContactEmail || 'No email'}
-                        </a>
-                        <p className="mt-1 text-[12px] text-[#3e57d8]">{selectedCustomer.phoneNumber || 'No phone available'}</p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA (Master Service Agreement)</label>
+                  <p className="mt-1 text-[15px] font-medium text-[#3557b8]">{selectedCustomer.msa || 'Not Provided'}</p>
                 </div>
 
-                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Contractual Foundation</p>
-                  <div className="mt-4 space-y-5">
+                <div className="pt-2 border-t border-gray-50">
+                  {selectedCustomer.msaFileUrl ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Document View</label>
+                        <div className="mt-1">
+                          <a
+                            href={`${API_ORIGIN}${selectedCustomer.msaFileUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#3e57d8] hover:underline"
+                          >
+                            <Search className="h-3.5 w-3.5" /> View PDF
+                          </a>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Download</label>
+                        <div className="mt-1">
+                          <a
+                            href={`${API_ORIGIN}${selectedCustomer.msaFileUrl}`}
+                            download
+                            className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#3e57d8] hover:underline"
+                          >
+                            <Download className="h-3.5 w-3.5" /> Download
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
                     <div>
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">MSA Reference</p>
-                      <p className="mt-1 text-[18px] font-extrabold tracking-[-0.03em] text-[#3557b8]">{selectedCustomer.msa || 'Not Set'}</p>
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Document</label>
+                      <p className="mt-1 text-[13px] text-gray-400">No file uploaded</p>
                     </div>
-                    <div>
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Created Date</p>
-                      <p className="mt-1 text-[15px] font-semibold text-[#16263e]">{formatters.formatDate(selectedCustomer.createdDate) || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Renewal Date</p>
-                      <p className={`mt-1 text-[15px] font-semibold ${selectedCustomer.msaRenewalDate ? 'text-[#cf3f32]' : 'text-[#16263e]'}`}>
-                        {formatters.formatDate(selectedCustomer.msaRenewalDate) || 'Not Set'}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-[#f4d7d5] bg-[#fff6f5] px-4 py-3">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#c33a31]">
-                        {selectedCustomer.msaRenewalDate ? 'Contract review required within 45 days' : 'Renewal date not configured yet'}
-                      </p>
-                    </div>
-                  </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Contact Person</label>
+                  <p className="mt-1 text-[15px] text-gray-900">{selectedCustomer.msaContactPerson || 'Not assigned'}</p>
+                </div>
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Contact Email</label>
+                  <p className="mt-1 text-[15px] text-[#3e57d8] hover:underline cursor-pointer">
+                    {selectedCustomer.msaContactEmail || 'No email'}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Countries Applicable</label>
+                  <p className="mt-1 text-[14px] text-gray-700">{selectedCustomer.countriesApplicable || 'Global'}</p>
+                </div>
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Notice Period (days)</label>
+                  <p className="mt-1 text-[14px] text-gray-700">{selectedCustomer.noticePeriodDays ?? 0} days</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Global Parameters</p>
-                  <div className="mt-4">
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#a3b1c3]">Applicable Regions</p>
-                    <div className="mt-2.5 flex flex-wrap gap-2">
-                      {String(selectedCustomer.countriesApplicable || 'Global')
-                        .split(',')
-                        .map((country) => country.trim())
-                        .filter(Boolean)
-                        .map((country) => (
-                          <span key={country} className="inline-flex rounded-md bg-[#edf3ff] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#8ea2c4]">
-                            {country}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Termination Protocol</p>
-                  <div className="mt-4">
-                    <div className="mt-2.5 flex items-start gap-3">
-                      <div>
-                        <p className="text-[34px] font-extrabold leading-none tracking-[-0.05em] text-[#3557b8]">{selectedCustomer.noticePeriodDays ?? 0}</p>
-                        <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#6b7d96]">Days Notice</p>
-                      </div>
-                      <p className="max-w-[180px] pt-1 text-[12px] leading-6 text-[#43546b]">Standard institutional exit clause applies</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[22px] border border-[#e2e8f3] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#91a0b7]">Operational Context & Remarks</p>
-                  <div className="mt-4 rounded-[14px] border-l-4 border-l-[#c8d5e8] bg-[#eef3f8] px-4 py-4 text-[13px] italic leading-6 text-[#4b5d75]">
-                    {selectedCustomer.msaRemark || 'No additional remarks available for this customer.'}
-                  </div>
+              <div className="pt-4 border-t border-gray-50">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">MSA Remarks</label>
+                <div className="mt-2 p-4 bg-gray-50 rounded-lg text-[14px] text-gray-600 italic">
+                  {selectedCustomer.msaRemark || 'No additional remarks.'}
                 </div>
               </div>
             </div>
