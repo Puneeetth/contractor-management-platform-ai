@@ -1,13 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Menu, Bell } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Menu, Bell, User, Settings, KeyRound, LogOut } from 'lucide-react'
 import { useAuthStore } from '../../hooks/useAuth'
+import { LogoutConfirmModal } from './LogoutConfirmModal'
 
 export const Navbar = ({ onMenuClick }) => {
-  const { user } = useAuthStore()
+  const { user, logout } = useAuthStore()
+  const navigate = useNavigate()
   const location = useLocation()
   const fileInputRef = useRef(null)
+  const profileMenuRef = useRef(null)
+  const notificationsRef = useRef(null)
   const [profileImage, setProfileImage] = useState('')
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true)
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false)
   const displayName = user?.name || user?.fullName || user?.username || user?.email?.split('@')[0] || 'User'
   const profileImageStorageKey =
     user?.id || user?.userId || user?.email || user?.username
@@ -32,6 +40,30 @@ export const Navbar = ({ onMenuClick }) => {
     const savedImage = localStorage.getItem(profileImageStorageKey)
     setProfileImage(savedImage || '')
   }, [profileImageStorageKey])
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!profileMenuRef.current?.contains(event.target)) {
+        setIsProfileMenuOpen(false)
+      }
+      if (!notificationsRef.current?.contains(event.target)) {
+        setIsNotificationsOpen(false)
+      }
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
 
   const handleProfileImageChange = (event) => {
     const file = event.target.files?.[0]
@@ -75,31 +107,111 @@ export const Navbar = ({ onMenuClick }) => {
 
       {isTopbarPage && (
         <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-gray-100 rounded-xl relative transition-colors">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-white ${isAdminShell ? 'bg-red-500' : 'bg-indigo-500'}`} />
-          </button>
+          <div ref={notificationsRef} className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsNotificationsOpen((prev) => !prev)
+                setHasUnreadNotifications(false)
+              }}
+              className="p-2 hover:bg-gray-100 rounded-xl relative transition-colors"
+            >
+              <Bell className="w-5 h-5 text-gray-600" />
+              {hasUnreadNotifications && (
+                <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-white ${isAdminShell ? 'bg-red-500' : 'bg-indigo-500'}`} />
+              )}
+            </button>
+            {isNotificationsOpen && (
+              <div className="absolute right-0 top-11 z-50 w-72 rounded-2xl border border-[#e4e7ee] bg-white p-3 shadow-[0_14px_32px_rgba(15,23,42,0.14)]">
+                <p className="text-[14px] font-semibold text-[#0f172a]">Notifications</p>
+                <div className="my-2 h-px bg-[#eceff4]" />
+                <p className="text-[13px] font-medium text-[#334155]">No notifications yet</p>
+                <p className="mt-1 text-[12px] text-[#64748b]">You&apos;ll see contract updates here</p>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-[#1f2937]">{displayName}</span>
             <span className="rounded-md bg-[#dce6ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#3c58c9]">
               {user?.role || 'USER'}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="relative h-9 w-9 rounded-full"
-            title="Change profile photo"
-          >
-            <img
-              src={profileImage || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`}
-              alt={`${displayName} profile`}
-              className="h-full w-full overflow-hidden rounded-full border border-[#d4deeb] bg-[#cfe2ea] object-cover"
-            />
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 border-white bg-[#4b4fe8] text-[10px] font-bold leading-none text-white shadow-sm">
+          <div ref={profileMenuRef} className="relative h-9 w-9 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+              className="block h-9 w-9 rounded-full"
+              title="Open profile menu"
+            >
+              <img
+                src={profileImage || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`}
+                alt={`${displayName} profile`}
+                className="h-full w-full overflow-hidden rounded-full border border-[#d4deeb] bg-[#cfe2ea] object-cover"
+              />
+            </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                setIsProfileMenuOpen(false)
+                fileInputRef.current?.click()
+              }}
+              className="absolute bottom-[1px] right-[1px] flex h-2.5 w-2.5 items-center justify-center rounded-full bg-[#4b4fe8] text-[8px] font-bold leading-none text-white"
+              title="Upload profile photo"
+            >
               +
-            </span>
-          </button>
+            </button>
+
+            {isProfileMenuOpen && (
+              <div className="absolute right-0 top-11 z-50 w-52 rounded-2xl border border-[#e4e7ee] bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.14)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false)
+                    navigate('/dashboard')
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-[#111827] hover:bg-[#f3f4f6]"
+                >
+                  <User className="h-4.5 w-4.5 text-[#4b5563]" />
+                  <span>Profile</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false)
+                    navigate(user?.role === 'CONTRACTOR' ? '/bank-account' : '/admin/administration')
+                  }}
+                  className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-[#4b5563] hover:bg-[#f3f4f6]"
+                >
+                  <KeyRound className="h-4.5 w-4.5 text-[#6b7280]" />
+                  <span>Change Password</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false)
+                    navigate(user?.role === 'CONTRACTOR' ? '/bank-account' : '/admin/administration')
+                  }}
+                  className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-[#4b5563] hover:bg-[#f3f4f6]"
+                >
+                  <Settings className="h-4.5 w-4.5 text-[#6b7280]" />
+                  <span>Settings</span>
+                </button>
+                <div className="my-2 h-px bg-[#eceff4]" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false)
+                    setIsLogoutConfirmOpen(true)
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-[#4b5563] hover:bg-[#f3f4f6]"
+                >
+                  <LogOut className="h-4.5 w-4.5 text-[#6b7280]" />
+                  <span>Log out</span>
+                </button>
+              </div>
+            )}
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -109,6 +221,16 @@ export const Navbar = ({ onMenuClick }) => {
           />
         </div>
       )}
+      <LogoutConfirmModal
+        isOpen={isLogoutConfirmOpen}
+        role={user?.role}
+        onCancel={() => setIsLogoutConfirmOpen(false)}
+        onConfirm={() => {
+          setIsLogoutConfirmOpen(false)
+          logout()
+        }}
+      />
     </nav>
   )
 }
+

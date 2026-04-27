@@ -86,6 +86,15 @@ const AdministrationPage = () => {
     loadCountries()
   }, [])
 
+  useEffect(() => {
+    if (!success && !createdUser) return undefined
+    const timeoutId = setTimeout(() => {
+      setSuccess('')
+      setCreatedUser(null)
+    }, 5000)
+    return () => clearTimeout(timeoutId)
+  }, [success, createdUser])
+
   const handleChange = (e) => {
     const { name, value } = e.target
 

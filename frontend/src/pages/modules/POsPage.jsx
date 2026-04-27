@@ -113,6 +113,12 @@ const POsPage = () => {
     setPage(1)
   }, [searchTerm, pos.length])
 
+  useEffect(() => {
+    if (!success) return undefined
+    const timeoutId = setTimeout(() => setSuccess(''), 5000)
+    return () => clearTimeout(timeoutId)
+  }, [success])
+
   const stats = useMemo(() => {
     const totalPOs = pos.length
     const totalValue = pos.reduce((sum, po) => sum + (Number(po.poValue) || 0), 0)

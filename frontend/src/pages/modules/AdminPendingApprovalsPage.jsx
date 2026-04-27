@@ -19,6 +19,12 @@ const AdminPendingApprovalsPage = () => {
     fetchPendingUsers()
   }, [])
 
+  useEffect(() => {
+    if (!success) return undefined
+    const timeoutId = setTimeout(() => setSuccess(''), 5000)
+    return () => clearTimeout(timeoutId)
+  }, [success])
+
   const fetchPendingUsers = async () => {
     try {
       setLoading(true)
@@ -50,7 +56,6 @@ const AdminPendingApprovalsPage = () => {
       setAction(null)
       setReason('')
       fetchPendingUsers()
-      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       setError('Failed to approve user: ' + (err.message || 'Unknown error'))
     }
@@ -70,7 +75,6 @@ const AdminPendingApprovalsPage = () => {
       setAction(null)
       setReason('')
       fetchPendingUsers()
-      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       setError('Failed to reject user: ' + (err.message || 'Unknown error'))
     }
