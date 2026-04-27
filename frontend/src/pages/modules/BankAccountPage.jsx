@@ -31,6 +31,12 @@ const BankAccountPage = () => {
     }
   }, [user?.id])
 
+  useEffect(() => {
+    if (!success) return undefined
+    const timeoutId = setTimeout(() => setSuccess(null), 5000)
+    return () => clearTimeout(timeoutId)
+  }, [success])
+
   const loadBankAccount = async () => {
     try {
       setIsLoading(true)
@@ -112,9 +118,6 @@ const BankAccountPage = () => {
       setBankAccount(savedData)
       setIsEditing(false)
       setSuccess(bankAccount ? 'Bank account updated successfully!' : 'Bank account added successfully!')
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
       setError(err?.message || 'Failed to save bank account')
     } finally {

@@ -180,6 +180,12 @@ const ContractsPage = () => {
     setPage(1)
   }, [searchTerm, rows.length])
 
+  useEffect(() => {
+    if (!success) return undefined
+    const timeoutId = setTimeout(() => setSuccess(''), 5000)
+    return () => clearTimeout(timeoutId)
+  }, [success])
+
   const stats = useMemo(() => {
     const total = contracts.length
     const active = contracts.filter((contract) => String(contract.status || '').toUpperCase() === 'ACTIVE').length

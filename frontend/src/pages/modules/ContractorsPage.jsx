@@ -254,6 +254,12 @@ const ContractorsPage = () => {
     setPage(1)
   }, [searchTerm, regionFilter, customerFilter, statusFilter, contractors.length, contracts.length])
 
+  useEffect(() => {
+    if (!success) return undefined
+    const timeoutId = setTimeout(() => setSuccess(''), 5000)
+    return () => clearTimeout(timeoutId)
+  }, [success])
+
   const resetContractorForm = () => {
     setContractorFormData(EMPTY_CONTRACTOR_FORM)
     setContractorFormErrors({})

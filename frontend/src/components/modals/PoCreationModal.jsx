@@ -190,6 +190,8 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
         </div>
       }
       size="xxl"
+      contentClassName="px-4 pt-2 pb-3"
+      footerClassName="px-4 py-3"
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -201,15 +203,15 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {formErrors.submit && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-3">
             <p className="text-sm text-red-700">{formErrors.submit}</p>
           </div>
         )}
 
-        <Card className="border-[#d8e2ef] px-4 py-6 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-          <div className="space-y-6">
+        <Card className="border-[#d8e2ef] px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <div className="space-y-3">
             {!preSelectedCustomer && (
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">
@@ -308,7 +310,7 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
             </div>
 
             {/* Row 3: PO Value (50%), Country (30%), Currency (20%) */}
-            <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-10">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-10">
               <div className="w-full md:col-span-5">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">
                   PO Value <span className="text-red-500">*</span>
@@ -377,7 +379,7 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
             </div>
 
             {/* Row 4: Number of Resources & Payment Terms */}
-            <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">
                   Number of Resources <span className="text-red-500">*</span>
@@ -415,7 +417,7 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
             </div>
 
             {/* Row 5: Shared With & Remarks */}
-            <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">Shared With</label>
                 <input
@@ -440,7 +442,7 @@ export const PoCreationModal = ({ isOpen, onClose, preSelectedCustomer = null, o
             </div>
 
             {/* Row 6: Documents */}
-            <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2">
               <div className="w-full">
                 <label className="mb-1 block text-[11px] font-medium text-gray-700">PO Upload</label>
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-[#d5deec] bg-[#f9fbff] p-4 hover:bg-[#f0f5ff]">

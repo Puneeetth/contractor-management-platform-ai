@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Plus,
   AlertCircle,
+  CheckCircle2,
   Users,
   Building2,
   Globe,
@@ -30,6 +31,7 @@ const CustomersPage = () => {
   const isAdmin = user?.role === 'ADMIN'
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState('')
   const [customers, setCustomers] = useState([])
   const [pos, setPos] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -76,6 +78,12 @@ const CustomersPage = () => {
   useEffect(() => {
     loadCustomers()
   }, [])
+
+  useEffect(() => {
+    if (!success) return undefined
+    const timeoutId = setTimeout(() => setSuccess(''), 5000)
+    return () => clearTimeout(timeoutId)
+  }, [success])
 
   const loadCustomers = async () => {
     try {
@@ -147,6 +155,7 @@ const CustomersPage = () => {
     if (!validateForm()) return
 
     setIsSubmitting(true)
+    setSuccess('')
     try {
       if (formData.id) {
         await customerService.updateCustomer(formData.id, formData)
@@ -167,6 +176,7 @@ const CustomersPage = () => {
         msaFile: null,
       })
       await loadCustomers()
+      setSuccess(formData.id ? 'Customer updated successfully' : 'Customer created successfully')
     } catch (err) {
       setFormErrors({ submit: err?.message || `Failed to ${formData.id ? 'update' : 'create'} customer` })
     } finally {
@@ -283,6 +293,13 @@ const CustomersPage = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
             <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
             <p className="text-sm text-red-400">{error}</p>
+          </motion.div>
+        )}
+
+        {success && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-500" />
+            <p className="text-sm text-emerald-700">{success}</p>
           </motion.div>
         )}
 

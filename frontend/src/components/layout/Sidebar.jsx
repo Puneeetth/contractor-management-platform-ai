@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -14,10 +14,12 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useAuthStore } from '../../hooks/useAuth'
+import { LogoutConfirmModal } from './LogoutConfirmModal'
 
 export const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation()
   const { user, logout } = useAuthStore()
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false)
   const roleLabel = String(user?.role || '')
     .replace(/_/g, ' ')
     .trim()
@@ -135,7 +137,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
             <div className={`${filteredSystemItems.length > 0 ? 'mt-4 border-t border-[#dde3ec] pt-3' : 'mt-3'}`}>
               <button
-                onClick={logout}
+                onClick={() => setIsLogoutConfirmOpen(true)}
                 className="flex h-9 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[#cc1b1b] hover:bg-white/80"
               >
                 <LogOut className="h-4.5 w-4.5" />
@@ -145,6 +147,16 @@ export const Sidebar = ({ isOpen, onClose }) => {
           </div>
         </nav>
       </aside>
+
+      <LogoutConfirmModal
+        isOpen={isLogoutConfirmOpen}
+        role={user?.role}
+        onCancel={() => setIsLogoutConfirmOpen(false)}
+        onConfirm={() => {
+          setIsLogoutConfirmOpen(false)
+          logout()
+        }}
+      />
     </>
   )
 }

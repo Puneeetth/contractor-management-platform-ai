@@ -246,6 +246,12 @@ const DashboardPage = () => {
     }
   }, [loadDashboardStats])
 
+  useEffect(() => {
+    if (!success) return undefined
+    const timeoutId = setTimeout(() => setSuccess(''), 5000)
+    return () => clearTimeout(timeoutId)
+  }, [success])
+
   const resetContractorForm = () => {
     setContractorFormData(EMPTY_CONTRACTOR_FORM)
     setContractorFormErrors({})
