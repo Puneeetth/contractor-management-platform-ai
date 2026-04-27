@@ -34,25 +34,20 @@ const STATUS_BADGE_CONFIG = {
 }
 
 // ─── Summary Card ───────────────────────────────────────────────
-const SummaryCard = ({ icon: Icon, title, value, sublabel, accentColor = 'blue' }) => {
-  const accentMap = {
-    blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', iconBg: 'bg-blue-100' },
-    yellow: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', iconBg: 'bg-amber-100' },
-    green: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', iconBg: 'bg-emerald-100' },
-  }
-  const colors = accentMap[accentColor] || accentMap.blue
-
+const SummaryCard = ({ icon: Icon, topTag, label, value, iconWrap }) => {
   return (
-    <div className={`rounded-2xl border ${colors.border} bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md`}>
-      <div className="flex items-start justify-between">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${colors.iconBg}`}>
-          <Icon className={`h-6 w-6 ${colors.text}`} />
+    <div className="flex h-[72px] min-w-0 items-center rounded-2xl border border-[#dbe3ef] bg-white px-4 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+      <div className="flex w-full min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={`rounded-2xl p-2 ${iconWrap}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className="truncate text-[9px] font-bold tracking-[0.14em] text-[#6a7588]">{label}</p>
+            <p className="text-[18px] leading-none font-bold tracking-[-0.02em] text-[#0f2238]">{value}</p>
+          </div>
         </div>
-      </div>
-      <div className="mt-4">
-        <p className={`text-3xl font-bold tracking-tight ${colors.text}`}>{value}</p>
-        <p className="mt-1 text-sm font-semibold text-gray-800">{title}</p>
-        <p className="mt-0.5 text-xs text-gray-500">{sublabel}</p>
+        <span className="shrink-0 text-[9px] font-semibold text-[#1560b5]">{topTag}</span>
       </div>
     </div>
   )
@@ -62,7 +57,7 @@ const SummaryCard = ({ icon: Icon, title, value, sublabel, accentColor = 'blue' 
 const EarningsChart = ({ data }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <div className="flex h-64 items-center justify-center rounded-[26px] border border-[#d7e0ec] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
         <div className="text-center">
           <DollarSign className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm font-medium text-gray-500">No earnings data available</p>
@@ -97,10 +92,10 @@ const EarningsChart = ({ data }) => {
   })
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <div className="rounded-[26px] border border-[#d7e0ec] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">Earnings Overview</h3>
+          <h3 className="text-[16px] font-bold tracking-[-0.02em] text-[#1f2a3d]">Earnings Overview</h3>
           <p className="text-xs text-gray-400">Last 6 months performance</p>
         </div>
       </div>
@@ -139,31 +134,26 @@ const PendingActions = () => {
   const actions = [
     { label: 'Create Invoice', icon: FileText, gradient: 'from-blue-500 to-blue-600', hoverShadow: 'hover:shadow-blue-200', href: '/invoices' },
     { label: 'Submit Timesheet', icon: Clock, gradient: 'from-amber-500 to-amber-600', hoverShadow: 'hover:shadow-amber-200', href: '/timesheets' },
-    { label: 'Upload PO', icon: Upload, gradient: 'from-emerald-500 to-emerald-600', hoverShadow: 'hover:shadow-emerald-200', href: '/pos' },
     { label: 'Update Bank Details', icon: Building, gradient: 'from-slate-500 to-slate-600', hoverShadow: 'hover:shadow-slate-200', href: '/bank-account' },
   ]
   const navigate = useNavigate()
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-      <div className="mb-5 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
-          <ClipboardList className="h-4 w-4 text-indigo-600" />
-        </div>
-        <h3 className="text-lg font-bold text-gray-900">Your Actions</h3>
-      </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="rounded-[26px] border border-[#d7e0ec] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <h3 className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#6f7d93]">Your Actions</h3>
+      <div className="space-y-2.5">
         {actions.map((action) => {
           const Icon = action.icon
           return (
             <button
               key={action.label}
               onClick={() => navigate(action.href)}
-              className={`group flex flex-col items-center gap-2 rounded-2xl bg-gradient-to-br ${action.gradient} px-5 py-5 text-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${action.hoverShadow}`}
+              className={`group flex w-full items-center justify-between rounded-2xl bg-gradient-to-r ${action.gradient} px-4 py-2.5 text-white shadow-sm transition-all duration-200 hover:shadow-lg ${action.hoverShadow}`}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 transition-transform group-hover:scale-110">
-                <Icon className="h-5 w-5" />
-              </div>
-              <span className="text-sm font-semibold">{action.label}</span>
+              <span className="flex items-center gap-2.5">
+                <Icon className="h-4 w-4" />
+                <span className="text-[12.5px] font-bold">{action.label}</span>
+              </span>
+              <ChevronRight className="h-4 w-4" />
             </button>
           )
         })}
@@ -178,7 +168,7 @@ const ActiveContractsTable = ({ contracts }) => {
 
   if (!contracts || contracts.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-sm">
+      <div className="flex h-48 items-center justify-center rounded-[26px] border border-[#d7e0ec] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
         <div className="text-center">
           <FileText className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm font-medium text-gray-500">No contracts available</p>
@@ -188,13 +178,13 @@ const ActiveContractsTable = ({ contracts }) => {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+    <div className="rounded-[26px] border border-[#d7e0ec] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="flex items-center justify-between border-b border-[#dbe3ef] px-6 py-5">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">Active Contracts</h3>
+          <h3 className="text-[16px] font-bold tracking-[-0.02em] text-[#1f2a3d]">Active Contracts</h3>
           <p className="text-xs text-gray-400">{contracts.length} total contracts</p>
         </div>
-        <button className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+        <button className="flex items-center gap-1 text-[12px] font-semibold text-[#3155d7] hover:underline">
           View All <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -246,7 +236,7 @@ const ActiveContractsTable = ({ contracts }) => {
 const UpcomingPayments = ({ payments }) => {
   if (!payments || payments.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-sm">
+      <div className="flex h-48 items-center justify-center rounded-[26px] border border-[#d7e0ec] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
         <div className="text-center">
           <DollarSign className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm font-medium text-gray-500">No payment data available</p>
@@ -256,10 +246,10 @@ const UpcomingPayments = ({ payments }) => {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+    <div className="rounded-[26px] border border-[#d7e0ec] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="flex items-center justify-between border-b border-[#dbe3ef] px-6 py-5">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">Upcoming Payments</h3>
+          <h3 className="text-[16px] font-bold tracking-[-0.02em] text-[#1f2a3d]">Upcoming Payments</h3>
           <p className="text-xs text-gray-400">{payments.filter((p) => p.status === 'Pending').length} pending</p>
         </div>
       </div>
@@ -314,7 +304,7 @@ const UpcomingPayments = ({ payments }) => {
 const AttentionNeeded = ({ alerts }) => {
   if (!alerts || alerts.length === 0) {
     return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="rounded-[26px] border border-[#d7e0ec] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -329,12 +319,12 @@ const AttentionNeeded = ({ alerts }) => {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-      <div className="mb-5 flex items-center gap-2">
+    <div className="rounded-[26px] border border-[#d7e0ec] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="mb-3 flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
           <AlertCircle className="h-4 w-4 text-red-600" />
         </div>
-        <h3 className="text-lg font-bold text-gray-900">Attention Needed</h3>
+        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#6f7d93]">Attention Needed</h3>
         <span className="ml-auto rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
           {alerts.length} item{alerts.length !== 1 ? 's' : ''}
         </span>
@@ -385,15 +375,15 @@ const AttentionNeeded = ({ alerts }) => {
 
 // ─── Loading Skeleton ───────────────────────────────────────────
 const DashboardSkeleton = () => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  <div className="flex min-h-full flex-col gap-3 text-[#111827]">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="h-36 animate-pulse rounded-2xl bg-gray-200" />
+        <div key={i} className="h-[72px] animate-pulse rounded-2xl bg-gray-200" />
       ))}
     </div>
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="h-72 animate-pulse rounded-2xl bg-gray-200 lg:col-span-2" />
-      <div className="h-72 animate-pulse rounded-2xl bg-gray-200" />
+      <div className="h-72 animate-pulse rounded-[26px] bg-gray-200 lg:col-span-2" />
+      <div className="h-72 animate-pulse rounded-[26px] bg-gray-200" />
     </div>
   </div>
 )
@@ -596,20 +586,14 @@ const ContractorDashboardPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex min-h-full flex-col gap-3 text-[#111827]">
         {/* ── Header ──────────────────────────────────────────── */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-              {greeting}, <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{contractorName}</span>
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">Here&apos;s an overview of your contracts and earnings.</p>
-            {lastUpdated && (
-              <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
-                <Clock className="h-3 w-3" />
-                Last updated: {formatLastUpdated(lastUpdated)}
-              </p>
-            )}
+        <div className="mb-1 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[18px] font-bold tracking-[-0.02em] text-[#0f2238]">
+            <span>{greeting},</span>
+            <span className="bg-gradient-to-r from-[#2f56d6] via-[#4f7cff] to-[#8ec5ff] bg-clip-text text-transparent">
+              {contractorName}
+            </span>
           </div>
           <button
             onClick={handleRefresh}
@@ -621,38 +605,45 @@ const ContractorDashboardPage = () => {
             <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
         </div>
+        {lastUpdated && (
+          <p className="-mt-2 flex items-center gap-1 text-xs text-gray-400">
+            <Clock className="h-3 w-3" />
+            Last updated: {formatLastUpdated(lastUpdated)}
+          </p>
+        )}
+        <p className="mt-1 text-sm text-gray-500">Here&apos;s an overview of your contracts and earnings.</p>
 
         {/* ── Summary Cards ───────────────────────────────────── */}
         {stats ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             <SummaryCard
               icon={FileText}
-              title="Active Contracts"
+              label="ACTIVE CONTRACTS"
               value={stats.activeContracts || 0}
-              sublabel={stats.totalContractValue ? `Total value: ${formatCurrency(stats.totalContractValue)}` : ''}
-              accentColor="blue"
+              topTag={stats.totalContractValue ? `Value: ${formatCurrency(stats.totalContractValue)}` : 'No active contracts'}
+              iconWrap="bg-[#eef1ff] text-[#3e57d8]"
             />
 
             <SummaryCard
               icon={AlertCircle}
-              title="Pending Actions"
+              label="PENDING ACTIONS"
               value={(stats.pendingInvoices || 0) + (stats.pendingTimesheets || 0)}
-              sublabel={`${stats.pendingInvoices || 0} invoices · ${stats.pendingTimesheets || 0} timesheets`}
-              accentColor="yellow"
+              topTag={`${stats.pendingInvoices || 0} invoices · ${stats.pendingTimesheets || 0} timesheets`}
+              iconWrap="bg-[#f0f3f8] text-[#6f7d93]"
             />
 
             <SummaryCard
               icon={DollarSign}
-              title="This Month's Earnings"
+              label="MONTHLY EARNINGS"
               value={stats.monthlyEarnings ? formatCurrency(stats.monthlyEarnings) : '$0'}
-              sublabel="Approved earnings this month"
-              accentColor="green"
+              topTag="Approved this month"
+              iconWrap="bg-[#ebf4ff] text-[#1778b4]"
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-36 animate-pulse rounded-2xl bg-gray-200" />
+              <div key={i} className="h-[72px] animate-pulse rounded-2xl bg-gray-200" />
             ))}
           </div>
         )}
