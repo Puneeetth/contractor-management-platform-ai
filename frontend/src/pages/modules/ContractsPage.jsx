@@ -373,20 +373,9 @@ const ContractsPage = () => {
                 setSuccess('')
                 setIsExportModalOpen(true)
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#d8e2ef] bg-white px-4 py-2 text-sm font-semibold text-[#1c2f4b] hover:bg-[#f7f9fc]"
-            >
-              <Download className="h-4 w-4" /> Export CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFormData(EMPTY_FORM)
-                setFormErrors({})
-                setIsModalOpen(true)
-              }}
               className="inline-flex items-center gap-2 rounded-xl bg-[#4b4fe8] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(75,79,232,0.25)] hover:bg-[#4347db]"
             >
-              <Plus className="h-4 w-4" /> New Contract
+              <Download className="h-4 w-4" /> Export Contracts
             </button>
           </div>
         </div>

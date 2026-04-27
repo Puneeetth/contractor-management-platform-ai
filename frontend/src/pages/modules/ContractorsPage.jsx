@@ -101,6 +101,8 @@ const ContractorsPage = () => {
   const [isContractorLocked, setIsContractorLocked] = useState(false)
 
   const [viewingContractor, setViewingContractor] = useState(null)
+  const [selectedContractor, setSelectedContractor] = useState(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
 
   const PAGE_SIZE = 10
 
@@ -645,7 +647,7 @@ const ContractorsPage = () => {
                       const customerName = contract?.customerId ? customerNameById[String(contract.customerId)] || `Customer #${contract.customerId}` : 'Not assigned'
                       const contractRef = contract?.poAllocation || (contract?.id ? `Contract #${contract.id}` : '-')
                       return (
-                        <tr key={row.id} className="border-b border-[#e5ebf4] bg-white">
+                        <tr key={row.id} className="border-b border-[#e5ebf4] bg-white cursor-pointer hover:bg-[#f8faff]" onClick={() => { setSelectedContractor(row); setIsViewModalOpen(true) }}>
                           <td className="px-3 py-2.5">
                             <div className="flex items-center gap-2">
                               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dee5fb] text-[10px] font-bold text-[#3e53dd]">{initials}</div>
@@ -670,7 +672,7 @@ const ContractorsPage = () => {
                               {canCreateContracts && (
                                 <button
                                   type="button"
-                                  onClick={() => openContractModal(row.id)}
+                                  onClick={(e) => { e.stopPropagation(); openContractModal(row.id) }}
                                   className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
                                   title="Add contract"
                                 >
@@ -679,7 +681,7 @@ const ContractorsPage = () => {
                               )}
                               <button
                                 type="button"
-                                onClick={() => setViewingContractor(row)}
+                                onClick={(e) => { e.stopPropagation(); setViewingContractor(row) }}
                                 className="rounded-lg p-1 text-[#7f90ab] hover:bg-[#eef3fb] hover:text-[#4b4fe8]"
                                 title="View contracts"
                               >
@@ -1251,6 +1253,123 @@ const ContractorsPage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </Modal>
+
+        <Modal
+          isOpen={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+          title={
+            selectedContractor ? (
+              <div className="flex w-full items-center justify-between gap-3 pr-1 py-4">
+                <span className="text-[22px] font-bold text-[#3557b8]">Contractor Profile</span>
+                <div className="flex items-center gap-2">
+                  {canCreateContracts && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsViewModalOpen(false)
+                        openContractModal(selectedContractor.id)
+                      }}
+                      className="inline-flex h-9 items-center gap-2 rounded-md bg-[#3e57d8] px-4 text-[12px] font-bold text-white shadow-md hover:bg-[#354bc4] transition-colors"
+                    >
+                      Add New Contract
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : ''
+          }
+          titleClassName="flex flex-1 items-center"
+          headerClassName="px-6 border-b border-gray-100"
+          contentClassName="px-6 py-6"
+          size="xxl"
+        >
+          {selectedContractor && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Contractor ID</label>
+                  <p className="mt-1 text-[16px] font-semibold text-gray-900">{selectedContractor.contractorId || 'Not provided'}</p>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Name</label>
+                  <p className="mt-1 text-[16px] font-semibold text-gray-900">{selectedContractor.name || 'Not provided'}</p>
+                </div>
+
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Email</label>
+                  <p className="mt-1 text-[15px] text-[#3e57d8] hover:underline cursor-pointer">
+                    {selectedContractor.email || 'Not assigned'}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Secondary Email</label>
+                  <p className="mt-1 text-[15px] text-[#3e57d8] hover:underline cursor-pointer">
+                    {selectedContractor.secondaryEmail || 'Not assigned'}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Phone Number</label>
+                  <p className="mt-1 text-[15px] text-gray-900">{selectedContractor.phoneNumber || 'Not provided'}</p>
+                </div>
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Current Location</label>
+                  <p className="mt-1 text-[15px] text-gray-900">{selectedContractor.currentLocation || 'Not provided'}</p>
+                </div>
+
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Address</label>
+                  <p className="mt-1 text-[14px] text-gray-700 leading-relaxed">{selectedContractor.address || 'Not provided'}</p>
+                </div>
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Notice Period (days)</label>
+                  <p className="mt-1 text-[14px] text-gray-700">{selectedContractor.noticePeriodDays ?? 0} days</p>
+                </div>
+
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Customer Manager</label>
+                  <p className="mt-1 text-[15px] text-gray-900">{selectedContractor.customerManager || 'Not assigned'}</p>
+                </div>
+                <div className="pt-2 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Manager Email</label>
+                  <p className="mt-1 text-[15px] text-[#3e57d8] hover:underline cursor-pointer">
+                    {selectedContractor.customerManagerEmail || 'Not assigned'}
+                  </p>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-gray-50">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Remarks</label>
+                <div className="mt-2 p-4 bg-gray-50 rounded-lg text-[14px] text-gray-600 italic">
+                  {selectedContractor.remarks || 'No additional remarks.'}
+                </div>
+              </div>
+
+              {selectedContractor.contracts && selectedContractor.contracts.length > 0 && (
+                <div className="pt-4 border-t border-gray-50">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Associated Contracts</label>
+                  <div className="mt-3 space-y-3">
+                    {selectedContractor.contracts.map((contract) => (
+                      <div key={contract.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                        <div className="mb-2 flex items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900">Contract #{contract.id}</p>
+                          <Badge variant={String(contract.status).toUpperCase() === 'ACTIVE' ? 'approved' : 'default'}>{contract.status}</Badge>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                          <p className="text-sm text-gray-700">Customer: <span className="font-medium text-gray-900">{customerNameById[String(contract.customerId)] || '-'}</span></p>
+                          <p className="text-sm text-gray-700">PO: <span className="font-medium text-gray-900">{contract.poAllocation || '-'}</span></p>
+                          <p className="text-sm text-gray-700">Duration: <span className="font-medium text-gray-900">{formatters.formatDate(contract.startDate)} - {formatters.formatDate(contract.endDate)}</span></p>
+                          <p className="text-sm text-gray-700">Pay Rate: <span className="font-medium text-gray-900">{formatters.formatCurrency(contract.payRate)}</span></p>
+                          <p className="text-sm text-gray-700">Bill Rate: <span className="font-medium text-gray-900">{formatters.formatCurrency(contract.billRate)}</span></p>
+                          <p className="text-sm text-gray-700">Hours: <span className="font-medium text-gray-900">{contract.estimatedHours || 0}</span></p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Modal>
