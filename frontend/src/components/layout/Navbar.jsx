@@ -21,6 +21,7 @@ export const Navbar = ({ onMenuClick }) => {
     location.pathname === '/pos'
   const isAdminShell = isTopbarPage && user?.role === 'ADMIN'
   const isAdminDashboard = location.pathname === '/dashboard' && user?.role === 'ADMIN'
+  const isContractorDashboard = location.pathname === '/dashboard' && user?.role === 'CONTRACTOR'
 
   useEffect(() => {
     if (!profileImageStorageKey) {
@@ -60,6 +61,14 @@ export const Navbar = ({ onMenuClick }) => {
         <div className="pointer-events-none absolute left-[46%] top-1/2 -translate-x-1/2 -translate-y-1/2">
           <span className="text-[25px] font-extrabold tracking-[-0.02em] text-[#2f56d6]">
             Admin Dashboard
+          </span>
+        </div>
+      )}
+
+      {isContractorDashboard && (
+        <div className="pointer-events-none absolute left-[46%] top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <span className="text-[25px] font-extrabold tracking-[-0.02em] text-[#2f56d6]">
+            Contractor Dashboard
           </span>
         </div>
       )}
