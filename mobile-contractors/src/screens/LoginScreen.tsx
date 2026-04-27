@@ -45,9 +45,6 @@ export function LoginScreen({ navigation }: Props) {
       <View style={styles.headerBlock}>
         <Text style={styles.badge}>Contractor Access</Text>
         <Text style={styles.title}>Sign in to your contractor workspace</Text>
-        <Text style={styles.subtitle}>
-          This mobile app is limited to contractor accounts only.
-        </Text>
       </View>
 
       <View style={styles.card}>

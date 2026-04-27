@@ -142,6 +142,10 @@ public class ContractService {
             request.setPoAllocation(null); // or empty string
         }
 
+        if (request.getPayRate() >= request.getBillRate()) {
+            throw new BadRequestException("Pay rate must be less than bill rate");
+        }
+
         request.setCustomerId(customer.getId());
         Contract contract = ContractTransformer.contractRequestToContract(request, contractor, customer);
         contract.setStatus(ContractStatus.UPCOMING);
